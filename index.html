@@ -1,1 +1,975 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>LoanCRM Pro - Quản Lý, Quét CCCD & Kênh CRM_PTC</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Thư viện quét mã QR CCCD gắn chip -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
 
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    input, textarea, select {
+      user-select: text;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    #reader video {
+      border-radius: 1rem;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
+
+  <div class="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-2xl relative pb-16">
+
+    <!-- HEADER ỨNG DỤNG -->
+    <header class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white p-4 sticky top-0 z-30 shadow-md">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 bg-white/25 backdrop-blur rounded-xl flex items-center justify-center font-extrabold text-base shadow-inner">
+            💳
+          </div>
+          <div>
+            <h1 class="text-base font-bold tracking-tight leading-tight">LoanCRM Pro</h1>
+            <p class="text-[11px] text-blue-100 font-medium">Kênh CRM_PTC & Telegram</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <!-- Nút Sao Lưu Telegram -->
+          <button 
+            type="button"
+            onclick="openBackupModal()" 
+            class="bg-blue-800/90 hover:bg-blue-900 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold shadow border border-blue-400/40 flex items-center gap-1 active:scale-95 transition-all">
+            <span>💾</span>
+            <span class="text-[11px]">Sao lưu</span>
+          </button>
+          <!-- Nút Quét QR CCCD -->
+          <button 
+            type="button"
+            onclick="openScanModal()" 
+            class="bg-amber-400 text-amber-950 hover:bg-amber-300 px-2.5 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-1 active:scale-95 transition-all">
+            <span>📷</span>
+            <span>Quét QR</span>
+          </button>
+          <!-- Nút Thêm Khách -->
+          <button 
+            type="button"
+            onclick="openCreateModal()" 
+            class="bg-white text-blue-700 hover:bg-blue-50 px-2.5 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-1 active:scale-95 transition-all">
+            <span>+ Thêm</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- MENU ĐIỀU HƯỚNG TAB -->
+      <div class="mt-3 bg-blue-900/50 p-1 rounded-2xl flex text-xs font-bold border border-blue-400/30">
+        <button 
+          type="button"
+          onclick="switchTab('active')"
+          id="tabActiveBtn"
+          class="flex-1 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5 bg-white text-blue-800 shadow-md transition-all">
+          <span>⚡ Đang Xử Lý</span>
+          <span id="activeCountBadge" class="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-extrabold">0</span>
+        </button>
+        <button 
+          type="button"
+          onclick="switchTab('archived')"
+          id="tabArchivedBtn"
+          class="flex-1 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5 text-blue-200 hover:text-white transition-all">
+          <span>📁 Kho Lưu Trữ</span>
+          <span id="archivedCountBadge" class="bg-blue-800/80 text-blue-200 text-[10px] px-1.5 py-0.5 rounded-full font-extrabold">0</span>
+        </button>
+      </div>
+
+      <!-- THANH TÌM KIẾM -->
+      <div class="mt-2.5 relative">
+        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">🔍</span>
+        <input 
+          id="searchInput"
+          oninput="handleSearch(this.value)"
+          type="text" 
+          placeholder="Tìm tên, SĐT, CCCD, CMND, cty, mã HĐ..." 
+          class="w-full pl-9 pr-8 py-2 rounded-xl text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-none shadow-inner font-medium"
+        />
+        <button 
+          type="button"
+          onclick="clearSearch()" 
+          id="clearSearchBtn"
+          class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 hidden">
+          ✕
+        </button>
+      </div>
+
+      <!-- THỐNG KÊ NHANH -->
+      <div class="grid grid-cols-4 gap-1.5 mt-3 pt-2.5 border-t border-blue-500/40 text-center">
+        <div class="bg-blue-800/40 backdrop-blur rounded-lg py-1 px-0.5">
+          <div class="text-[10px] text-blue-200">Tổng lọc</div>
+          <div id="statTotal" class="text-xs font-bold">0/0</div>
+        </div>
+        <div class="bg-blue-800/40 backdrop-blur rounded-lg py-1 px-0.5">
+          <div class="text-[10px] text-emerald-300">Chuẩn CIC</div>
+          <div id="statCic" class="text-xs font-bold text-emerald-200">0</div>
+        </div>
+        <div class="bg-blue-800/40 backdrop-blur rounded-lg py-1 px-0.5">
+          <div class="text-[10px] text-amber-200">Có duyệt vay</div>
+          <div id="statApproved" class="text-xs font-bold text-amber-100">0</div>
+        </div>
+        <div class="bg-blue-800/40 backdrop-blur rounded-lg py-1 px-0.5">
+          <div class="text-[10px] text-purple-200">Đã giải ngân</div>
+          <div id="statDisbursed" class="text-xs font-bold text-purple-200">0</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- THANH LỌC NHANH TRẠNG THÁI -->
+    <div class="bg-white border-b border-slate-200 px-3 py-2 sticky top-[175px] z-20 shadow-sm flex items-center justify-between">
+      <div class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5">
+        <button type="button" onclick="filterStatus('ALL')" id="filterAll" class="px-2.5 py-1 rounded-full text-xs whitespace-nowrap bg-blue-600 text-white font-semibold transition">Tất cả</button>
+        <button type="button" onclick="filterStatus('Duyệt')" id="filterDuyet" class="px-2.5 py-1 rounded-full text-xs whitespace-nowrap bg-slate-100 text-slate-600 transition">Có bên Duyệt</button>
+        <button type="button" onclick="filterStatus('Đang thẩm định')" id="filterThamDinh" class="px-2.5 py-1 rounded-full text-xs whitespace-nowrap bg-slate-100 text-slate-600 transition">Đang thẩm định</button>
+        <button type="button" onclick="filterStatus('Từ chối')" id="filterTuChoi" class="px-2.5 py-1 rounded-full text-xs whitespace-nowrap bg-slate-100 text-slate-600 transition">Bị Từ chối</button>
+      </div>
+    </div>
+
+    <!-- DANH SÁCH HỒ SƠ -->
+    <main id="leadsContainer" class="flex-1 p-3 space-y-3 overflow-y-auto">
+      <!-- Render bằng JavaScript -->
+    </main>
+
+  </div>
+
+  <!-- MODAL SAO LƯU & KÊNH TELEGRAM CRM_PTC -->
+  <div id="backupModal" class="fixed inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-3 backdrop-blur-md hidden overflow-y-auto">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-4 shadow-2xl border border-slate-200">
+      <div class="flex justify-between items-center border-b pb-2.5">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-base">✈️</div>
+          <div>
+            <h3 class="font-extrabold text-slate-900 text-sm">Sao Lưu Kênh CRM_PTC</h3>
+            <p class="text-[10px] text-slate-500">Bot @mycrm_ptc_bot • Kênh CRM_PTC</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeBackupModal()" class="w-7 h-7 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center text-xs font-bold">✕</button>
+      </div>
+
+      <div class="bg-sky-50 border border-sky-200 rounded-2xl p-3 space-y-2 text-xs text-sky-950">
+        <div class="font-bold flex items-center gap-1 text-sky-900">
+          <span>🛡️</span> Đã kết nối kênh CRM_PTC (-1004351522635)
+        </div>
+        <p class="text-[10px] text-sky-800 leading-tight">
+          Bấm nút bên dưới để đẩy hoặc lấy danh sách hồ sơ lên Telegram ngay lập tức một cách an toàn.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" onclick="backupToTelegram()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 px-2 rounded-xl text-xs shadow flex items-center justify-center gap-1 transition">
+          🚀 Đẩy Lên Telegram
+        </button>
+        <button type="button" onclick="restoreFromTelegram()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-2 rounded-xl text-xs shadow flex items-center justify-center gap-1 transition">
+          🔄 Tải Về Từ Web
+        </button>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 space-y-2 text-xs">
+        <span class="font-bold text-slate-700 block">Sao lưu dự phòng File máy / Zalo:</span>
+        <div class="grid grid-cols-2 gap-2">
+          <button type="button" onclick="downloadBackupFile()" class="bg-blue-600 text-white font-bold py-2 rounded-xl text-[11px] shadow">📥 Tải File Máy</button>
+          <button type="button" onclick="copyBackupText()" class="bg-indigo-600 text-white font-bold py-2 rounded-xl text-[11px] shadow">📋 Copy Mã Zalo</button>
+        </div>
+      </div>
+
+      <button type="button" onclick="closeBackupModal()" class="w-full py-2 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs">Đóng</button>
+    </div>
+  </div>
+
+  <!-- MODAL THÊM / SỬA KHÁCH HÀNG -->
+  <div id="leadModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm hidden">
+    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-2.5">
+        <h2 id="leadModalTitle" class="font-bold text-base text-slate-800">Thêm Khách Hàng Mới</h2>
+        <button type="button" onclick="closeLeadModal()" class="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold">✕</button>
+      </div>
+
+      <form id="leadForm" onsubmit="saveLeadForm(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Họ và tên khách hàng *</label>
+          <input id="formName" required type="text" placeholder="Nguyễn Văn A" class="w-full border rounded-xl p-2 focus:outline-blue-500">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Số điện thoại *</label>
+            <input id="formPhone" required type="tel" placeholder="0901234567" class="w-full border rounded-xl p-2 font-mono focus:outline-blue-500">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Loại SIM</label>
+            <select id="formSim" class="w-full border rounded-xl p-2 bg-white focus:outline-blue-500">
+              <option value="Viettel">Viettel (Ưu tiên)</option>
+              <option value="Vinaphone">Vinaphone</option>
+              <option value="Mobifone">Mobifone</option>
+              <option value="Khác">Khác / Wintel</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Ngày sinh *</label>
+            <input id="formDob" required type="date" class="w-full border rounded-xl p-2 focus:outline-blue-500">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Số CCCD (12 số)</label>
+            <input id="formCccd" type="text" placeholder="09209500..." class="w-full border rounded-xl p-2 font-mono focus:outline-blue-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Thu nhập (VNĐ)</label>
+            <input id="formIncome" type="number" step="500000" value="10000000" class="w-full border rounded-xl p-2 focus:outline-blue-500">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Cần vay (VNĐ) *</label>
+            <input id="formAmount" required type="number" step="1000000" value="30000000" class="w-full border rounded-xl p-2 font-bold text-blue-700 focus:outline-blue-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Lịch sử tín dụng CIC</label>
+          <select id="formCic" class="w-full border rounded-xl p-2 bg-white focus:outline-blue-500">
+            <option value="SACH">Nhóm 1: Sạch CIC, chuẩn</option>
+            <option value="CHU_Y">Nhóm 2: Nợ chú ý / Trễ hạn</option>
+            <option value="NO_XAU">Nhóm 3-5: Nợ xấu</option>
+          </select>
+        </div>
+
+        <div class="bg-indigo-50 p-2.5 rounded-xl border border-indigo-100 space-y-1">
+          <label class="font-bold text-indigo-950 block">📄 Chứng từ có sẵn:</label>
+          <div class="grid grid-cols-2 gap-1 pt-1" id="formDocsContainer">
+            <label class="flex items-center gap-1"><input type="checkbox" name="doc" value="CAVET"> Cà vẹt xe</label>
+            <label class="flex items-center gap-1"><input type="checkbox" name="doc" value="GPLX"> Bằng lái xe</label>
+            <label class="flex items-center gap-1"><input type="checkbox" name="doc" value="BHYT"> BHYT</label>
+            <label class="flex items-center gap-1"><input type="checkbox" name="doc" value="SAO_KE"> Sao kê lương</label>
+            <label class="flex items-center gap-1"><input type="checkbox" name="doc" value="HDLD"> HĐLĐ</label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Ghi chú thẩm định</label>
+          <textarea id="formNote" rows="2" placeholder="Ghi chú..." class="w-full border rounded-xl p-2 focus:outline-blue-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="closeLeadModal()" class="w-1/3 py-2.5 rounded-xl bg-slate-100 font-bold">Hủy</button>
+          <button type="submit" class="w-2/3 py-2.5 rounded-xl bg-blue-600 text-white font-bold shadow">Lưu Hồ Sơ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL QUÉT QR CCCD -->
+  <div id="scanModal" class="fixed inset-0 bg-slate-900/75 z-50 flex items-center justify-center p-3 backdrop-blur-sm hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-4 space-y-3 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-sm">📷 Quét Mã QR CCCD Gắn Chip</h3>
+        <button type="button" onclick="closeScanModal()" class="w-7 h-7 bg-slate-100 rounded-full font-bold">✕</button>
+      </div>
+      <div class="relative bg-slate-900 rounded-2xl overflow-hidden min-h-[220px] flex items-center justify-center">
+        <div id="reader" class="w-full"></div>
+      </div>
+      <button type="button" onclick="closeScanModal()" class="w-full py-2 bg-slate-100 rounded-xl font-bold text-xs">Đóng</button>
+    </div>
+  </div>
+
+  <!-- MODAL XUẤT PHIẾU THANH TOÁN -->
+  <div id="receiptModal" class="fixed inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-3 backdrop-blur-md hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border border-slate-200">
+      <div class="p-4 text-white bg-gradient-to-r from-emerald-700 to-teal-800 flex justify-between items-center">
+        <h3 id="receiptLenderTitle" class="font-extrabold text-sm">Phiếu Thanh Toán</h3>
+        <button type="button" onclick="document.getElementById('receiptModal').classList.add('hidden')" class="w-7 h-7 bg-white/20 rounded-full font-bold">✕</button>
+      </div>
+      <div class="p-4 space-y-3 text-xs">
+        <div class="bg-slate-50 p-2.5 rounded-xl border flex justify-between">
+          <div><span class="text-[10px] text-slate-400 block">Khách hàng</span><b id="receiptName" class="text-slate-900"></b></div>
+          <div class="text-right"><span class="text-[10px] text-slate-400 block">SĐT</span><b id="receiptPhone" class="font-mono"></b></div>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-center space-y-1">
+          <div class="text-[10px] uppercase font-bold text-emerald-800">💰 Số tiền đóng mỗi tháng</div>
+          <div id="receiptMonthly" class="text-2xl font-black text-emerald-700">0 đ</div>
+          <div class="text-[10px] text-slate-500">Mã HĐ: <b id="receiptCode" class="font-mono text-slate-800"></b></div>
+        </div>
+        <button type="button" onclick="copyPaymentMsg()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow">📋 Copy Tin Nhắn Gửi Zalo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL NHẬP HỢP ĐỒNG -->
+  <div id="contractModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-3 backdrop-blur-sm hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-3 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-sm">🎉 Thông Tin Hợp Đồng Giải Ngân</h3>
+        <button type="button" onclick="document.getElementById('contractModal').classList.add('hidden')" class="w-7 h-7 bg-slate-100 rounded-full font-bold">✕</button>
+      </div>
+      <form onsubmit="saveContractForm(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold mb-1">Mã số Hợp đồng tín dụng *</label>
+          <input id="contractCode" required type="text" class="w-full border rounded-xl p-2 font-mono font-bold">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold mb-1">Số tiền duyệt (VNĐ) *</label>
+            <input id="contractAmount" required type="number" step="500000" class="w-full border rounded-xl p-2 font-bold text-emerald-700">
+          </div>
+          <div>
+            <label class="block font-bold mb-1">Kỳ hạn (Tháng)</label>
+            <select id="contractTenor" class="w-full border rounded-xl p-2 bg-white">
+              <option value="6">6 Tháng</option>
+              <option value="12" selected>12 Tháng</option>
+              <option value="18">18 Tháng</option>
+              <option value="24">24 Tháng</option>
+              <option value="36">36 Tháng</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold mb-1">Khoản góp / tháng (VNĐ)</label>
+          <input id="contractMonthly" type="number" step="10000" class="w-full border rounded-xl p-2">
+        </div>
+        <div class="pt-2 flex gap-2">
+          <button type="button" onclick="document.getElementById('contractModal').classList.add('hidden')" class="w-1/3 py-2 bg-slate-100 rounded-xl font-bold">Đóng</button>
+          <button type="submit" class="w-2/3 py-2 bg-emerald-600 text-white rounded-xl font-bold shadow">Lưu Hợp Đồng</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL HOÀN THÀNH -->
+  <div id="completeModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-3 backdrop-blur-sm hidden">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-3 shadow-2xl">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-sm">📁 Hoàn Thành & Lưu Vào Kho CRM</h3>
+        <button type="button" onclick="document.getElementById('completeModal').classList.add('hidden')" class="w-7 h-7 bg-slate-100 rounded-full font-bold">✕</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold mb-1">Lý do đóng hồ sơ *</label>
+          <select id="completeReason" class="w-full border rounded-xl p-2 bg-white font-semibold">
+            <option value="Đã giải ngân thành công">🎉 Đã giải ngân thành công</option>
+            <option value="Khách tự hủy / Không nhu cầu">🛑 Khách tự hủy / Không nhu cầu</option>
+            <option value="Bị từ chối tất cả các bên">⛔ Bị từ chối tất cả các bên</option>
+            <option value="Nợ xấu nặng">⚠️ Hồ sơ dính nợ xấu</option>
+          </select>
+        </div>
+      </div>
+      <div class="pt-2 flex gap-2">
+        <button type="button" onclick="document.getElementById('completeModal').classList.add('hidden')" class="w-1/3 py-2 bg-slate-100 rounded-xl font-bold">Đóng</button>
+        <button type="button" onclick="saveCompleteLead()" class="w-2/3 py-2 bg-slate-900 text-white rounded-xl font-bold shadow">Xác Nhận Lưu Kho</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-2xl font-medium hidden transition-all"></div>
+
+  <script>
+    const ALL_PARTNERS = ['FE Credit', 'Home Credit', 'HD Saison', 'Mirae Asset (MAFC)', 'MCredit', 'SHB Finance', 'VPBank', 'Cathay Bank (CUB)', 'Tnex', 'Cake by VPBank', 'Viettel Money', 'Tinvay'];
+    const DOC_MAP = { 'CAVET': 'Cà vẹt xe', 'GPLX': 'Bằng lái xe', 'BHYT': 'BHYT công ty/gia đình', 'SAO_KE': 'Sao kê lương', 'HDLD': 'HĐLĐ' };
+
+    let leads = JSON.parse(localStorage.getItem('loan_crm_v10') || '[]');
+    if (leads.length === 0) {
+      leads = [
+        {
+          id: 1, name: 'NGUYỄN VĂN HẢI', phone: '0981234567', simCarrier: 'Viettel', dob: '1998-08-15', age: 28,
+          cccd: '092098001234', income: 15000000, amount: 40000000, cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD', 'CAVET'],
+          isCompleted: true, completeReason: 'Đã giải ngân thành công', completedDate: '01/09/2026',
+          applications: [{ lender: 'Cathay Bank (CUB)', result: 'Duyệt', rejectReason: '', contract: { code: 'CT-9921', approvedAmount: 40000000, tenor: 24, monthlyPay: 2150000, disburseDate: '2026-09-01' } }]
+        }
+      ];
+    }
+
+    let activeTab = 'active';
+    let currentFilterStatus = 'ALL';
+    let searchQuery = '';
+    let editingLeadId = null;
+    let currentLeadForApp = null;
+    let currentAppIdx = null;
+    let currentReceiptData = null;
+    let leadToCompleteId = null;
+    let html5QrCodeScanner = null;
+
+    function saveLocal() {
+      localStorage.setItem('loan_crm_v10', JSON.stringify(leads));
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2800);
+    }
+
+    function formatVND(num) {
+      if (!num) return '0 đ';
+      return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(num);
+    }
+
+    function calculateAge(dob) {
+      if (!dob) return 25;
+      const b = new Date(dob);
+      const t = new Date();
+      let age = t.getFullYear() - b.getFullYear();
+      if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) age--;
+      return age >= 0 ? age : 25;
+    }
+
+    function switchTab(tab) {
+      activeTab = tab;
+      document.getElementById('tabActiveBtn').className = tab === 'active' 
+        ? 'flex-1 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5 bg-white text-blue-800 shadow-md transition-all'
+        : 'flex-1 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5 text-blue-200 hover:text-white transition-all';
+      document.getElementById('tabArchivedBtn').className = tab === 'archived' 
+        ? 'flex-1 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5 bg-white text-indigo-900 shadow-md transition-all'
+        : 'flex-1 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5 text-blue-200 hover:text-white transition-all';
+      renderLeads();
+    }
+
+    function handleSearch(val) {
+      searchQuery = val.trim().toLowerCase();
+      document.getElementById('clearSearchBtn').classList.toggle('hidden', !val);
+      renderLeads();
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      searchQuery = '';
+      document.getElementById('clearSearchBtn').classList.add('hidden');
+      renderLeads();
+    }
+
+    function filterStatus(st) {
+      currentFilterStatus = st;
+      ['All', 'Duyệt', 'ThamDinh', 'TuChoi'].forEach(k => {
+        const btn = document.getElementById('filter' + k);
+        if (btn) btn.className = 'px-2.5 py-1 rounded-full text-xs whitespace-nowrap bg-slate-100 text-slate-600 transition';
+      });
+      const mapId = { 'ALL': 'All', 'Duyệt': 'Duyệt', 'Đang thẩm định': 'ThamDinh', 'Từ chối': 'TuChoi' };
+      const activeBtn = document.getElementById('filter' + mapId[st]);
+      if (activeBtn) activeBtn.className = 'px-2.5 py-1 rounded-full text-xs whitespace-nowrap bg-blue-600 text-white font-semibold transition';
+      renderLeads();
+    }
+
+    function renderLeads() {
+      const activeCount = leads.filter(l => !l.isCompleted).length;
+      const archivedCount = leads.filter(l => l.isCompleted).length;
+      document.getElementById('activeCountBadge').innerText = activeCount;
+      document.getElementById('archivedCountBadge').innerText = archivedCount;
+
+      const cleanCic = leads.filter(l => l.cicStatus === 'SACH').length;
+      const anyApp = leads.filter(l => l.applications?.some(a => a.result === 'Duyệt')).length;
+      const disburseCount = leads.filter(l => l.applications?.some(a => a.contract?.code)).length;
+
+      document.getElementById('statCic').innerText = cleanCic;
+      document.getElementById('statApproved').innerText = anyApp;
+      document.getElementById('statDisbursed').innerText = disburseCount;
+
+      const filtered = leads.filter(l => {
+        if (activeTab === 'active' && l.isCompleted) return false;
+        if (activeTab === 'archived' && !l.isCompleted) return false;
+
+        if (searchQuery) {
+          const mName = l.name.toLowerCase().includes(searchQuery);
+          const mPhone = l.phone.includes(searchQuery);
+          const mCccd = l.cccd && l.cccd.includes(searchQuery);
+          const mApp = l.applications && l.applications.some(a => a.lender.toLowerCase().includes(searchQuery) || (a.contract?.code && a.contract.code.toLowerCase().includes(searchQuery)));
+          if (!mName && !mPhone && !mCccd && !mApp) return false;
+        }
+
+        if (currentFilterStatus !== 'ALL') {
+          const st = currentFilterStatus;
+          if (!l.applications || !l.applications.some(a => st === 'Duyệt' ? a.result === 'Duyệt' : st === 'Từ chối' ? a.result === 'Từ chối' : (a.result === 'Đang thẩm định' || a.result === 'Bổ sung hồ sơ'))) return false;
+        }
+        return true;
+      });
+
+      document.getElementById('statTotal').innerText = `${filtered.length}/${leads.length}`;
+
+      const container = document.getElementById('leadsContainer');
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="bg-white rounded-2xl p-8 text-center border border-dashed border-slate-300 mt-4 space-y-2">
+            <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto text-xl font-bold">🔎</div>
+            <p class="font-bold text-slate-800 text-sm">Không tìm thấy hồ sơ phù hợp</p>
+          </div>`;
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(lead => {
+        const docsHtml = (lead.documents || []).map(d => `<span class="inline-block bg-white text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 ml-1">✓ ${DOC_MAP[d] || d}</span>`).join('') || '<span class="text-slate-400 italic text-[10px]"> Chưa có</span>';
+
+        let appsHtml = '';
+        (lead.applications || []).forEach((app, idx) => {
+          let subDetail = '';
+          if (app.result === 'Từ chối') {
+            subDetail = `
+              <div class="text-rose-700 bg-rose-50 p-1.5 rounded text-[10px] space-y-1 border border-rose-200 mt-1">
+                <div class="font-bold">⛔ Đã kết thúc tại ${app.lender}</div>
+                <input type="text" value="${app.rejectReason || ''}" onchange="updateRejectReason(${lead.id}, ${idx}, this.value)" placeholder="Nhập lý do từ chối..." class="w-full bg-white border border-rose-200 rounded px-1.5 py-0.5 text-[10px]">
+              </div>`;
+          } else if (app.result === 'Duyệt') {
+            const c = app.contract;
+            subDetail = `
+              <div class="bg-emerald-50 border border-emerald-300 p-2 rounded text-[10px] space-y-1 mt-1">
+                <div class="flex justify-between items-center font-bold text-emerald-900">
+                  <span>🎉 Đã duyệt khoản vay</span>
+                  <button type="button" onclick="openContractModal(${lead.id}, ${idx})" class="bg-emerald-700 text-white px-2 py-0.5 rounded shadow">${c ? 'Sửa HĐ' : '+ Nhập HĐ'}</button>
+                </div>
+                ${c ? `
+                  <div class="grid grid-cols-2 gap-1 text-slate-700 pt-1 border-t border-emerald-200">
+                    <div>Số HĐ: <b class="font-mono text-emerald-800">${c.code}</b></div>
+                    <div>Duyệt: <b class="text-emerald-800">${formatVND(c.approvedAmount)}</b></div>
+                    <div class="col-span-2 flex justify-between items-center pt-1">
+                      <span>Kỳ: ${c.tenor} tháng • Góp: ${formatVND(c.monthlyPay)}/tháng</span>
+                      <button type="button" onclick="openReceipt(${lead.id}, ${idx})" class="bg-teal-600 text-white px-2.5 py-1 rounded-lg font-bold shadow">🧾 Xuất Phiếu</button>
+                    </div>
+                  </div>` : ''}
+              </div>`;
+          }
+
+          appsHtml += `
+            <div class="bg-white rounded-lg p-2 border border-indigo-200/70 text-xs space-y-1.5 shadow-sm">
+              <div class="grid grid-cols-12 gap-1 items-center">
+                <div class="col-span-5 font-bold text-slate-800 truncate">🏢 ${app.lender}</div>
+                <div class="col-span-7 flex justify-end gap-1">
+                  <select onchange="updateAppResult(${lead.id}, ${idx}, this.value)" class="font-bold text-[11px] rounded-lg px-2 py-1 border bg-slate-50">
+                    <option value="Đang thẩm định" ${app.result==='Đang thẩm định'?'selected':''}>⏳ Đang thẩm định</option>
+                    <option value="Bổ sung hồ sơ" ${app.result==='Bổ sung hồ sơ'?'selected':''}>📄 Bổ sung hồ sơ</option>
+                    <option value="Duyệt" ${app.result==='Duyệt'?'selected':''}>✅ Duyệt</option>
+                    <option value="Từ chối" ${app.result==='Từ chối'?'selected':''}>⛔ Từ chối</option>
+                  </select>
+                  <button type="button" onclick="removeApp(${lead.id}, ${idx})" class="text-slate-400 hover:text-rose-600 px-1 font-bold">✕</button>
+                </div>
+              </div>
+              ${subDetail}
+            </div>`;
+        });
+
+        html += `
+          <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm space-y-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-bold text-slate-900 text-sm">${lead.name}</span>
+                  <span class="text-[11px] bg-blue-50 text-blue-800 px-2 py-0.5 rounded font-bold">${lead.age} tuổi</span>
+                  <span class="text-[10px] bg-red-50 text-red-700 px-1.5 py-0.5 rounded border">📶 ${lead.simCarrier || 'Viettel'}</span>
+                </div>
+                <div class="text-xs text-slate-500 font-mono mt-0.5">${lead.phone} • CCCD: ${lead.cccd || 'Chưa có'}</div>
+              </div>
+              <button type="button" onclick="toggleCompleteModal(${lead.id})" class="${lead.isCompleted ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-white'} text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
+                ${lead.isCompleted ? '↺ Mở lại' : '✓ Hoàn thành'}
+              </button>
+            </div>
+
+            ${lead.isCompleted ? `
+              <div class="bg-indigo-50 border border-indigo-200 p-2 rounded-xl text-[11px] text-indigo-950 space-y-0.5">
+                <div class="font-bold">✅ Đã lưu kho CRM (${lead.completedDate || 'Gần đây'})</div>
+                <div class="text-slate-700 text-[10px]">Lý do: <b>${lead.completeReason || 'Hoàn tất'}</b></div>
+              </div>` : ''}
+
+            <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
+              <div class="flex justify-between"><span>Cần vay:</span> <span class="font-bold text-blue-700">${formatVND(lead.amount)}</span></div>
+              <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
+              <div><b>Chứng từ:</b> ${docsHtml}</div>
+            </div>
+
+            <div class="bg-indigo-50/50 rounded-xl p-2.5 border border-indigo-100 space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="font-bold text-xs text-indigo-950">🏛️ Tiến độ nộp đa công ty:</span>
+                <button type="button" onclick="addAppPrompt(${lead.id})" class="text-[11px] bg-indigo-600 text-white font-bold px-2 py-1 rounded-lg shadow">+ Nộp Cty</button>
+              </div>
+              <div class="space-y-1.5">${appsHtml || '<div class="text-center text-[11px] text-slate-400 py-1">Chưa có công ty nào</div>'}</div>
+            </div>
+
+            <div class="flex justify-between items-center pt-1 border-t border-slate-100 text-xs">
+              <div class="flex gap-1.5">
+                <a href="tel:${lead.phone}" class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">📞 Gọi</a>
+                <a href="https://zalo.me/${lead.phone}" target="_blank" class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded font-bold">💬 Zalo</a>
+              </div>
+              <div class="flex gap-1">
+                <button type="button" onclick="openEditModal(${lead.id})" class="text-slate-700 px-2 py-1 font-semibold hover:bg-slate-100 rounded">Sửa</button>
+                <button type="button" onclick="deleteLead(${lead.id})" class="text-rose-600 px-2 py-1 font-semibold hover:bg-rose-50 rounded">Xóa</button>
+              </div>
+            </div>
+          </div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    // Modal Sao lưu & Telegram (Dùng phương thức sendMessage không bị lỗi CORS/Unauthorized)
+    function openBackupModal() { document.getElementById('backupModal').classList.remove('hidden'); }
+    function closeBackupModal() { document.getElementById('backupModal').classList.add('hidden'); }
+
+    async function backupToTelegram() {
+      const token = '8539026331:AAHGPTrXegeT_ZZn28uDwXjXHArpwM7E1ME';
+      const chatId = '-1004351522635';
+      showToast('Đang gửi dữ liệu lên kênh CRM_PTC...');
+      try {
+        const jsonStr = JSON.stringify(leads);
+        const textMsg = `🛡️ BẢN SAO LƯU HỒ SƠ CRM_PTC\n• Tổng hồ sơ: ${leads.length}\n• Thời gian: ${new Date().toLocaleString('vi-VN')}\n\n<code>${jsonStr}</code>`;
+        
+        const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: textMsg,
+            parse_mode: 'HTML'
+          })
+        });
+        const r = await res.json();
+        if (r.ok) {
+          showToast('Đã đẩy sao lưu lên Telegram thành công!');
+        } else {
+          showToast('Lỗi Telegram: ' + (r.description || 'Không rõ'));
+        }
+      } catch (e) {
+        showToast('Lỗi kết nối API Telegram');
+      }
+    }
+
+    async function restoreFromTelegram() {
+      const token = '8539026331:AAHGPTrXegeT_ZZn28uDwXjXHArpwM7E1ME';
+      const chatId = '-1004351522635';
+      showToast('Đang tải dữ liệu từ Telegram...');
+      try {
+        const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?offset=-30`);
+        const data = await res.json();
+        let foundJson = null;
+        if (data.result) {
+          for (let i = data.result.length - 1; i >= 0; i--) {
+            const m = data.result[i].message || data.result[i].channel_post;
+            if (m && m.text && m.text.includes('BẢN SAO LƯU HỒ SƠ CRM_PTC')) {
+              // Trích xuất chuỗi JSON trong thẻ <code>
+              const match = m.text.match(/<code>([\s\S]*?)<\/code>/);
+              if (match && match[1]) {
+                foundJson = match[1];
+                break;
+              }
+            }
+          }
+        }
+        if (!foundJson) {
+          showToast('Không tìm thấy bản sao lưu trong kênh');
+          return;
+        }
+        const parsed = JSON.parse(foundJson);
+        if (Array.isArray(parsed)) {
+          leads = parsed;
+          saveLocal();
+          renderLeads();
+          showToast(`Khôi phục thành công ${parsed.length} hồ sơ!`);
+          closeBackupModal();
+        }
+      } catch (e) {
+        showToast('Lỗi khôi phục từ Telegram');
+      }
+    }
+
+    function downloadBackupFile() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(leads, null, 2));
+      const a = document.createElement('a');
+      a.href = dataStr; a.download = `CRM_PTC_Backup_${Date.now()}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      showToast('Đã tải file sao lưu!');
+    }
+
+    function copyBackupText() {
+      navigator.clipboard.writeText(JSON.stringify(leads)).then(() => showToast('Đã copy mã! Dán vào Zalo.')).catch(() => showToast('Không copy được'));
+    }
+
+    // Modal Thêm / Sửa
+    function openCreateModal() {
+      editingLeadId = null;
+      document.getElementById('leadModalTitle').innerText = 'Thêm Khách Hàng Mới';
+      document.getElementById('formName').value = '';
+      document.getElementById('formPhone').value = '';
+      document.getElementById('formSim').value = 'Viettel';
+      document.getElementById('formDob').value = '1998-05-15';
+      document.getElementById('formCccd').value = '';
+      document.getElementById('formIncome').value = '10000000';
+      document.getElementById('formAmount').value = '30000000';
+      document.getElementById('formCic').value = 'SACH';
+      document.getElementById('formNote').value = '';
+      document.querySelectorAll('#formDocsContainer input').forEach(cb => cb.checked = ['CAVET', 'SAO_KE'].includes(cb.value));
+      document.getElementById('leadModal').classList.remove('hidden');
+    }
+
+    function openEditModal(id) {
+      const l = leads.find(x => x.id === id);
+      if (!l) return;
+      editingLeadId = id;
+      document.getElementById('leadModalTitle').innerText = 'Cập Nhật Hồ Sơ';
+      document.getElementById('formName').value = l.name || '';
+      document.getElementById('formPhone').value = l.phone || '';
+      document.getElementById('formSim').value = l.simCarrier || 'Viettel';
+      document.getElementById('formDob').value = l.dob || '1998-05-15';
+      document.getElementById('formCccd').value = l.cccd || '';
+      document.getElementById('formIncome').value = l.income || 10000000;
+      document.getElementById('formAmount').value = l.amount || 30000000;
+      document.getElementById('formCic').value = l.cicStatus || 'SACH';
+      document.getElementById('formNote').value = l.note || '';
+      document.querySelectorAll('#formDocsContainer input').forEach(cb => cb.checked = (l.documents || []).includes(cb.value));
+      document.getElementById('leadModal').classList.remove('hidden');
+    }
+
+    function closeLeadModal() { document.getElementById('leadModal').classList.add('hidden'); }
+
+    function saveLeadForm(e) {
+      e.preventDefault();
+      const docs = Array.from(document.querySelectorAll('#formDocsContainer input:checked')).map(cb => cb.value);
+      const dob = document.getElementById('formDob').value;
+      const data = {
+        name: document.getElementById('formName').value,
+        phone: document.getElementById('formPhone').value,
+        simCarrier: document.getElementById('formSim').value,
+        dob: dob,
+        age: calculateAge(dob),
+        cccd: document.getElementById('formCccd').value,
+        income: Number(document.getElementById('formIncome').value),
+        amount: Number(document.getElementById('formAmount').value),
+        cicStatus: document.getElementById('formCic').value,
+        documents: docs,
+        note: document.getElementById('formNote').value
+      };
+
+      if (editingLeadId) {
+        const idx = leads.findIndex(x => x.id === editingLeadId);
+        if (idx > -1) leads[idx] = { ...leads[idx], ...data };
+        showToast('Đã cập nhật hồ sơ');
+      } else {
+        leads.unshift({
+          id: Date.now(),
+          isCompleted: false,
+          ...data,
+          applications: [{ lender: 'FE Credit', result: 'Đang thẩm định', rejectReason: '', contract: null }]
+        });
+        showToast('Đã thêm hồ sơ mới');
+      }
+      saveLocal();
+      renderLeads();
+      closeLeadModal();
+    }
+
+    function deleteLead(id) {
+      if (confirm('Bạn có chắc muốn xóa hồ sơ này?')) {
+        leads = leads.filter(x => x.id !== id);
+        saveLocal();
+        renderLeads();
+        showToast('Đã xóa hồ sơ');
+      }
+    }
+
+    // Tiến độ nộp công ty
+    function addAppPrompt(leadId) {
+      const lender = prompt("Chọn Công ty Tài chính:\n" + ALL_PARTNERS.join(', '), "FE Credit");
+      if (!lender) return;
+      const lead = leads.find(x => x.id === leadId);
+      if (lead) {
+        if (!lead.applications) lead.applications = [];
+        lead.applications.push({ lender: lender, result: 'Đang thẩm định', rejectReason: '', contract: null });
+        saveLocal();
+        renderLeads();
+        showToast(`Đã thêm ${lender}`);
+      }
+    }
+
+    function removeApp(leadId, appIdx) {
+      const lead = leads.find(x => x.id === leadId);
+      if (lead && lead.applications) {
+        lead.applications.splice(appIdx, 1);
+        saveLocal();
+        renderLeads();
+        showToast('Đã xóa cty');
+      }
+    }
+
+    function updateAppResult(leadId, appIdx, val) {
+      const lead = leads.find(x => x.id === leadId);
+      if (lead && lead.applications && lead.applications[appIdx]) {
+        lead.applications[appIdx].result = val;
+        if (val === 'Duyệt') {
+          openContractModal(leadId, appIdx);
+        } else {
+          saveLocal();
+          renderLeads();
+        }
+      }
+    }
+
+    function updateRejectReason(leadId, appIdx, val) {
+      const lead = leads.find(x => x.id === leadId);
+      if (lead && lead.applications && lead.applications[appIdx]) {
+        lead.applications[appIdx].rejectReason = val;
+        saveLocal();
+      }
+    }
+
+    // Hợp đồng
+    let contractLeadId = null, contractAppIdx = null;
+    function openContractModal(leadId, appIdx) {
+      contractLeadId = leadId;
+      contractAppIdx = appIdx;
+      const lead = leads.find(x => x.id === leadId);
+      const app = lead.applications[appIdx];
+      const c = app.contract;
+      document.getElementById('contractCode').value = c ? c.code : ('HĐ-' + Date.now().toString().slice(-5));
+      document.getElementById('contractAmount').value = c ? c.approvedAmount : (lead.amount || 30000000);
+      document.getElementById('contractMonthly').value = c ? c.monthlyPay : Math.round((lead.amount || 30000000)*1.15/12);
+      document.getElementById('contractModal').classList.remove('hidden');
+    }
+
+    function saveContractForm(e) {
+      e.preventDefault();
+      const lead = leads.find(x => x.id === contractLeadId);
+      if (lead && lead.applications && lead.applications[contractAppIdx]) {
+        lead.applications[contractAppIdx].contract = {
+          code: document.getElementById('contractCode').value,
+          approvedAmount: Number(document.getElementById('contractAmount').value),
+          tenor: Number(document.getElementById('contractTenor').value),
+          monthlyPay: Number(document.getElementById('contractMonthly').value),
+          disburseDate: new Date().toISOString().substring(0, 10)
+        };
+        saveLocal();
+        renderLeads();
+        showToast('Đã lưu hợp đồng giải ngân');
+      }
+      document.getElementById('contractModal').classList.add('hidden');
+    }
+
+    // Phiếu thanh toán
+    function openReceipt(leadId, appIdx) {
+      const lead = leads.find(x => x.id === leadId);
+      const app = lead.applications[appIdx];
+      currentReceiptData = { lead, app };
+      document.getElementById('receiptLenderTitle').innerText = app.lender;
+      document.getElementById('receiptName').innerText = lead.name;
+      document.getElementById('receiptPhone').innerText = lead.phone;
+      document.getElementById('receiptMonthly').innerText = formatVND(app.contract?.monthlyPay);
+      document.getElementById('receiptCode').innerText = app.contract?.code || '---';
+      document.getElementById('receiptModal').classList.remove('hidden');
+    }
+
+    function copyPaymentMsg() {
+      if (!currentReceiptData) return;
+      const { lead, app } = currentReceiptData;
+      const c = app.contract || {};
+      const msg = `📢 THÔNG BÁO LỊCH THANH TOÁN KHOẢN VAY\n---------------------------------------\nKính gửi: ${lead.name} (${lead.phone})\nĐơn vị giải ngân: ${app.lender}\nSố Hợp Đồng: ${c.code || '---'}\nSố tiền duyệt: ${formatVND(c.approvedAmount)}\n\n💰 TIỀN GÓP HÀNG THÁNG: ${formatVND(c.monthlyPay)} (Kỳ hạn: ${c.tenor || 12} tháng)\n\n📌 KÊNH THANH TOÁN:\n- Ví MoMo / Viettel Money / ZaloPay (Chọn ${app.lender} và nhập mã HĐ).\n- Các điểm thu hộ: TGDĐ, FPT Shop, Bưu điện.\n\n*Quý khách vui lòng đóng tiền đúng hạn để giữ CIC tốt. Xin cảm ơn!`;
+      navigator.clipboard.writeText(msg).then(() => showToast('Đã copy tin nhắn gửi Zalo!')).catch(() => showToast('Không copy được'));
+    }
+
+    // Hoàn thành / Lưu kho
+    function toggleCompleteModal(id) {
+      const lead = leads.find(x => x.id === id);
+      if (lead.isCompleted) {
+        lead.isCompleted = false;
+        saveLocal();
+        renderLeads();
+        showToast('Đã mở lại hồ sơ');
+      } else {
+        leadToCompleteId = id;
+        document.getElementById('completeModal').classList.remove('hidden');
+      }
+    }
+
+    function saveCompleteLead() {
+      const lead = leads.find(x => x.id === leadToCompleteId);
+      if (lead) {
+        lead.isCompleted = true;
+        lead.completeReason = document.getElementById('completeReason').value;
+        const now = new Date();
+        lead.completedDate = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+        saveLocal();
+        renderLeads();
+        showToast('Đã lưu vào kho CRM');
+      }
+      document.getElementById('completeModal').classList.add('hidden');
+    }
+
+    // Quét QR CCCD
+    function openScanModal() {
+      document.getElementById('scanModal').classList.remove('hidden');
+      setTimeout(() => {
+        if (!html5QrCodeScanner && typeof Html5Qrcode !== 'undefined') {
+          html5QrCodeScanner = new Html5Qrcode("reader");
+          html5QrCodeScanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: { width: 220, height: 220 } },
+            (decodedText) => parseCccdQr(decodedText),
+            (err) => {}
+          ).catch(e => {});
+        }
+      }, 300);
+    }
+
+    function closeScanModal() {
+      if (html5QrCodeScanner) {
+        html5QrCodeScanner.stop().then(() => html5QrCodeScanner.clear()).catch(() => {});
+        html5QrCodeScanner = null;
+      }
+      document.getElementById('scanModal').classList.add('hidden');
+    }
+
+    function parseCccdQr(txt) {
+      const parts = txt.split('|');
+      if (parts.length >= 6) {
+        const cccd = parts[0];
+        const name = parts[2];
+        const rawDob = parts[3];
+        let dob = '1998-05-15';
+        if (rawDob.length === 8) {
+          dob = `${rawDob.substring(4,8)}-${rawDob.substring(2,4)}-${rawDob.substring(0,2)}`;
+        }
+        closeScanModal();
+        openCreateModal();
+        document.getElementById('formName').value = name;
+        document.getElementById('formCccd').value = cccd;
+        document.getElementById('formDob').value = dob;
+        showToast('Đã quét QR CCCD thành công!');
+      } else {
+        showToast('Mã QR không đúng định dạng CCCD');
+      }
+    }
+
+    // Khởi chạy lần đầu
+    renderLeads();
+  </script>
+</body>
+</html>

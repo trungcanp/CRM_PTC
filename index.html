@@ -73,7 +73,7 @@
             <span>💾</span>
             <span class="text-[10px]">Lưu</span>
           </button>
-          <!-- Nút Quét QR (Dùng Camera Sau) -->
+          <!-- Nút Quét QR (Dùng Camera Sau Bắt Buộc) -->
           <button 
             type="button"
             onclick="openScanModal()" 
@@ -410,7 +410,7 @@
     </div>
   </div>
 
-  <!-- MODAL QUÉT QR CCCD (BẮT BUỘC CAMERA SAU, ZOOM TRỰC TIẾP & CHỌN ẢNH) -->
+  <!-- MODAL QUÉT QR CCCD (BẮT BUỘC CAMERA SAU ĐÍCH THỰC, ZOOM & CHỌN ẢNH) -->
   <div id="scanModal" class="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3 backdrop-blur-sm hidden">
     <div class="bg-white w-full max-w-sm rounded-3xl p-4 space-y-3 shadow-2xl text-xs">
       <div class="flex justify-between items-center border-b pb-2">
@@ -418,7 +418,7 @@
         <button type="button" onclick="closeScanModal()" class="w-7 h-7 bg-slate-100 rounded-full font-bold">✕</button>
       </div>
 
-      <!-- Khung camera sau bắt buộc -->
+      <!-- Khung camera sau bắt buộc cố định -->
       <div class="relative bg-slate-900 rounded-2xl overflow-hidden min-h-[220px] flex items-center justify-center">
         <div id="reader" class="w-full h-full"></div>
       </div>
@@ -1245,7 +1245,7 @@
       saveStorage();
     }
 
-    // --- QUÉT QR (BẮT BUỘC CAMERA SAU, ZOOM TRỰC TIẾP VÀ CHỌN ẢNH) ---
+    // --- QUÉT QR (Ép Buộc Camera Sau Đích Thực) ---
     function openScanModal() {
       document.getElementById('scanModal').classList.remove('hidden');
       currentZoom = 1;
@@ -1255,29 +1255,26 @@
       setTimeout(() => {
         if (!html5QrScanner && typeof Html5Qrcode !== 'undefined') {
           html5QrScanner = new Html5Qrcode("reader");
+          
+          // Bắt buộc ép camera sau đích thực (Environment with exact/ideal constraints)
+          const qrConfig = { fps: 15, qrbox: { width: 260, height: 260 } };
+          const cameraConstraint = { facingMode: { exact: "environment" } };
+
           html5QrScanner.start(
-            { facingMode: { exact: "environment" } },
-            { 
-              fps: 15, 
-              qrbox: { width: 260, height: 260 },
-              videoConstraints: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                focusMode: "continuous"
-              }
-            },
-            (txt) => {
-              parseQrText(txt);
-            },
+            cameraConstraint,
+            qrConfig,
+            (txt) => { parseQrText(txt); },
             () => {}
           ).catch(() => {
-            // Fallback nếu máy không hỗ trợ exact environment
+            // Fallback an toàn nếu máy không hỗ trợ exact
             html5QrScanner.start(
               { facingMode: "environment" },
-              { fps: 15, qrbox: { width: 260, height: 260 } },
+              qrConfig,
               (txt) => { parseQrText(txt); },
               () => {}
-            ).catch(() => {});
+            ).catch(() => {
+              showToast('Không thể mở camera sau. Hãy chọn ảnh từ máy.');
+            });
           });
         }
       }, 300);

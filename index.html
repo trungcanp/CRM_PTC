@@ -394,28 +394,54 @@
     </div>
   </div>
 
-  <!-- MODAL QUÉT QR CCCD -->
-  <div id="scanModal" class="fixed inset-0 bg-slate-900/75 z-50 flex items-center justify-center p-3 backdrop-blur-sm hidden">
+  <!-- MODAL QUÉT QR CCCD CÓ THANH ZOOM -->
+  <div id="scanModal" class="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3 backdrop-blur-sm hidden">
     <div class="bg-white w-full max-w-sm rounded-3xl p-4 space-y-3 shadow-2xl text-xs">
       <div class="flex justify-between items-center border-b pb-2">
-        <h3 class="font-bold text-slate-800">📷 Quét Mã QR CCCD Gắn Chip</h3>
+        <h3 class="font-bold text-slate-800">📷 Quét QR CCCD (Hỗ trợ Zoom)</h3>
         <button type="button" onclick="closeScanModal()" class="w-7 h-7 bg-slate-100 rounded-full font-bold">✕</button>
       </div>
+
+      <!-- Khung camera -->
       <div class="relative bg-slate-900 rounded-2xl overflow-hidden min-h-[220px] flex items-center justify-center">
         <div id="reader" class="w-full"></div>
       </div>
+
+      <!-- Thanh trượt Zoom camera giúp quét mã gần/xa dễ dàng -->
+      <div class="bg-slate-50 p-2.5 rounded-2xl border space-y-1">
+        <div class="flex justify-between text-[11px] font-bold text-slate-700">
+          <span>🔍 Phóng to / Thu nhỏ (Zoom):</span>
+          <span id="zoomValueLabel" class="text-blue-700 font-mono">1.0x</span>
+        </div>
+        <input 
+          id="zoomSlider" 
+          type="range" 
+          min="1" 
+          max="3" 
+          step="0.1" 
+          value="1" 
+          oninput="handleZoomChange(this.value)"
+          class="w-full accent-blue-600 cursor-pointer">
+      </div>
+
+      <div class="space-y-1">
+        <span class="font-bold text-slate-600 block">Hoặc chọn ảnh CCCD có sẵn từ máy:</span>
+        <input type="file" accept="image/*" onchange="handleQrFile(event)" class="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-xl file:border-0 file:bg-blue-50 file:text-blue-700 file:font-bold">
+      </div>
+
       <button type="button" onclick="closeScanModal()" class="w-full py-2 bg-slate-100 rounded-xl font-bold">Đóng</button>
     </div>
   </div>
 
-  <!-- MODAL XUẤT PHIẾU THANH TOÁN -->
+  <!-- MODAL XUẤT PHIẾU THANH TOÁN (CHUẨN ĐỒNG NHẤT 100%) -->
   <div id="receiptModal" class="fixed inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-3 backdrop-blur-md hidden">
     <div class="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border border-slate-200 text-xs">
+      <!-- Header Phiếu: Tên Cty Tài Chính / Ngân Hàng -->
       <div id="receiptHeader" class="p-4 text-white bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-800 flex justify-between items-center">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-base">🏦</div>
+          <div id="receiptLogoEmoji" class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-base">🏦</div>
           <div>
-            <span class="text-[9px] uppercase tracking-wider opacity-80 block">Phiếu Lịch Trình Thanh Toán</span>
+            <span class="text-[9px] uppercase tracking-wider opacity-80 block">Phiếu Thanh Toán Khoản Vay</span>
             <h3 id="receiptLenderTitle" class="font-extrabold text-sm">---</h3>
           </div>
         </div>
@@ -423,6 +449,7 @@
       </div>
 
       <div class="p-4 space-y-3">
+        <!-- Khách hàng & SĐT -->
         <div class="bg-slate-50 p-2.5 rounded-xl border flex justify-between items-center">
           <div>
             <span class="text-[10px] text-slate-400 block font-medium">Khách hàng</span>
@@ -434,6 +461,7 @@
           </div>
         </div>
 
+        <!-- SỐ TIỀN THANH TOÁN HÀNG THÁNG NỔI BẬT -->
         <div class="bg-emerald-50 border border-emerald-300 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
           <div class="text-[10px] uppercase font-bold text-emerald-800 tracking-wide">💰 Số Tiền Góp Định Kỳ Mỗi Tháng</div>
           <div id="receiptMonthlyPay" class="text-2xl font-black text-emerald-700">0 đ</div>
@@ -443,9 +471,10 @@
           <div class="text-[10px] text-slate-500 pt-0.5">Mã HĐ: <b id="receiptCode" class="font-mono text-slate-800 font-bold">---</b></div>
         </div>
 
+        <!-- NGÀY ĐÓNG ĐẦU TIÊN & CUỐI CÙNG -->
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-center">
-            <span class="text-[10px] text-blue-700 font-bold block">📅 Ngày Đóng Đầu Tiên</span>
+            <span class="text-[10px] text-blue-700 font-bold block">📅 Ngày Đóng Kỳ 1</span>
             <div id="receiptFirstDate" class="text-xs font-mono font-extrabold text-blue-900 mt-0.5">---</div>
           </div>
           <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-2.5 text-center">
@@ -454,6 +483,7 @@
           </div>
         </div>
 
+        <!-- Nút Copy Gửi Zalo -->
         <button type="button" onclick="copyPaymentMsg()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5">
           <span>📋</span> Copy Tin Nhắn Gửi Zalo Cho Khách
         </button>
@@ -541,7 +571,7 @@
     const ALL_PARTNERS = ['FE Credit', 'Home Credit', 'HD Saison', 'Mirae Asset (MAFC)', 'MCredit', 'SHB Finance', 'VPBank', 'Cathay Bank (CUB)', 'Tnex', 'Cake by VPBank', 'Viettel Money', 'Tinvay'];
     const DOC_MAP = { 'CAVET': 'Cà vẹt xe', 'GPLX': 'Bằng lái xe', 'BHYT': 'BHYT', 'SAO_KE': 'Sao kê lương', 'HDLD': 'HĐLĐ' };
 
-    let leads = JSON.parse(localStorage.getItem('loan_crm_v18') || '[]');
+    let leads = JSON.parse(localStorage.getItem('loan_crm_v19') || '[]');
     let autoNotifyTg = localStorage.getItem('loan_crm_autotg') === 'true';
     if (leads.length === 0) {
       leads = [{
@@ -592,7 +622,7 @@
     }
 
     function saveStorage() {
-      localStorage.setItem('loan_crm_v18', JSON.stringify(leads));
+      localStorage.setItem('loan_crm_v19', JSON.stringify(leads));
       render();
     }
 
@@ -1031,6 +1061,22 @@
       return { first: fmt(first), last: fmt(last) };
     }
 
+    // XUẤT PHIẾU THANH TOÁN (ĐỒNG NHẤT CHO MỌI NGÂN HÀNG)
+    const LENDER_THEMES = {
+      'FE Credit': { bg: 'bg-emerald-700', emoji: '🟢' },
+      'Home Credit': { bg: 'bg-red-600', emoji: '🔴' },
+      'HD Saison': { bg: 'bg-amber-600', emoji: '🟡' },
+      'Mirae Asset (MAFC)': { bg: 'bg-blue-900', emoji: '🏢' },
+      'MCredit': { bg: 'bg-purple-700', emoji: '🟣' },
+      'SHB Finance': { bg: 'bg-cyan-700', emoji: '🔷' },
+      'VPBank': { bg: 'bg-green-700', emoji: '🏦' },
+      'Cathay Bank (CUB)': { bg: 'bg-emerald-800', emoji: '🌳' },
+      'Tnex': { bg: 'bg-sky-600', emoji: '⚡' },
+      'Cake by VPBank': { bg: 'bg-pink-600', emoji: '🍰' },
+      'Viettel Money': { bg: 'bg-rose-700', emoji: '📶' },
+      'Tinvay': { bg: 'bg-indigo-700', emoji: '💳' }
+    };
+
     function openReceipt(leadId, aIdx) {
       const l = leads.find(x => x.id === leadId);
       const app = l.applications[aIdx];
@@ -1039,7 +1085,10 @@
 
       const c = app.contract || {};
       const dates = calcPayDates(c.disburseDate, c.tenor);
+      const theme = LENDER_THEMES[app.lender] || { bg: 'bg-slate-800', emoji: '💳' };
 
+      document.getElementById('receiptHeader').className = `p-4 text-white ${theme.bg} flex justify-between items-center`;
+      document.getElementById('receiptLogoEmoji').innerText = theme.emoji;
       document.getElementById('receiptLenderTitle').innerText = app.lender;
       document.getElementById('receiptName').innerText = l.name;
       document.getElementById('receiptPhone').innerText = l.phone;
@@ -1061,7 +1110,7 @@
       const c = app.contract || {};
       const dates = calcPayDates(c.disburseDate, c.tenor);
 
-      const msg = `📢 THÔNG BÁO LỊCH THANH TOÁN KHOẢN VAY\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nĐơn vị: ${app.lender}\nSố HĐ: ${c.code || '---'}\nTiền góp: ${formatVND(c.monthlyPay)}/tháng (Kỳ hạn: ${c.tenor || 12} tháng)\n📅 Ngày đóng đầu tiên: ${dates.first}\n🏁 Ngày đóng cuối (Tất toán): ${dates.last}\n\nThanh toán qua MoMo, Viettel Money hoặc các điểm thu hộ TGDĐ/FPT.`;
+      const msg = `📢 THÔNG BÁO LỊCH THANH TOÁN KHOẢN VAY\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nĐơn vị: ${app.lender}\nSố HĐ: ${c.code || '---'}\nTiền góp: ${formatVND(c.monthlyPay)}/tháng (Kỳ hạn: ${c.tenor || 12} tháng)\n📅 Ngày đóng đầu tiên: ${dates.first}\n🏁 Ngày đóng cuối (Tất toán): ${dates.last}\n\nThanh toán qua Ví điện tử (MoMo, ZaloPay, Viettel Money) hoặc các điểm thu hộ TGDĐ/FPT.`;
       
       navigator.clipboard.writeText(msg).then(() => showToast('Đã copy tin nhắn gửi Zalo!')).catch(() => showToast('Lỗi copy'));
     }
@@ -1094,27 +1143,77 @@
       saveStorage();
     }
 
+    // --- QUÉT QR VỚI THANH ZOOM CAMERA GIÚP KHÔNG BỊ MỜ / XA ---
     function openScanModal() {
       document.getElementById('scanModal').classList.remove('hidden');
       setTimeout(() => {
         if (!html5QrScanner && typeof Html5Qrcode !== 'undefined') {
           html5QrScanner = new Html5Qrcode("reader");
-          html5QrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, (txt) => {
-            const parts = txt.split('|');
-            if (parts.length >= 6) {
-              closeScanModal();
-              openCreateModal();
-              document.getElementById('formName').value = parts[2];
-              document.getElementById('formCccd').value = parts[0];
-              const rd = parts[3];
-              if (rd.length === 8) document.getElementById('formDob').value = `${rd.substring(4,8)}-${rd.substring(2,4)}-${rd.substring(0,2)}`;
-              document.getElementById('formGender').value = parts[4] || 'Nam';
-              document.getElementById('formPermAddress').value = parts[5];
-              showToast('Quét QR CCCD thành công!');
-            }
-          }, () => {});
+          html5QrScanner.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 220 },
+            (txt) => {
+              parseQrText(txt);
+            },
+            () => {}
+          ).then(() => {
+            // Cố gắng lấy track camera để áp dụng zoom nếu thiết bị hỗ trợ
+            try {
+              const videoTrack = html5QrScanner.getState() === 2 ? html5QrScanner.getRunningTrackCameraCapabilities() : null;
+            } catch(e){}
+          }).catch(() => {});
         }
       }, 300);
+    }
+
+    function handleZoomChange(val) {
+      document.getElementById('zoomValueLabel').innerText = Number(val).toFixed(1) + 'x';
+      if (html5QrScanner) {
+        try {
+          const track = html5QrScanner.getRunningTrack();
+          if (track && track.applyConstraints) {
+            track.applyConstraints({ advanced: [{ zoom: parseFloat(val) }] }).catch(() => {});
+          } else {
+            // Fallback scale CSS cho video nếu phần cứng không hỗ trợ API zoom trực tiếp
+            const videoEl = document.querySelector('#reader video');
+            if (videoEl) {
+              videoEl.style.transform = `scale(${val})`;
+              videoEl.style.transformOrigin = 'center center';
+            }
+          }
+        } catch(e){}
+      }
+    }
+
+    function parseQrText(txt) {
+      const parts = txt.split('|');
+      if (parts.length >= 6) {
+        closeScanModal();
+        openCreateModal();
+        document.getElementById('formName').value = parts[2] || '';
+        document.getElementById('formCccd').value = parts[0] || '';
+        const rd = parts[3] || '';
+        if (rd.length === 8) {
+          document.getElementById('formDob').value = `${rd.substring(4,8)}-${rd.substring(2,4)}-${rd.substring(0,2)}`;
+        }
+        document.getElementById('formGender').value = (parts[4] || '').toLowerCase().includes('nữ') ? 'Nữ' : 'Nam';
+        document.getElementById('formPermAddress').value = parts[5] || '';
+        showToast('Quét QR CCCD thành công!');
+      } else {
+        showToast('Mã QR không đúng định dạng CCCD chip');
+      }
+    }
+
+    function handleQrFile(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      if (typeof Html5Qrcode === 'undefined') return;
+      const scanner = new Html5Qrcode("reader");
+      scanner.scanFile(f, true).then(txt => {
+        parseQrText(txt);
+      }).catch(() => {
+        showToast('Không đọc được mã QR trên ảnh');
+      });
     }
 
     function closeScanModal() {

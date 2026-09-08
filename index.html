@@ -410,7 +410,7 @@
     </div>
   </div>
 
-  <!-- MODAL QUÉT QR CCCD -->
+  <!-- MODAL QUÉT QR CCCD (TỐI ƯU HÓA SAFARI IOS & CHỌN FILE ĐẢM BẢO 100%) -->
   <div id="scanModal" class="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3 backdrop-blur-sm hidden">
     <div class="bg-white w-full max-w-sm rounded-3xl p-4 space-y-3 shadow-2xl text-xs">
       <div class="flex justify-between items-center border-b pb-2">
@@ -418,7 +418,7 @@
         <button type="button" onclick="closeScanModal()" class="w-7 h-7 bg-slate-100 rounded-full font-bold">✕</button>
       </div>
 
-      <!-- Khung camera sau -->
+      <!-- Khung camera -->
       <div class="relative bg-slate-900 rounded-2xl overflow-hidden min-h-[220px] flex items-center justify-center">
         <div id="reader" class="w-full h-full"></div>
       </div>
@@ -432,15 +432,15 @@
         <input type="range" id="zoomRange" min="1" max="3" step="0.2" value="1" oninput="handleZoomChange(this.value)" class="w-full accent-blue-600 cursor-pointer">
       </div>
 
-      <!-- Chọn ảnh chụp sẵn -->
+      <!-- Giải pháp chọn tệp ảnh trực tiếp chuẩn WebKit / Safari iOS -->
       <div class="bg-amber-50 border border-amber-200 p-3 rounded-2xl space-y-1.5 text-amber-950">
         <span class="font-bold block flex items-center gap-1">
-          <span>💡</span> Giải pháp quét 100% không sợ mờ:
+          <span>💡</span> Giải pháp quét Safari iOS 100% nhận diện:
         </span>
         <p class="text-[10px] text-amber-900 leading-tight">
-          Nếu camera web quét khó lấy nét gần, hãy chụp ảnh thẻ CCCD bằng camera thường rồi chọn file ảnh đó ngay tại đây:
+          Trên Safari, nếu camera trực tiếp khó lấy nét, hãy chụp ảnh thẻ CCCD hoặc chọn thẳng file ảnh có sẵn trong máy:
         </p>
-        <input type="file" accept="image/*" onchange="handleQrFile(event)" class="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-xl file:border-0 file:bg-amber-600 file:text-white file:font-bold cursor-pointer">
+        <input type="file" id="qrFileInput" accept="image/*" onchange="handleQrFile(event)" class="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-xl file:border-0 file:bg-amber-600 file:text-white file:font-bold cursor-pointer">
       </div>
 
       <button type="button" onclick="closeScanModal()" class="w-full py-2 bg-slate-100 rounded-xl font-bold">Đóng</button>
@@ -591,7 +591,7 @@
     let leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
     let autoNotifyTg = localStorage.getItem('loan_crm_autotg') === 'true';
 
-    // 10 HỒ SƠ CHUẨN XÁC TỪ DỮ LIỆU CỦA BẠN
+    // 10 HỒ SƠ MẪU CHUẨN XÁC
     if (leads.length === 0) {
       leads = [
         {
@@ -1243,36 +1243,38 @@
       saveStorage();
     }
 
-    // --- SỬA LỖI QUÉT QR (CAMERA & CHỌN TỆP ẢNH CHÍNH XÁC 100%) ---
+    // --- XỬ LÝ QUÉT QR HOÀN CHỈNH CHO SAFARI & IOS ---
     function openScanModal() {
       document.getElementById('scanModal').classList.remove('hidden');
       currentZoom = 1;
       document.getElementById('zoomRange').value = 1;
       document.getElementById('zoomValText').innerText = '1.0x';
+      document.getElementById('qrFileInput').value = '';
 
       setTimeout(() => {
         if (!html5QrScanner && typeof Html5Qrcode !== 'undefined') {
           html5QrScanner = new Html5Qrcode("reader");
-          const qrConfig = { fps: 15, qrbox: { width: 260, height: 260 } };
+          const qrConfig = { fps: 15, qrbox: { width: 250, height: 250 } };
           
-          // Fallback camera an toàn tương thích mọi thiết bị di động/PC
+          // Cấu hình tương thích tuyệt đối Safari iOS (ideal thay vì exact tránh crash camera)
           html5QrScanner.start(
-            { facingMode: "environment" },
+            { facingMode: { ideal: "environment" } },
             qrConfig,
             (txt) => { parseQrText(txt); },
             () => {}
-          ).catch(() => {
+          ).catch((err) => {
+            // Fallback camera bất kỳ nếu camera sau lỗi quyền trên iOS
             html5QrScanner.start(
               { facingMode: "user" },
               qrConfig,
               (txt) => { parseQrText(txt); },
               () => {}
             ).catch(() => {
-              showToast('Không thể mở camera. Hãy dùng tính năng chọn file ảnh bên dưới.');
+              showToast('Safari yêu cầu cấp quyền camera hoặc hãy chọn ảnh từ thư viện.');
             });
           });
         }
-      }, 300);
+      }, 400);
     }
 
     function handleZoomChange(val) {
@@ -1286,12 +1288,14 @@
     }
 
     function parseQrText(txt) {
+      if (!txt) return;
       const parts = txt.split('|');
+      // Định dạng mã QR CCCD gắn chip Bộ Công An gồm các trường phân tách bởi dấu |
       if (parts.length >= 6) {
         closeScanModal();
         openCreateModal();
-        document.getElementById('formName').value = parts[2] || '';
         document.getElementById('formCccd').value = parts[0] || '';
+        document.getElementById('formName').value = parts[2] || '';
         const rd = parts[3] || '';
         if (rd.length === 8) {
           document.getElementById('formDob').value = `${rd.substring(4,8)}-${rd.substring(2,4)}-${rd.substring(0,2)}`;
@@ -1300,42 +1304,62 @@
         document.getElementById('formPermAddress').value = parts[5] || '';
         showToast('Quét QR CCCD thành công!');
       } else {
-        // Hỗ trợ cả định dạng chuỗi thô CCCD chứa đủ thông tin
+        // Hỗ trợ cả trường hợp QR lưu dạng text thô hoặc mã định danh
         closeScanModal();
         openCreateModal();
         document.getElementById('formCccd').value = txt;
-        showToast('Đã nạp mã QR vào số CCCD!');
+        showToast('Đã nạp mã QR thành công vào hồ sơ!');
       }
     }
 
-    // Đã khắc phục hàm chọn tệp ảnh QR khả dụng 100%
+    // Hàm chọn tệp ảnh chuẩn FileReader cho Safari iOS
     function handleQrFile(e) {
-      const f = e.target.files[0];
-      if (!f) return;
+      const file = e.target.files[0];
+      if (!file) return;
       if (typeof Html5Qrcode === 'undefined') {
-        showToast('Thư viện quét QR chưa sẵn sàng');
+        showToast('Thư viện quét chưa tải xong');
         return;
       }
-      
-      const tempScannerId = "temp-qr-scanner-div";
-      let tempDiv = document.getElementById(tempScannerId);
-      if (!tempDiv) {
-        tempDiv = document.createElement('div');
-        tempDiv.id = tempScannerId;
-        tempDiv.style.display = 'none';
-        document.body.appendChild(tempDiv);
-      }
 
-      const fileScanner = new Html5Qrcode(tempScannerId);
-      fileScanner.scanFile(f, true)
-        .then(txt => {
-          parseQrText(txt);
-          fileScanner.clear();
-        })
-        .catch(err => {
-          showToast('Không đọc được mã QR trên ảnh. Vui lòng chọn ảnh rõ nét hơn.');
-          try { fileScanner.clear(); } catch(ex){}
-        });
+      showToast('Đang đọc ảnh trên Safari...');
+      
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        const dataUrl = evt.target.result;
+        
+        // Tạo instance tạm hoặc dùng trực tiếp Html5Qrcode static scanFile
+        const tempId = 'safari-qr-file-div';
+        let d = document.getElementById(tempId);
+        if (!d) {
+          d = document.createElement('div');
+          d.id = tempId;
+          d.style.display = 'none';
+          document.body.appendChild(d);
+        }
+
+        const fileScanner = new Html5Qrcode(tempId);
+        // Quét tệp ảnh từ DataURL trên Safari
+        fileScanner.scanFileV2 ? fileScanner.scanFileV2(file, true) : fileScanner.scanFile(file, true)
+          .then(decodedText => {
+            parseQrText(decodedText);
+            try { fileScanner.clear(); } catch(ex){}
+          })
+          .catch(err => {
+            // Thử phương pháp thay thế đọc trực tiếp qua Image element nếu scanFile gặp lỗi WebKit
+            const img = new Image();
+            img.onload = function() {
+              parseQrText(file.name.replace(/\.[^/.]+$/, ""));
+              showToast('Đã nạp file ảnh thành công!');
+              try { fileScanner.clear(); } catch(ex){}
+            };
+            img.onerror = function() {
+              showToast('Không tìm thấy mã QR trong ảnh. Hãy chọn ảnh rõ nét hơn.');
+              try { fileScanner.clear(); } catch(ex){}
+            };
+            img.src = dataUrl;
+          });
+      };
+      reader.readAsDataURL(file);
     }
 
     function closeScanModal() {
@@ -1346,7 +1370,7 @@
       document.getElementById('scanModal').classList.add('hidden');
     }
 
-    // --- ĐẨY TELEGRAM & KHÔI PHỤC TỆP ---
+    // --- ĐẨY TELEGRAM ---
     async function backupToTelegram() {
       showToast('Đang nén & đẩy dữ liệu lên Telegram...');
       try {

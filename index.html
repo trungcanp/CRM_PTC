@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CRM_PTC - Quản Lý & Khảo Sát Tín Dụng</title>
+  <title>CRM_PTC - Quản Lý Tín Dụng Đa Công Ty</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Inter -->
@@ -64,7 +64,7 @@
         </div>
 
         <div class="flex items-center gap-1">
-          <!-- Nút Sao Lưu -->
+          <!-- Nút Sao Lưu Telegram / Máy -->
           <button 
             type="button"
             onclick="openBackupModal()" 
@@ -72,7 +72,7 @@
             <span>💾</span>
             <span class="text-[10px]">Lưu</span>
           </button>
-          <!-- Nút Quét QR -->
+          <!-- Nút Quét QR (Rút gọn chữ QR) -->
           <button 
             type="button"
             onclick="openScanModal()" 
@@ -117,7 +117,7 @@
           id="searchInput"
           oninput="handleSearchInput(event)"
           type="text" 
-          placeholder="Tìm tên, SĐT, CCCD, cty đang góp, mã HĐ..." 
+          placeholder="Tìm tên, SĐT, CCCD, cty góp, mã HĐ..." 
           class="w-full pl-9 pr-8 py-1.5 rounded-xl text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-none shadow-inner font-medium"
         />
         <button 
@@ -186,7 +186,7 @@
           <span>🔒</span> Trạng thái kết nối kênh:
         </div>
         <p class="text-[10px] text-sky-800 leading-tight">
-          Bot Token: <code class="bg-white px-1 py-0.5 rounded font-mono font-bold">8539026331:AAHGPTrXegeT_ZZn28uDwXjXHArpwM7E1ME</code><br>
+          Bot Token: <code class="bg-white px-1 py-0.5 rounded font-mono font-bold">8539026331:AAHGpTRXegeT_ZZn28uDwXjXHArpwM7E1ME</code><br>
           Chat ID: <code class="bg-white px-1 py-0.5 rounded font-mono font-bold">-1004351522635</code> (Đã sẵn sàng)
         </p>
       </div>
@@ -433,7 +433,7 @@
     </div>
   </div>
 
-  <!-- MODAL XUẤT PHIẾU THANH TOÁN (CHUẨN ĐỒNG NHẤT 100%) -->
+  <!-- MODAL XUẤT PHIẾU THANH TOÁN (CHUẨN ĐỒNG NHẤT CHO MỌI NGÂN HÀNG) -->
   <div id="receiptModal" class="fixed inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-3 backdrop-blur-md hidden">
     <div class="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border border-slate-200 text-xs">
       <!-- Header Phiếu: Tên Cty Tài Chính / Ngân Hàng -->
@@ -571,19 +571,93 @@
     const ALL_PARTNERS = ['FE Credit', 'Home Credit', 'HD Saison', 'Mirae Asset (MAFC)', 'MCredit', 'SHB Finance', 'VPBank', 'Cathay Bank (CUB)', 'Tnex', 'Cake by VPBank', 'Viettel Money', 'Tinvay'];
     const DOC_MAP = { 'CAVET': 'Cà vẹt xe', 'GPLX': 'Bằng lái xe', 'BHYT': 'BHYT', 'SAO_KE': 'Sao kê lương', 'HDLD': 'HĐLĐ' };
 
-    let leads = JSON.parse(localStorage.getItem('loan_crm_v19') || '[]');
+    let leads = JSON.parse(localStorage.getItem('loan_crm_v20') || '[]');
     let autoNotifyTg = localStorage.getItem('loan_crm_autotg') === 'true';
+
+    // NẾU CHƯA CÓ DỮ LIỆU, NẠP SẴN 10 HỒ SƠ CHUẨN XÁC TỪ ẢNH BẠN GỬI
     if (leads.length === 0) {
-      leads = [{
-        id: 1, name: 'NGUYỄN VĂN HẢI', phone: '0981234567', simCarrier: 'Viettel', dob: '1998-08-15', age: 28,
-        cccd: '092098001234', oldCmnd: '365892114', gender: 'Nam', permAddress: 'Cần Thơ', tempAddress: 'Cần Thơ',
-        job: 'Kỹ sư IT', income: 15000000, amount: 40000000, bankName: 'MB', bankAccount: '0981234567',
-        previousLenders: ['Home Credit', 'FE Credit'],
-        ref1Rel: 'Mẹ', ref1Name: 'Thu', ref1Phone: '0913123456', ref2Rel: 'Anh', ref2Name: 'Tuấn', ref2Phone: '0909876543',
-        cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD', 'CAVET'],
-        isCompleted: true, completeReason: 'Đã giải ngân thành công', completedDate: '01/09/2026',
-        applications: [{ lender: 'Cathay Bank (CUB)', result: 'Duyệt', rejectReason: '', contract: { code: 'CT-9921', approvedAmount: 40000000, tenor: 24, monthlyPay: 2150000, disburseDate: '2026-09-01' } }]
-      }];
+      leads = [
+        {
+          id: 1, name: 'Võ Thị Mai', phone: '0901086126', simCarrier: 'Viettel', dob: '1969-08-18', age: 57,
+          cccd: '089169000138', oldCmnd: '', gender: 'Nữ', permAddress: '140, Trần Quang Diệu, Khu Vực 4, An Thới, Bình Thủy, Cần Thơ', tempAddress: 'Thường Trú',
+          job: 'Kinh doanh vựa ve chai', income: 27500000, amount: 50000000, bankName: 'TPBank', bankAccount: '36368333666',
+          previousLenders: ['Home Credit', 'HD Saison'],
+          ref1Rel: 'Em ruột', ref1Name: 'Võ Ngọc Mai', ref1Phone: '0395271667', ref2Rel: 'Bạn', ref2Name: 'Nguyễn Thị Tha', ref2Phone: '0902645072',
+          cicStatus: 'SACH', documents: ['CAVET', 'SAO_KE'], isCompleted: false, applications: [{ lender: 'FE Credit', result: 'Đang thẩm định', rejectReason: '', contract: null }]
+        },
+        {
+          id: 2, name: 'Võ Ngọc Mai', phone: '0395271667', simCarrier: 'Viettel', dob: '1982-12-28', age: 43,
+          cccd: '091182014255', oldCmnd: '', gender: 'Nữ', permAddress: 'Khu Phố 4, Dương Đông, Phú Quốc, Kiên Giang', tempAddress: '140, Trần Quang Diệu, An Thới, Bình Thủy, Cần Thơ',
+          job: 'Kinh doanh phế liệu tại nhà', income: 27500000, amount: 50000000, bankName: 'TPBank', bankAccount: '36369333666',
+          previousLenders: ['FE Credit'],
+          ref1Rel: 'Chị ruột', ref1Name: 'Võ Thị Mai', ref1Phone: '0901086126', ref2Rel: 'Bạn', ref2Name: 'Nguyễn Thị Tha', ref2Phone: '0902645072',
+          cicStatus: 'SACH', documents: ['CAVET', 'BHYT'], isCompleted: false, applications: [{ lender: 'Home Credit', result: 'Đang thẩm định', rejectReason: '', contract: null }]
+        },
+        {
+          id: 3, name: 'Trần Lê Thành Khang', phone: '0979448210', simCarrier: 'Viettel', dob: '1980-05-01', age: 46,
+          cccd: '092080001743', oldCmnd: '', gender: 'Nam', permAddress: '03, KV 1, Hưng Phú, Cái Răng, Cần Thơ', tempAddress: 'Thường Trú',
+          job: 'Cty Phúc Vạn Lợi', income: 27500000, amount: 40000000, bankName: 'MB', bankAccount: '0979448210',
+          previousLenders: ['MCredit'],
+          ref1Rel: 'Vợ', ref1Name: 'Lư Thị Thanh Vi', ref1Phone: '0838911698', ref2Rel: 'Cháu', ref2Name: 'Nguyễn Thanh Thư', ref2Phone: '0329173994',
+          cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD'], isCompleted: false, applications: [{ lender: 'MCredit', result: 'Duyệt', rejectReason: '', contract: { code: 'MC-8812', approvedAmount: 40000000, tenor: 12, monthlyPay: 3800000, disburseDate: '2026-08-22' } }]
+        },
+        {
+          id: 4, name: 'Sơn Chánh Mô Ni', phone: '0907617472', simCarrier: 'Vinaphone', dob: '1990-11-13', age: 35,
+          cccd: '094090005750', oldCmnd: '', gender: 'Nam', permAddress: 'Ấp An Trạch, An Hiệp, Châu Thành, Sóc Trăng', tempAddress: 'Quốc lộ 1A, Tân Phú Thạnh, Châu Thành A, Hậu Giang',
+          job: 'Tài xế Cty Bê Tông Hamaco', income: 27500000, amount: 60000000, bankName: 'BIDV', bankAccount: '8862580345',
+          previousLenders: ['HD Saison', 'Mirae Asset (MAFC)'],
+          ref1Rel: 'Mẹ', ref1Name: 'Sơn Thị Hiếu', ref1Phone: '0325947351', ref2Rel: 'Bạn', ref2Name: 'Trương Hiếu Thuận', ref2Phone: '0799599931',
+          cicStatus: 'SACH', documents: ['GPLX', 'HDLD'], isCompleted: false, applications: [{ lender: 'Mirae Asset (MAFC)', result: 'Đang thẩm định', rejectReason: '', contract: null }]
+        },
+        {
+          id: 5, name: 'Phạm Tuân', phone: '0366924949', simCarrier: 'Viettel', dob: '1992-08-24', age: 34,
+          cccd: '086092008947', oldCmnd: '', gender: 'Nam', permAddress: 'Khóm 5, Thành Phước, Thị xã Bình Minh, Vĩnh Long', tempAddress: 'Thường Trú',
+          job: 'Điện lực Cái Răng', income: 27500000, amount: 50000000, bankName: 'Vietcombank', bankAccount: '1012810037',
+          previousLenders: ['VPBank'],
+          ref1Rel: 'Em ruột', ref1Name: 'Phạm Thị Bích Phượng', ref1Phone: '0775878797', ref2Rel: 'Anh ruột', ref2Name: 'Phạm Minh Trung', ref2Phone: '0328686635',
+          cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD', 'CAVET'], isCompleted: false, applications: [{ lender: 'VPBank', result: 'Duyệt', rejectReason: '', contract: { code: 'VP-9910', approvedAmount: 50000000, tenor: 24, monthlyPay: 2600000, disburseDate: '2026-08-31' } }]
+        },
+        {
+          id: 6, name: 'Phạm Thị Huệ Hân', phone: '0978794489', simCarrier: 'Mobifone', dob: '1981-10-02', age: 44,
+          cccd: '086181003590', oldCmnd: '', gender: 'Nữ', permAddress: 'C15c Trần Khánh Dư, Xuân Khánh, Ninh Kiều, Cần Thơ', tempAddress: 'C15c Trần Khánh Dư, P. Xuân Khánh, Ninh Kiều, TPCT',
+          job: 'Ngân hàng TMCP Phương Đông OCB', income: 27500000, amount: 50000000, bankName: 'OCB', bankAccount: '0978794489',
+          previousLenders: ['SHB Finance'],
+          ref1Rel: 'Con', ref1Name: 'Nguyễn Phúc Danh Nhân', ref1Phone: '0336684503', ref2Rel: 'Chị ruột', ref2Name: 'Phạm Thị Phúc Trinh', ref2Phone: '0933989239',
+          cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD'], isCompleted: false, applications: [{ lender: 'SHB Finance', result: 'Đang thẩm định', rejectReason: '', contract: null }]
+        },
+        {
+          id: 7, name: 'Nguyễn Thanh Hóa', phone: '0396203755', simCarrier: 'Viettel', dob: '2004-01-13', age: 22,
+          cccd: '087204011191', oldCmnd: '', gender: 'Nữ', permAddress: 'Tổ 2, Ấp 11, Phong Mỹ, Đồng Tháp', tempAddress: 'KDC 3A, Phường An Bình, Q. NK, TPCT',
+          job: 'Quán Ăn Hara & chạy shoppee food', income: 27500000, amount: 20000000, bankName: 'MB', bankAccount: '799913012004',
+          previousLenders: ['Cake by VPBank', 'Tnex'],
+          ref1Rel: 'Mẹ', ref1Name: 'Nguyễn Thị Mỹ Trang', ref1Phone: '0967235948', ref2Rel: 'Em họ', ref2Name: 'Võ Tấn Lực', ref2Phone: '0567680400',
+          cicStatus: 'SACH', documents: ['GPLX', 'BHYT'], isCompleted: false, applications: [{ lender: 'Cake by VPBank', result: 'Đang thẩm định', rejectReason: '', contract: null }]
+        },
+        {
+          id: 8, name: 'Nguyễn Minh Trí', phone: '0939965957', simCarrier: 'Viettel', dob: '1990-11-06', age: 35,
+          cccd: '092090004050', oldCmnd: '', gender: 'Nam', permAddress: '18/83 , Xô Viết Nghệ Tĩnh, Tân An, Ninh Kiều, Cần Thơ', tempAddress: 'Thường trú',
+          job: 'Công Ty CP TGDĐ', income: 27500000, amount: 40000000, bankName: 'Vietinbank', bankAccount: '109867924131',
+          previousLenders: ['Home Credit'],
+          ref1Rel: 'Mẹ', ref1Name: 'Dương Thị Bảo Trinh', ref1Phone: '0939432147', ref2Rel: 'Cha', ref2Name: 'Nguyễn Văn Đức', ref2Phone: '0918678754',
+          cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD'], isCompleted: false, applications: [{ lender: 'Home Credit', result: 'Đang thẩm định', rejectReason: '', contract: null }]
+        },
+        {
+          id: 9, name: 'Huỳnh Mỹ Hằng', phone: '0974544405', simCarrier: 'Vinaphone', dob: '1985-01-12', age: 41,
+          cccd: '093185008191', oldCmnd: '', gender: 'Nữ', permAddress: 'Phú Tân, Phú Tân, Châu Thành, Hậu Giang', tempAddress: 'Thường Trú',
+          job: 'Tổ phó giáo viên Mầm non', income: 27500000, amount: 40000000, bankName: 'Sacombank', bankAccount: '070974544405',
+          previousLenders: ['HD Saison'],
+          ref1Rel: 'Con gái', ref1Name: 'Nguyễn Huỳnh Mỹ Thiên', ref1Phone: '0353893110', ref2Rel: 'Con gái', ref2Name: 'Nguyễn Huỳnh Mỹ Trân', ref2Phone: '0336730184',
+          cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD'], isCompleted: false, applications: [{ lender: 'HD Saison', result: 'Đang thẩm định', rejectReason: '', contract: null }]
+        },
+        {
+          id: 10, name: 'Đoàn Thị Diệu Ý', phone: '0907655870', simCarrier: 'Viettel', dob: '1996-10-03', age: 29,
+          cccd: '092196002436', oldCmnd: '', gender: 'Nữ', permAddress: 'Ấp Định Mỹ, Định Môn, Thới Lai, Cần Thơ', tempAddress: 'Trần Văn Trà, Hưng Phú, Cái Răng, CT',
+          job: 'Kinh doanh tạp hoá hoá', income: 27500000, amount: 30000000, bankName: 'Khác', bankAccount: '1234567',
+          previousLenders: ['FE Credit', 'Home Credit'],
+          ref1Rel: 'Anh ruột', ref1Name: 'Lê Trần Hoàng Liệt', ref1Phone: '0772177634', ref2Rel: 'Chị hai', ref2Name: 'Lưu Trâm Anh', ref2Phone: '0775862595',
+          cicStatus: 'SACH', documents: ['CAVET', 'GPLX'], isCompleted: false, applications: [{ lender: 'FE Credit', result: 'Đang thẩm định', rejectReason: '', contract: null }]
+        }
+      ];
     }
 
     let activeTab = 'active';
@@ -598,8 +672,8 @@
     let contractLeadId = null;
     let contractAppIdx = null;
 
-    // TELEGRAM CONFIG
-    const TOKEN = '8539026331:AAHGPTrXegeT_ZZn28uDwXjXHArpwM7E1ME';
+    // TELEGRAM CONFIG CHUẨN XÁC
+    const TOKEN = '8539026331:AAHGpTRXegeT_ZZn28uDwXjXHArpwM7E1ME';
     const CHAT_ID = '-1004351522635';
 
     function showToast(m) {
@@ -622,7 +696,7 @@
     }
 
     function saveStorage() {
-      localStorage.setItem('loan_crm_v19', JSON.stringify(leads));
+      localStorage.setItem('loan_crm_v20', JSON.stringify(leads));
       render();
     }
 
@@ -1151,15 +1225,25 @@
           html5QrScanner = new Html5Qrcode("reader");
           html5QrScanner.start(
             { facingMode: "environment" },
-            { fps: 10, qrbox: 220 },
+            { 
+              fps: 15, 
+              qrbox: { width: 250, height: 250 },
+              aspectRatio: 1.0
+            },
             (txt) => {
               parseQrText(txt);
             },
             () => {}
           ).then(() => {
-            // Cố gắng lấy track camera để áp dụng zoom nếu thiết bị hỗ trợ
+            // Tự động bật lấy nét liên tục nếu trình duyệt hỗ trợ
             try {
-              const videoTrack = html5QrScanner.getState() === 2 ? html5QrScanner.getRunningTrackCameraCapabilities() : null;
+              const track = html5QrScanner.getRunningTrack();
+              if (track && track.getCapabilities) {
+                const caps = track.getCapabilities();
+                if (caps.focusMode && caps.focusMode.includes('continuous')) {
+                  track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(()=>{});
+                }
+              }
             } catch(e){}
           }).catch(() => {});
         }
@@ -1173,15 +1257,14 @@
           const track = html5QrScanner.getRunningTrack();
           if (track && track.applyConstraints) {
             track.applyConstraints({ advanced: [{ zoom: parseFloat(val) }] }).catch(() => {});
-          } else {
-            // Fallback scale CSS cho video nếu phần cứng không hỗ trợ API zoom trực tiếp
-            const videoEl = document.querySelector('#reader video');
-            if (videoEl) {
-              videoEl.style.transform = `scale(${val})`;
-              videoEl.style.transformOrigin = 'center center';
-            }
           }
         } catch(e){}
+      }
+      // Áp dụng CSS transform scale dự phòng trực tiếp lên thẻ video để hiển thị mượt ngay cả trên Safari/iOS
+      const videoEl = document.querySelector('#reader video');
+      if (videoEl) {
+        videoEl.style.transform = `scale(${val})`;
+        videoEl.style.transformOrigin = 'center center';
       }
     }
 
@@ -1225,48 +1308,76 @@
     }
 
     async function backupToTelegram() {
-      showToast('Đang đẩy dữ liệu lên Telegram...');
+      showToast('Đang nén & đẩy dữ liệu lên Telegram...');
       try {
-        const textData = `🛡️ SAO LƯU CRM_PTC\n<code>${JSON.stringify(leads)}</code>`;
-        const res = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+        const fullJson = JSON.stringify(leads);
+        // Chia nhỏ dữ liệu thành các phần (mỗi phần 3500 ký tự) để không bao giờ bị lỗi Bad Request: message is too long
+        const CHUNK_SIZE = 3500;
+        let success = true;
+
+        // Gửi thông báo bắt đầu
+        await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: CHAT_ID, text: textData, parse_mode: 'HTML' })
+          body: JSON.stringify({ chat_id: CHAT_ID, text: `🛡️ <b>BẮT ĐẦU ĐỒNG BỘ CRM_PTC</b> (${leads.length} hồ sơ)`, parse_mode: 'HTML' })
         });
-        const d = await res.json();
-        if (d.ok) showToast('Đẩy lên Telegram thành công!');
-        else showToast('Lỗi Telegram: ' + (d.description || 'Unauthorized'));
+
+        for (let i = 0; i < fullJson.length; i += CHUNK_SIZE) {
+          const chunk = fullJson.substring(i, i + CHUNK_SIZE);
+          const msg = `📦 <code>[PART_${Math.floor(i/CHUNK_SIZE)+1}]</code>\n<code>${chunk}</code>`;
+          const res = await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: CHAT_ID, text: msg, parse_mode: 'HTML' })
+          });
+          const d = await res.json();
+          if (!d.ok) success = false;
+        }
+
+        if (success) showToast('Đẩy lên Telegram thành công toàn bộ hồ sơ!');
+        else showToast('Có phần dữ liệu gửi lỗi, vui lòng thử lại');
       } catch (e) {
         showToast('Lỗi mạng kết nối Telegram');
       }
     }
 
     async function restoreFromTelegram() {
-      showToast('Đang tải từ Telegram...');
+      showToast('Đang tải dữ liệu từ Telegram...');
       try {
-        const res = await fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates`);
+        const res = await fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates?allowed_updates=["message","channel_post"]`);
         const d = await res.json();
         if (d.ok && d.result) {
-          for (let i = d.result.length - 1; i >= 0; i--) {
-            const txt = d.result[i].message?.text || d.result[i].channel_post?.text || '';
-            if (txt.includes('SAO LƯU CRM_PTC')) {
-              const startIdx = txt.indexOf('[');
-              const endIdx = txt.lastIndexOf(']');
-              if (startIdx > -1 && endIdx > -1) {
-                const parsed = JSON.parse(txt.substring(startIdx, endIdx + 1));
-                if (Array.isArray(parsed)) {
-                  leads = parsed;
-                  showToast(`Khôi phục thành công ${parsed.length} hồ sơ!`);
-                  closeBackupModal();
-                  saveStorage();
-                  return;
+          let assembledJson = '';
+          // Duyệt tìm các phần tin nhắn có chứa [PART_
+          for (const item of d.result) {
+            const txt = item.message?.text || item.channel_post?.text || '';
+            if (txt.includes('[PART_')) {
+              // Lấy phần code bên trong thẻ code
+              const start = txt.indexOf('<code>[PART_');
+              if (start > -1) {
+                const codeBlockStart = txt.indexOf('</code>\n<code>', start);
+                if (codeBlockStart > -1) {
+                  const actualJson = txt.substring(codeBlockStart + 8, txt.lastIndexOf('</code>'));
+                  assembledJson += actualJson;
                 }
               }
             }
           }
-          showToast('Không tìm thấy bản backup gần đây');
+
+          if (assembledJson) {
+            const parsed = JSON.parse(assembledJson);
+            if (Array.isArray(parsed)) {
+              leads = parsed;
+              showToast(`Khôi phục thành công ${parsed.length} hồ sơ từ Telegram!`);
+              closeBackupModal();
+              saveStorage();
+              return;
+            }
+          }
+
+          showToast('Không gom đủ các phần dữ liệu backup trên Telegram');
         } else {
-          showToast('Lỗi kết nối Telegram');
+          showToast('Lỗi kết nối Telegram API');
         }
       } catch (e) {
         showToast('Không tải được từ Telegram');

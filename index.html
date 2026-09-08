@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CRM_PTC - Quản Lý Tín Dụng Đa Công Ty</title>
+  <title>CRM_PTC - Quản Lý Tín Dụng Chuyên Nghiệp</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Inter -->
@@ -61,7 +61,6 @@
           </div>
           <div>
             <h1 class="text-sm font-bold tracking-tight leading-tight">CRM_PTC</h1>
-            <p class="text-[10px] text-blue-100 font-medium">Khảo sát & Đa Cty TC</p>
           </div>
         </div>
 
@@ -74,7 +73,7 @@
             <span>💾</span>
             <span class="text-[10px]">Lưu</span>
           </button>
-          <!-- Nút Quét QR -->
+          <!-- Nút Quét QR (Dùng Camera Sau) -->
           <button 
             type="button"
             onclick="openScanModal()" 
@@ -92,7 +91,7 @@
         </div>
       </div>
 
-      <!-- MENU ĐIỀU HƯỚNG TAB: ĐANG XỬ LÝ & KHÁCH HÀNG -->
+      <!-- Tab KHÁCH HÀNG -->
       <div class="mt-2.5 bg-blue-900/50 p-1 rounded-2xl flex text-xs font-bold border border-blue-400/30">
         <button 
           type="button"
@@ -153,7 +152,7 @@
     </header>
 
     <!-- THANH LỌC NHANH TRẠNG THÁI -->
-    <div class="bg-white border-b border-slate-200 px-3 py-2 sticky top-[165px] z-20 shadow-sm flex items-center justify-between">
+    <div class="bg-white border-b border-slate-200 px-3 py-2 sticky top-[135px] z-20 shadow-sm flex items-center justify-between">
       <div id="statusFilterBar" class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5">
         <button type="button" onclick="setFilterStatus('ALL')" data-status="ALL" class="px-2.5 py-1 rounded-full text-xs whitespace-nowrap transition bg-blue-600 text-white font-semibold">Tất cả</button>
         <button type="button" onclick="setFilterStatus('Duyệt')" data-status="Duyệt" class="px-2.5 py-1 rounded-full text-xs whitespace-nowrap transition bg-slate-100 text-slate-600">Có bên Duyệt</button>
@@ -235,7 +234,7 @@
     </div>
   </div>
 
-  <!-- MODAL THÊM / SỬA KHÁCH HÀNG (ĐẦY ĐỦ 12 CTY & KHẢO SÁT LỊCH SỬ TÍN DỤNG CŨ) -->
+  <!-- MODAL THÊM / SỬA KHÁCH HÀNG (CÓ EMAIL, ĐỊA CHỈ CV, THỜI GIAN LV & 12 CTY) -->
   <div id="leadModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm hidden">
     <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto space-y-4 shadow-2xl">
       <div class="flex justify-between items-center border-b pb-2.5">
@@ -263,6 +262,11 @@
               <option value="Khác">Khác</option>
             </select>
           </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Email cá nhân</label>
+          <input id="formEmail" type="email" placeholder="example@gmail.com" class="w-full border rounded-xl p-2 focus:outline-blue-500">
         </div>
 
         <div class="grid grid-cols-2 gap-2">
@@ -299,18 +303,31 @@
           <input id="formTempAddress" type="text" placeholder="Số nhà, đường, khu vực..." class="w-full border rounded-xl p-2">
         </div>
 
-        <div class="grid grid-cols-3 gap-2">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Công việc</label>
-            <input id="formJob" type="text" placeholder="Công nhân..." class="w-full border rounded-xl p-2">
+        <!-- THÔNG TIN CÔNG VIỆC, THU NHẬP, ĐỊA CHỈ CV & THỜI GIAN LÀM VIỆC -->
+        <div class="bg-blue-50/60 p-2.5 rounded-xl border border-blue-100 space-y-2">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Công việc / Chức vụ</label>
+              <input id="formJob" type="text" placeholder="Công nhân, NV..." class="w-full border rounded-xl p-2 bg-white">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Thu nhập (VNĐ)</label>
+              <input id="formIncome" type="number" step="500000" class="w-full border rounded-xl p-2 bg-white">
+            </div>
           </div>
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Thu nhập (VNĐ)</label>
-            <input id="formIncome" type="number" step="500000" class="w-full border rounded-xl p-2">
+            <label class="block font-bold text-slate-700 mb-1">Địa chỉ nơi làm việc</label>
+            <input id="formWorkAddress" type="text" placeholder="Số nhà, đường, KCN, Phường/Xã nơi làm..." class="w-full border rounded-xl p-2 bg-white">
           </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Cần vay *</label>
-            <input id="formAmount" required type="number" step="1000000" class="w-full border rounded-xl p-2 font-bold text-blue-700">
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Thời gian làm việc</label>
+              <input id="formWorkTime" type="text" placeholder="VD: 2 năm / 24 tháng" class="w-full border rounded-xl p-2 bg-white">
+            </div>
+            <div>
+              <label class="block font-bold text-slate-700 mb-1">Cần vay *</label>
+              <input id="formAmount" required type="number" step="1000000" class="w-full border rounded-xl p-2 font-bold text-blue-700 bg-white">
+            </div>
           </div>
         </div>
 
@@ -325,13 +342,11 @@
           </div>
         </div>
 
-        <!-- MỤC KHẢO SÁT LỊCH SỬ TÍN DỤNG CŨ (ĐANG VAY / GÓP Ở ĐÂU) -->
+        <!-- MỤC KHẢO SÁT LỊCH SỬ TÍN DỤNG CŨ -->
         <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 space-y-1.5">
           <label class="block font-bold text-emerald-950">🔍 Khảo sát lịch sử vay/góp cũ (Khách đang hoặc từng góp ở Cty nào?)</label>
           <p class="text-[10px] text-emerald-800">Chọn các công ty tài chính khách đã từng vay hoặc đang góp để ưu tiên làm lại cho khách cũ:</p>
-          <div class="grid grid-cols-2 gap-1 pt-1" id="formPrevLendersContainer">
-            <!-- Rendered by JS -->
-          </div>
+          <div class="grid grid-cols-2 gap-1 pt-1" id="formPrevLendersContainer"></div>
         </div>
 
         <div class="bg-amber-50 p-2.5 rounded-xl border border-amber-200 space-y-1.5">
@@ -359,15 +374,14 @@
 
         <div class="bg-indigo-50 p-2.5 rounded-xl border border-indigo-100 space-y-1">
           <label class="font-bold text-indigo-950 block">📄 Chứng từ có sẵn:</label>
-          <div class="grid grid-cols-2 gap-1 pt-1" id="formDocsContainer">
-            <!-- Rendered by JS -->
-          </div>
+          <div class="grid grid-cols-2 gap-1 pt-1" id="formDocsContainer"></div>
         </div>
 
-        <!-- CHỌN CÔNG TY TÀI CHÍNH NỘP ĐƠN BAN ĐẦU -->
+        <!-- CHỌN CÔNG TY TÀI CHÍNH / NGÂN HÀNG (CÓ TPBANK) -->
         <div class="bg-sky-50 p-2.5 rounded-xl border border-sky-200 space-y-1">
-          <label class="font-bold text-sky-950 block">🏛️ Nộp đơn tại Công ty Tài chính ban đầu:</label>
+          <label class="font-bold text-sky-950 block">🏛️ Nộp đơn tại Công ty Tài chính / Ngân hàng (Ưu tiên TPBank):</label>
           <select id="formInitialLender" class="w-full border rounded-xl p-2 bg-white font-semibold text-sky-900">
+            <option value="TPBank">TPBank (Mới)</option>
             <option value="FE Credit">FE Credit</option>
             <option value="Home Credit">Home Credit</option>
             <option value="HD Saison">HD Saison</option>
@@ -396,7 +410,7 @@
     </div>
   </div>
 
-  <!-- MODAL QUÉT QR CCCD TÍCH HỢP QUÉT ẢNH 100% NHẬN DIỆN CHUẨN -->
+  <!-- MODAL QUÉT QR CCCD (BẮT BUỘC CAMERA SAU, ZOOM TRỰC TIẾP & CHỌN ẢNH) -->
   <div id="scanModal" class="fixed inset-0 bg-slate-900/80 z-50 flex items-center justify-center p-3 backdrop-blur-sm hidden">
     <div class="bg-white w-full max-w-sm rounded-3xl p-4 space-y-3 shadow-2xl text-xs">
       <div class="flex justify-between items-center border-b pb-2">
@@ -404,18 +418,27 @@
         <button type="button" onclick="closeScanModal()" class="w-7 h-7 bg-slate-100 rounded-full font-bold">✕</button>
       </div>
 
-      <!-- Khung camera -->
+      <!-- Khung camera sau bắt buộc -->
       <div class="relative bg-slate-900 rounded-2xl overflow-hidden min-h-[220px] flex items-center justify-center">
         <div id="reader" class="w-full h-full"></div>
       </div>
 
-      <!-- TÍNH NĂNG QUÉT ẢNH CHỤP SẴN (ĐẢM BẢO CHÍNH XÁC 100% KHÔNG BAO GIỜ LỖI MỜ) -->
+      <!-- Thanh trượt Zoom trực tiếp -->
+      <div class="bg-slate-100 p-2.5 rounded-xl space-y-1">
+        <div class="flex justify-between text-[11px] font-bold text-slate-700">
+          <span>🔍 Thu phóng camera (Zoom):</span>
+          <span id="zoomValText">1.0x</span>
+        </div>
+        <input type="range" id="zoomRange" min="1" max="3" step="0.2" value="1" oninput="handleZoomChange(this.value)" class="w-full accent-blue-600 cursor-pointer">
+      </div>
+
+      <!-- Chọn ảnh chụp sẵn 100% không sợ mờ -->
       <div class="bg-amber-50 border border-amber-200 p-3 rounded-2xl space-y-1.5 text-amber-950">
         <span class="font-bold block flex items-center gap-1">
-          <span>💡</span> Mẹo quét 100% thành công:
+          <span>💡</span> Giải pháp quét 100% không sợ mờ:
         </span>
         <p class="text-[10px] text-amber-900 leading-tight">
-          Nếu camera điện thoại bị mờ hoặc mã QR nhỏ, bạn chỉ cần dùng camera thường chụp lại thẻ CCCD rồi chọn file ảnh đó bên dưới:
+          Nếu camera web quét khó lấy nét gần, hãy chụp ảnh thẻ CCCD bằng camera thường rồi chọn file ảnh đó ngay tại đây:
         </p>
         <input type="file" accept="image/*" onchange="handleQrFile(event)" class="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-xl file:border-0 file:bg-amber-600 file:text-white file:font-bold cursor-pointer">
       </div>
@@ -424,15 +447,14 @@
     </div>
   </div>
 
-  <!-- MODAL XUẤT PHIẾU THANH TOÁN (CHUẨN ĐỒNG NHẤT CHO MỌI NGÂN HÀNG) -->
+  <!-- MODAL XUẤT PHIẾU THANH TOÁN (ĐỒNG NHẤT, CÓ HƯỚNG DẪN RIÊNG TỪNG CTY/NH) -->
   <div id="receiptModal" class="fixed inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-3 backdrop-blur-md hidden">
     <div class="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border border-slate-200 text-xs">
-      <!-- Header Phiếu: Tên Cty Tài Chính / Ngân Hàng -->
       <div id="receiptHeader" class="p-4 text-white bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-800 flex justify-between items-center">
         <div class="flex items-center gap-2">
           <div id="receiptLogoEmoji" class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-base">🏦</div>
           <div>
-            <span class="text-[9px] uppercase tracking-wider opacity-80 block">Phiếu Thanh Toán Khoản Vay</span>
+            <span class="text-[9px] uppercase tracking-wider opacity-80 block">Lịch Trình Thanh Toán Khoản Vay</span>
             <h3 id="receiptLenderTitle" class="font-extrabold text-sm">---</h3>
           </div>
         </div>
@@ -440,7 +462,6 @@
       </div>
 
       <div class="p-4 space-y-3">
-        <!-- Khách hàng & SĐT -->
         <div class="bg-slate-50 p-2.5 rounded-xl border flex justify-between items-center">
           <div>
             <span class="text-[10px] text-slate-400 block font-medium">Khách hàng</span>
@@ -452,17 +473,15 @@
           </div>
         </div>
 
-        <!-- SỐ TIỀN THANH TOÁN HÀNG THÁNG NỔI BẬT -->
+        <!-- ĐÃ BỎ TRƯỜNG KHOẢN VAY, LÀM NỔI BẬT TIỀN GÓP HÀNG THÁNG -->
         <div class="bg-emerald-50 border border-emerald-300 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
           <div class="text-[10px] uppercase font-bold text-emerald-800 tracking-wide">💰 Số Tiền Góp Định Kỳ Mỗi Tháng</div>
           <div id="receiptMonthlyPay" class="text-2xl font-black text-emerald-700">0 đ</div>
           <div class="text-[10px] text-slate-600">
-            Khoản vay: <b id="receiptApprovedAmount">0 đ</b> • Kỳ hạn: <b id="receiptTenor">12 tháng</b>
+            Kỳ hạn: <b id="receiptTenor">12 tháng</b> • Mã HĐ: <b id="receiptCode" class="font-mono text-slate-800 font-bold">---</b>
           </div>
-          <div class="text-[10px] text-slate-500 pt-0.5">Mã HĐ: <b id="receiptCode" class="font-mono text-slate-800 font-bold">---</b></div>
         </div>
 
-        <!-- NGÀY ĐÓNG ĐẦU TIÊN & CUỐI CÙNG -->
         <div class="grid grid-cols-2 gap-2">
           <div class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-center">
             <span class="text-[10px] text-blue-700 font-bold block">📅 Ngày Đóng Kỳ 1</span>
@@ -474,7 +493,16 @@
           </div>
         </div>
 
-        <!-- Nút Copy Gửi Zalo -->
+        <!-- HƯỚNG DẪN THANH TOÁN CHI TIẾT THEO TỪNG CTY TÀI CHÍNH / NGÂN HÀNG -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-2.5 text-[11px] space-y-1 text-slate-700">
+          <div class="font-bold text-slate-900 flex items-center gap-1">
+            <span>🏦</span> Hướng dẫn đóng tiền theo đơn vị:
+          </div>
+          <p id="receiptGuideText" class="text-[10px] text-slate-600 leading-tight">
+            ---
+          </p>
+        </div>
+
         <button type="button" onclick="copyPaymentMsg()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5">
           <span>📋</span> Copy Tin Nhắn Gửi Zalo Cho Khách
         </button>
@@ -559,91 +587,91 @@
   </div>
 
   <script>
-    const ALL_PARTNERS = ['FE Credit', 'Home Credit', 'HD Saison', 'Mirae Asset (MAFC)', 'MCredit', 'SHB Finance', 'VPBank', 'Cathay Bank (CUB)', 'Tnex', 'Cake by VPBank', 'Viettel Money', 'Tinvay'];
+    const ALL_PARTNERS = ['TPBank', 'FE Credit', 'Home Credit', 'HD Saison', 'Mirae Asset (MAFC)', 'MCredit', 'SHB Finance', 'VPBank', 'Cathay Bank (CUB)', 'Tnex', 'Cake by VPBank', 'Viettel Money', 'Tinvay'];
     const DOC_MAP = { 'CAVET': 'Cà vẹt xe', 'GPLX': 'Bằng lái xe', 'BHYT': 'BHYT', 'SAO_KE': 'Sao kê lương', 'HDLD': 'HĐLĐ' };
 
-    let leads = JSON.parse(localStorage.getItem('loan_crm_v20') || '[]');
+    let leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
     let autoNotifyTg = localStorage.getItem('loan_crm_autotg') === 'true';
 
-    // NẠP SẴN 10 HỒ SƠ CHUẨN XÁC TỪ ẢNH BẠN GỬI
+    // 10 HỒ SƠ CHUẨN XÁC TỪ ẢNH BẠN GỬI (CÓ ĐỦ EMAIL, ĐỊA CHỈ CV, THỜI GIAN LV)
     if (leads.length === 0) {
       leads = [
         {
-          id: 1, name: 'Võ Thị Mai', phone: '0901086126', simCarrier: 'Viettel', dob: '1969-08-18', age: 57,
+          id: 1, name: 'Võ Thị Mai', phone: '0901086126', email: 'vothimai1969tpct@gmail.com', simCarrier: 'Viettel', dob: '1969-08-18', age: 57,
           cccd: '089169000138', oldCmnd: '', gender: 'Nữ', permAddress: '140, Trần Quang Diệu, Khu Vực 4, An Thới, Bình Thủy, Cần Thơ', tempAddress: 'Thường Trú',
-          job: 'Kinh doanh vựa ve chai', income: 27500000, amount: 50000000, bankName: 'TPBank', bankAccount: '36368333666',
+          job: 'Kinh doanh vựa ve chai', workAddress: 'Thường Trú', workTime: '60 tháng', income: 27500000, amount: 50000000, bankName: 'TPBank', bankAccount: '36368333666',
           previousLenders: ['Home Credit', 'HD Saison'],
           ref1Rel: 'Em ruột', ref1Name: 'Võ Ngọc Mai', ref1Phone: '0395271667', ref2Rel: 'Bạn', ref2Name: 'Nguyễn Thị Tha', ref2Phone: '0902645072',
           cicStatus: 'SACH', documents: ['CAVET', 'SAO_KE'], isCompleted: false, applications: [{ lender: 'FE Credit', result: 'Đang thẩm định', rejectReason: '', contract: null }]
         },
         {
-          id: 2, name: 'Võ Ngọc Mai', phone: '0395271667', simCarrier: 'Viettel', dob: '1982-12-28', age: 43,
+          id: 2, name: 'Võ Ngọc Mai', phone: '0395271667', email: 'vothimai1969tpct@gmail.com', simCarrier: 'Viettel', dob: '1982-12-28', age: 43,
           cccd: '091182014255', oldCmnd: '', gender: 'Nữ', permAddress: 'Khu Phố 4, Dương Đông, Phú Quốc, Kiên Giang', tempAddress: '140, Trần Quang Diệu, An Thới, Bình Thủy, Cần Thơ',
-          job: 'Kinh doanh phế liệu tại nhà', income: 27500000, amount: 50000000, bankName: 'TPBank', bankAccount: '36369333666',
+          job: 'Kinh doanh phế liệu tại nhà', workAddress: '140, Trần Quang Diệu', workTime: '60 tháng', income: 27500000, amount: 50000000, bankName: 'TPBank', bankAccount: '36369333666',
           previousLenders: ['FE Credit'],
           ref1Rel: 'Chị ruột', ref1Name: 'Võ Thị Mai', ref1Phone: '0901086126', ref2Rel: 'Bạn', ref2Name: 'Nguyễn Thị Tha', ref2Phone: '0902645072',
           cicStatus: 'SACH', documents: ['CAVET', 'BHYT'], isCompleted: false, applications: [{ lender: 'Home Credit', result: 'Đang thẩm định', rejectReason: '', contract: null }]
         },
         {
-          id: 3, name: 'Trần Lê Thành Khang', phone: '0979448210', simCarrier: 'Viettel', dob: '1980-05-01', age: 46,
+          id: 3, name: 'Trần Lê Thành Khang', phone: '0979448210', email: 'thaonguyenthanh32@gmail.com', simCarrier: 'Viettel', dob: '1980-05-01', age: 46,
           cccd: '092080001743', oldCmnd: '', gender: 'Nam', permAddress: '03, KV 1, Hưng Phú, Cái Răng, Cần Thơ', tempAddress: 'Thường Trú',
-          job: 'Cty Phúc Vạn Lợi', income: 27500000, amount: 40000000, bankName: 'MB', bankAccount: '0979448210',
+          job: 'Cty Phúc Vạn Lợi', workAddress: '38, đường B5, KDC Hưng Phú, Cái Răng, CT', workTime: '60 tháng', income: 27500000, amount: 40000000, bankName: 'MB', bankAccount: '0979448210',
           previousLenders: ['MCredit'],
           ref1Rel: 'Vợ', ref1Name: 'Lư Thị Thanh Vi', ref1Phone: '0838911698', ref2Rel: 'Cháu', ref2Name: 'Nguyễn Thanh Thư', ref2Phone: '0329173994',
           cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD'], isCompleted: false, applications: [{ lender: 'MCredit', result: 'Duyệt', rejectReason: '', contract: { code: 'MC-8812', approvedAmount: 40000000, tenor: 12, monthlyPay: 3800000, disburseDate: '2026-08-22' } }]
         },
         {
-          id: 4, name: 'Sơn Chánh Mô Ni', phone: '0907617472', simCarrier: 'Vinaphone', dob: '1990-11-13', age: 35,
+          id: 4, name: 'Sơn Chánh Mô Ni', phone: '0907617472', email: 'sonchanhmoni122017@gmail.com', simCarrier: 'Vinaphone', dob: '1990-11-13', age: 35,
           cccd: '094090005750', oldCmnd: '', gender: 'Nam', permAddress: 'Ấp An Trạch, An Hiệp, Châu Thành, Sóc Trăng', tempAddress: 'Quốc lộ 1A, Tân Phú Thạnh, Châu Thành A, Hậu Giang',
-          job: 'Tài xế Cty Bê Tông Hamaco', income: 27500000, amount: 60000000, bankName: 'BIDV', bankAccount: '8862580345',
+          job: 'Tài xế Cty Bê Tông Hamaco', workAddress: 'KCN Tân Phú Thạnh, Châu Thành A, Hậu Giang', workTime: '72 tháng', income: 27500000, amount: 60000000, bankName: 'BIDV', bankAccount: '8862580345',
           previousLenders: ['HD Saison', 'Mirae Asset (MAFC)'],
           ref1Rel: 'Mẹ', ref1Name: 'Sơn Thị Hiếu', ref1Phone: '0325947351', ref2Rel: 'Bạn', ref2Name: 'Trương Hiếu Thuận', ref2Phone: '0799599931',
           cicStatus: 'SACH', documents: ['GPLX', 'HDLD'], isCompleted: false, applications: [{ lender: 'Mirae Asset (MAFC)', result: 'Đang thẩm định', rejectReason: '', contract: null }]
         },
         {
-          id: 5, name: 'Phạm Tuân', phone: '0366924949', simCarrier: 'Viettel', dob: '1992-08-24', age: 34,
+          id: 5, name: 'Phạm Tuân', phone: '0366924949', email: 'phamtuanevnspc@gmail.com', simCarrier: 'Viettel', dob: '1992-08-24', age: 34,
           cccd: '086092008947', oldCmnd: '', gender: 'Nam', permAddress: 'Khóm 5, Thành Phước, Thị xã Bình Minh, Vĩnh Long', tempAddress: 'Thường Trú',
-          job: 'Điện lực Cái Răng', income: 27500000, amount: 50000000, bankName: 'Vietcombank', bankAccount: '1012810037',
+          job: 'Điện lực Cái Răng', workAddress: '16A, Khu vực 1, Ba Láng, Cái Răng, Cần Thơ', workTime: '200 tháng', income: 27500000, amount: 50000000, bankName: 'Vietcombank', bankAccount: '1012810037',
           previousLenders: ['VPBank'],
           ref1Rel: 'Em ruột', ref1Name: 'Phạm Thị Bích Phượng', ref1Phone: '0775878797', ref2Rel: 'Anh ruột', ref2Name: 'Phạm Minh Trung', ref2Phone: '0328686635',
           cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD', 'CAVET'], isCompleted: false, applications: [{ lender: 'VPBank', result: 'Duyệt', rejectReason: '', contract: { code: 'VP-9910', approvedAmount: 50000000, tenor: 24, monthlyPay: 2600000, disburseDate: '2026-08-31' } }]
         },
         {
-          id: 6, name: 'Phạm Thị Huệ Hân', phone: '0978794489', simCarrier: 'Mobifone', dob: '1981-10-02', age: 44,
+          id: 6, name: 'Phạm Thị Huệ Hân', phone: '0978794489', email: 'hann22252@gmail.com', simCarrier: 'Mobifone', dob: '1981-10-02', age: 44,
           cccd: '086181003590', oldCmnd: '', gender: 'Nữ', permAddress: 'C15c Trần Khánh Dư, Xuân Khánh, Ninh Kiều, Cần Thơ', tempAddress: 'C15c Trần Khánh Dư, P. Xuân Khánh, Ninh Kiều, TPCT',
-          job: 'Ngân hàng TMCP Phương Đông OCB', income: 27500000, amount: 50000000, bankName: 'OCB', bankAccount: '0978794489',
+          job: 'Ngân hàng TMCP Phương Đông OCB', workAddress: '14-16, Đại Lộ Hoà Bình, P. Tân An, Ninh Kiều, CT', workTime: '210 tháng', income: 27500000, amount: 50000000, bankName: 'OCB', bankAccount: '0978794489',
           previousLenders: ['SHB Finance'],
           ref1Rel: 'Con', ref1Name: 'Nguyễn Phúc Danh Nhân', ref1Phone: '0336684503', ref2Rel: 'Chị ruột', ref2Name: 'Phạm Thị Phúc Trinh', ref2Phone: '0933989239',
           cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD'], isCompleted: false, applications: [{ lender: 'SHB Finance', result: 'Đang thẩm định', rejectReason: '', contract: null }]
         },
         {
-          id: 7, name: 'Nguyễn Thanh Hóa', phone: '0396203755', simCarrier: 'Viettel', dob: '2004-01-13', age: 22,
+          id: 7, name: 'Nguyễn Thanh Hóa', phone: '0396203755', email: 'hoa67677@gmail.com', simCarrier: 'Viettel', dob: '2004-01-13', age: 22,
           cccd: '087204011191', oldCmnd: '', gender: 'Nữ', permAddress: 'Tổ 2, Ấp 11, Phong Mỹ, Đồng Tháp', tempAddress: 'KDC 3A, Phường An Bình, Q. NK, TPCT',
-          job: 'Quán Ăn Hara & chạy shoppee food', income: 27500000, amount: 20000000, bankName: 'MB', bankAccount: '799913012004',
+          job: 'Quán Ăn Hara & chạy shoppee food', workAddress: 'F1, Mậu Thân, Ninh Kiều, Cần Thơ', workTime: '24 tháng', income: 27500000, amount: 20000000, bankName: 'MB', bankAccount: '799913012004',
           previousLenders: ['Cake by VPBank', 'Tnex'],
           ref1Rel: 'Mẹ', ref1Name: 'Nguyễn Thị Mỹ Trang', ref1Phone: '0967235948', ref2Rel: 'Em họ', ref2Name: 'Võ Tấn Lực', ref2Phone: '0567680400',
           cicStatus: 'SACH', documents: ['GPLX', 'BHYT'], isCompleted: false, applications: [{ lender: 'Cake by VPBank', result: 'Đang thẩm định', rejectReason: '', contract: null }]
         },
         {
-          id: 8, name: 'Nguyễn Minh Trí', phone: '0939965957', simCarrier: 'Viettel', dob: '1990-11-06', age: 35,
+          id: 8, name: 'Nguyễn Minh Trí', phone: '0939965957', email: 'nguyenminhtrict@gmail.com', simCarrier: 'Viettel', dob: '1990-11-06', age: 35,
           cccd: '092090004050', oldCmnd: '', gender: 'Nam', permAddress: '18/83 , Xô Viết Nghệ Tĩnh, Tân An, Ninh Kiều, Cần Thơ', tempAddress: 'Thường trú',
-          job: 'Công Ty CP TGDĐ', income: 27500000, amount: 40000000, bankName: 'Vietinbank', bankAccount: '109867924131',
+          job: 'Công Ty CP TGDĐ', workAddress: 'Số 8, Hoà Bình, Tân An, NK, Cần Thơ', workTime: '120 tháng', income: 27500000, amount: 40000000, bankName: 'Vietinbank', bankAccount: '109867924131',
           previousLenders: ['Home Credit'],
           ref1Rel: 'Mẹ', ref1Name: 'Dương Thị Bảo Trinh', ref1Phone: '0939432147', ref2Rel: 'Cha', ref2Name: 'Nguyễn Văn Đức', ref2Phone: '0918678754',
           cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD'], isCompleted: false, applications: [{ lender: 'Home Credit', result: 'Đang thẩm định', rejectReason: '', contract: null }]
         },
         {
-          id: 9, name: 'Huỳnh Mỹ Hằng', phone: '0974544405', simCarrier: 'Vinaphone', dob: '1985-01-12', age: 41,
+          id: 9, name: 'Huỳnh Mỹ Hằng', phone: '0974544405', email: 'huynhmyhanghg23@gmail.com', simCarrier: 'Vinaphone', dob: '1985-01-12', age: 41,
           cccd: '093185008191', oldCmnd: '', gender: 'Nữ', permAddress: 'Phú Tân, Phú Tân, Châu Thành, Hậu Giang', tempAddress: 'Thường Trú',
-          job: 'Tổ phó giáo viên Mầm non', income: 27500000, amount: 40000000, bankName: 'Sacombank', bankAccount: '070974544405',
+          job: 'Tổ phó giáo viên Mầm non', workAddress: 'Thường Trú', workTime: '180 tháng', income: 27500000, amount: 40000000, bankName: 'Sacombank', bankAccount: '070974544405',
           previousLenders: ['HD Saison'],
           ref1Rel: 'Con gái', ref1Name: 'Nguyễn Huỳnh Mỹ Thiên', ref1Phone: '0353893110', ref2Rel: 'Con gái', ref2Name: 'Nguyễn Huỳnh Mỹ Trân', ref2Phone: '0336730184',
           cicStatus: 'SACH', documents: ['SAO_KE', 'HDLD'], isCompleted: false, applications: [{ lender: 'HD Saison', result: 'Đang thẩm định', rejectReason: '', contract: null }]
         },
         {
-          id: 10, name: 'Đoàn Thị Diệu Ý', phone: '0907655870', simCarrier: 'Viettel', dob: '1996-10-03', age: 29,
+          id: 10, name: 'Đoàn Thị Diệu Ý', phone: '0907655870', email: 'ydoan33210@gmail.com', simCarrier: 'Viettel', dob: '1996-10-03', age: 29,
           cccd: '092196002436', oldCmnd: '', gender: 'Nữ', permAddress: 'Ấp Định Mỹ, Định Môn, Thới Lai, Cần Thơ', tempAddress: 'Trần Văn Trà, Hưng Phú, Cái Răng, CT',
-          job: 'Kinh doanh tạp hoá hoá', income: 27500000, amount: 30000000, bankName: 'Khác', bankAccount: '1234567',
+          job: 'Kinh doanh tạp hoá hoá', workAddress: 'Trần Văn Trà, Hưng Phú, Cái Răng, CT', workTime: '60 tháng', income: 27500000, amount: 30000000, bankName: 'Khác', bankAccount: '1234567',
           previousLenders: ['FE Credit', 'Home Credit'],
           ref1Rel: 'Anh ruột', ref1Name: 'Lê Trần Hoàng Liệt', ref1Phone: '0772177634', ref2Rel: 'Chị hai', ref2Name: 'Lưu Trâm Anh', ref2Phone: '0775862595',
           cicStatus: 'SACH', documents: ['CAVET', 'GPLX'], isCompleted: false, applications: [{ lender: 'FE Credit', result: 'Đang thẩm định', rejectReason: '', contract: null }]
@@ -655,6 +683,7 @@
     let currentFilterStatus = 'ALL';
     let searchQuery = '';
     let html5QrScanner = null;
+    let currentZoom = 1;
 
     let editingLeadId = null;
     let targetCompleteId = null;
@@ -663,7 +692,6 @@
     let contractLeadId = null;
     let contractAppIdx = null;
 
-    // TELEGRAM CONFIG CHUẨN XÁC
     const TOKEN = '8539026331:AAHGpTRXegeT_ZZn28uDwXjXHArpwM7E1ME';
     const CHAT_ID = '-1004351522635';
 
@@ -687,7 +715,7 @@
     }
 
     function saveStorage() {
-      localStorage.setItem('loan_crm_v20', JSON.stringify(leads));
+      localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
       render();
     }
 
@@ -883,6 +911,8 @@
               <div class="flex justify-between"><span>Cần vay:</span> <span class="font-bold text-blue-700">${formatVND(lead.amount)}</span></div>
               <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
               <div class="text-[11px]"><b>Nghề nghiệp:</b> ${lead.job || 'Tự do'} • Thu nhập: ${formatVND(lead.income)}</div>
+              ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Đ/c làm việc:</b> ${lead.workAddress} (${lead.workTime || 'Chưa rõ TG'})</div>` : ''}
+              ${lead.email ? `<div class="text-[10px] text-slate-600">📧 <b>Email:</b> ${lead.email}</div>` : ''}
               <div class="text-[10px] text-slate-600 bg-emerald-50/50 p-1.5 rounded-lg border border-emerald-100"><b>🔍 Đang/Từng vay ở Cty:</b> ${prevLendersHtml}</div>
               <div class="text-[10px] text-slate-500">🏠 Thường trú: ${lead.permAddress || '---'}</div>
               <div class="text-[10px] text-slate-500">👥 Tham chiếu: ${lead.ref1Name || '---'} (${lead.ref1Phone || '---'})</div>
@@ -954,6 +984,7 @@
       document.getElementById('leadModalTitle').innerText = 'Cập Nhật Hồ Sơ';
       document.getElementById('formName').value = l.name || '';
       document.getElementById('formPhone').value = l.phone || '';
+      document.getElementById('formEmail').value = l.email || '';
       document.getElementById('formSimCarrier').value = l.simCarrier || 'Viettel';
       document.getElementById('formDob').value = l.dob || '1998-05-15';
       document.getElementById('formCccd').value = l.cccd || '';
@@ -962,6 +993,8 @@
       document.getElementById('formPermAddress').value = l.permAddress || '';
       document.getElementById('formTempAddress').value = l.tempAddress || '';
       document.getElementById('formJob').value = l.job || '';
+      document.getElementById('formWorkAddress').value = l.workAddress || '';
+      document.getElementById('formWorkTime').value = l.workTime || '';
       document.getElementById('formIncome').value = l.income || '';
       document.getElementById('formAmount').value = l.amount || '';
       document.getElementById('formBankName').value = l.bankName || '';
@@ -986,12 +1019,13 @@
       const dob = document.getElementById('formDob').value;
       const docs = Array.from(document.querySelectorAll('.lead-doc-chk:checked')).map(el => el.value);
       const prevLenders = Array.from(document.querySelectorAll('.lead-prev-lender-chk:checked')).map(el => el.value);
-      const initialLender = document.getElementById('formInitialLender').value || 'FE Credit';
+      const initialLender = document.getElementById('formInitialLender').value || 'TPBank';
       const name = document.getElementById('formName').value;
 
       const d = {
         name: name,
         phone: document.getElementById('formPhone').value,
+        email: document.getElementById('formEmail').value,
         simCarrier: document.getElementById('formSimCarrier').value,
         dob: dob,
         age: calcAge(dob),
@@ -1001,6 +1035,8 @@
         permAddress: document.getElementById('formPermAddress').value,
         tempAddress: document.getElementById('formTempAddress').value,
         job: document.getElementById('formJob').value,
+        workAddress: document.getElementById('formWorkAddress').value,
+        workTime: document.getElementById('formWorkTime').value,
         income: Number(document.getElementById('formIncome').value) || 0,
         amount: Number(document.getElementById('formAmount').value) || 30000000,
         bankName: document.getElementById('formBankName').value,
@@ -1040,7 +1076,7 @@
     }
 
     function addAppPrompt(leadId) {
-      const lender = prompt("Chọn Công ty Tài chính:\n" + ALL_PARTNERS.join(', '), "FE Credit");
+      const lender = prompt("Chọn Công ty Tài chính / Ngân hàng:\n" + ALL_PARTNERS.join(', '), "TPBank");
       if (!lender) return;
       const l = leads.find(x => x.id === leadId);
       if (!l) return;
@@ -1126,20 +1162,20 @@
       return { first: fmt(first), last: fmt(last) };
     }
 
-    // XUẤT PHIẾU THANH TOÁN (ĐỒNG NHẤT CHO MỌI NGÂN HÀNG)
     const LENDER_THEMES = {
-      'FE Credit': { bg: 'bg-emerald-700', emoji: '🟢' },
-      'Home Credit': { bg: 'bg-red-600', emoji: '🔴' },
-      'HD Saison': { bg: 'bg-amber-600', emoji: '🟡' },
-      'Mirae Asset (MAFC)': { bg: 'bg-blue-900', emoji: '🏢' },
-      'MCredit': { bg: 'bg-purple-700', emoji: '🟣' },
-      'SHB Finance': { bg: 'bg-cyan-700', emoji: '🔷' },
-      'VPBank': { bg: 'bg-green-700', emoji: '🏦' },
-      'Cathay Bank (CUB)': { bg: 'bg-emerald-800', emoji: '🌳' },
-      'Tnex': { bg: 'bg-sky-600', emoji: '⚡' },
-      'Cake by VPBank': { bg: 'bg-pink-600', emoji: '🍰' },
-      'Viettel Money': { bg: 'bg-rose-700', emoji: '📶' },
-      'Tinvay': { bg: 'bg-indigo-700', emoji: '💳' }
+      'TPBank': { bg: 'bg-purple-700', emoji: '🟣', guide: 'Thanh toán qua app TPBank Mobile hoặc ví điện tử MoMo/Viettel Money chọn mục "Thanh toán khoản vay > TPBank" nhập số HĐ.' },
+      'FE Credit': { bg: 'bg-emerald-700', emoji: '🟢', guide: 'Thanh toán qua ví MoMo, ZaloPay, Viettel Money hoặc chuyển khoản qua STK định danh của FE Credit.' },
+      'Home Credit': { bg: 'bg-red-600', emoji: '🔴', guide: 'Đóng tiền qua app Home Credit, MoMo, Viettel Post hoặc hệ thống cửa hàng TGDĐ/FPT Shop.' },
+      'HD Saison': { bg: 'bg-amber-600', emoji: '🟡', guide: 'Thanh toán qua HD SAISON App, VNPay, Bưu điện VNPost hoặc các điểm giao dịch liên kết.' },
+      'Mirae Asset (MAFC)': { bg: 'bg-blue-900', emoji: '🏢', guide: 'Chuyển khoản qua tài khoản định danh của Mirae Asset hoặc qua ứng dụng My Finance / MoMo.' },
+      'MCredit': { bg: 'bg-purple-700', emoji: '🟣', guide: 'Thanh toán qua app MCredit, Viettel Money hoặc qua các điểm thu hộ Viettel Post trên toàn quốc.' },
+      'SHB Finance': { bg: 'bg-cyan-700', emoji: '🔷', guide: 'Đóng qua SHB Finance App, VNPay hoặc chuyển khoản trực tiếp STK ngân hàng thụ hưởng.' },
+      'VPBank': { bg: 'bg-green-700', emoji: '🏦', guide: 'Thanh toán qua VPBank NEO, MoMo, hoặc nộp tiền mặt tại các chi nhánh VPBank.' },
+      'Cathay Bank (CUB)': { bg: 'bg-emerald-800', emoji: '🌳', guide: 'Chuyển khoản theo số tài khoản hợp đồng định danh cấp bởi Cathay Bank (CUB).' },
+      'Tnex': { bg: 'bg-sky-600', emoji: '⚡', guide: 'Thanh toán trực tiếp tự động qua ứng dụng ngân hàng số TNEX.' },
+      'Cake by VPBank': { bg: 'bg-pink-600', emoji: '🍰', guide: 'Thanh toán nhanh chóng và tiện lợi trực tiếp trên ứng dụng Cake by VPBank.' },
+      'Viettel Money': { bg: 'bg-rose-700', emoji: '📶', guide: 'Thanh toán qua ứng dụng Viettel Money (mục Tài chính / Vay tiêu dùng).' },
+      'Tinvay': { bg: 'bg-indigo-700', emoji: '💳', guide: 'Thanh toán qua app Tinvay hoặc các cổng thanh toán điện tử hỗ trợ.' }
     };
 
     function openReceipt(leadId, aIdx) {
@@ -1150,7 +1186,7 @@
 
       const c = app.contract || {};
       const dates = calcPayDates(c.disburseDate, c.tenor);
-      const theme = LENDER_THEMES[app.lender] || { bg: 'bg-slate-800', emoji: '💳' };
+      const theme = LENDER_THEMES[app.lender] || { bg: 'bg-slate-800', emoji: '💳', guide: 'Thanh toán qua ví điện tử hoặc điểm thu hộ liên kết.' };
 
       document.getElementById('receiptHeader').className = `p-4 text-white ${theme.bg} flex justify-between items-center`;
       document.getElementById('receiptLogoEmoji').innerText = theme.emoji;
@@ -1158,11 +1194,11 @@
       document.getElementById('receiptName').innerText = l.name;
       document.getElementById('receiptPhone').innerText = l.phone;
       document.getElementById('receiptMonthlyPay').innerText = formatVND(c.monthlyPay);
-      document.getElementById('receiptApprovedAmount').innerText = formatVND(c.approvedAmount);
       document.getElementById('receiptTenor').innerText = `${c.tenor || 12} tháng`;
       document.getElementById('receiptCode').innerText = c.code || '---';
       document.getElementById('receiptFirstDate').innerText = dates.first;
       document.getElementById('receiptLastDate').innerText = dates.last;
+      document.getElementById('receiptGuideText').innerText = theme.guide;
 
       document.getElementById('receiptModal').classList.remove('hidden');
     }
@@ -1174,8 +1210,9 @@
       const app = l.applications[receiptAppIdx];
       const c = app.contract || {};
       const dates = calcPayDates(c.disburseDate, c.tenor);
+      const theme = LENDER_THEMES[app.lender] || { guide: 'Thanh toán qua ví điện tử hoặc điểm thu hộ.' };
 
-      const msg = `📢 THÔNG BÁO LỊCH THANH TOÁN KHOẢN VAY\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nĐơn vị: ${app.lender}\nSố HĐ: ${c.code || '---'}\nTiền góp: ${formatVND(c.monthlyPay)}/tháng (Kỳ hạn: ${c.tenor || 12} tháng)\n📅 Ngày đóng đầu tiên: ${dates.first}\n🏁 Ngày đóng cuối (Tất toán): ${dates.last}\n\nThanh toán qua Ví điện tử (MoMo, ZaloPay, Viettel Money) hoặc các điểm thu hộ TGDĐ/FPT.`;
+      const msg = `📢 THÔNG BÁO LỊCH THANH TOÁN KHOẢN VAY\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nĐơn vị: ${app.lender}\nSố HĐ: ${c.code || '---'}\nTiền góp: ${formatVND(c.monthlyPay)}/tháng (Kỳ hạn: ${c.tenor || 12} tháng)\n📅 Ngày đóng đầu tiên: ${dates.first}\n🏁 Ngày đóng cuối (Tất toán): ${dates.last}\n\n🏦 HƯỚNG DẪN ĐÓNG TIỀN:\n${theme.guide}`;
       
       navigator.clipboard.writeText(msg).then(() => showToast('Đã copy tin nhắn gửi Zalo!')).catch(() => showToast('Lỗi copy'));
     }
@@ -1208,17 +1245,21 @@
       saveStorage();
     }
 
-    // --- QUÉT QR VỚI ĐỘ PHÂN GIẢI HD & TÍCH HỢP CHỌN ẢNH ĐẢM BẢO 100% THÀNH CÔNG ---
+    // --- QUÉT QR (BẮT BUỘC CAMERA SAU, ZOOM TRỰC TIẾP VÀ CHỌN ẢNH) ---
     function openScanModal() {
       document.getElementById('scanModal').classList.remove('hidden');
+      currentZoom = 1;
+      document.getElementById('zoomRange').value = 1;
+      document.getElementById('zoomValText').innerText = '1.0x';
+
       setTimeout(() => {
         if (!html5QrScanner && typeof Html5Qrcode !== 'undefined') {
           html5QrScanner = new Html5Qrcode("reader");
           html5QrScanner.start(
-            { facingMode: "environment" },
+            { facingMode: { exact: "environment" } },
             { 
               fps: 15, 
-              qrbox: { width: 250, height: 250 },
+              qrbox: { width: 260, height: 260 },
               videoConstraints: {
                 width: { ideal: 1280 },
                 height: { ideal: 720 },
@@ -1229,9 +1270,27 @@
               parseQrText(txt);
             },
             () => {}
-          ).catch(() => {});
+          ).catch(() => {
+            // Fallback nếu máy không hỗ trợ exact environment
+            html5QrScanner.start(
+              { facingMode: "environment" },
+              { fps: 15, qrbox: { width: 260, height: 260 } },
+              (txt) => { parseQrText(txt); },
+              () => {}
+            ).catch(() => {});
+          });
         }
       }, 300);
+    }
+
+    function handleZoomChange(val) {
+      currentZoom = parseFloat(val);
+      document.getElementById('zoomValText').innerText = currentZoom.toFixed(1) + 'x';
+      const videoEl = document.querySelector('#reader video');
+      if (videoEl) {
+        videoEl.style.transform = `scale(${currentZoom})`;
+        videoEl.style.transformOrigin = 'center center';
+      }
     }
 
     function parseQrText(txt) {
@@ -1273,7 +1332,7 @@
       document.getElementById('scanModal').classList.add('hidden');
     }
 
-    // --- ĐẨY TELEGRAM CHIA NHỎ ĐỂ KHÔNG BAO GIỜ LỖI MESSAGE IS TOO LONG ---
+    // --- ĐẨY TELEGRAM CHIA NHỎ KHÔNG BAO GIỜ LỖI ---
     async function backupToTelegram() {
       showToast('Đang nén & đẩy dữ liệu lên Telegram...');
       try {

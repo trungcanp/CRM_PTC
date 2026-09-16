@@ -2,50 +2,42 @@
 <header class="sticky top-0 z-30 shadow-md bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white">
   <div class="p-3.5 space-y-2.5">
     <div class="flex items-center justify-between">
+      <!-- Logo & Tên ứng dụng (Đã tinh gọn) -->
       <div class="flex items-center space-x-2">
-        <div class="w-7 h-7 bg-white/25 backdrop-blur rounded-lg flex items-center justify-center font-extrabold text-sm shadow-inner">
+        <div class="w-8 h-8 bg-white/25 backdrop-blur rounded-xl flex items-center justify-center font-extrabold text-base shadow-inner">
           💳
         </div>
         <div>
-          <h1 class="text-sm font-bold tracking-tight leading-tight">CRM_PTC</h1>
-          <span class="text-[9px] text-blue-200 block">Tín Dụng & Thẩm Định</span>
+          <h1 class="text-base font-extrabold tracking-tight leading-none">CRM_PTC</h1>
         </div>
       </div>
 
-      <div class="flex items-center gap-1">
+      <!-- Nhóm nút chức năng đỉnh (Đã bỏ nút Cam) -->
+      <div class="flex items-center gap-1.5">
         <!-- Nút Dán QR từ iPhone Shortcut / Bộ nhớ tạm -->
         <button 
           type="button"
           onclick="pasteFromClipboard()" 
           title="Dán nhanh chuỗi QR từ iPhone"
-          class="bg-indigo-500 hover:bg-indigo-600 text-white px-2 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-0.5 active:scale-95 transition-all">
+          class="bg-indigo-500 hover:bg-indigo-600 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-1 active:scale-95 transition-all">
           <span>📋</span>
-          <span class="text-[10px]">Dán QR</span>
+          <span class="text-[11px]">Dán QR</span>
         </button>
 
         <!-- Nút Sao Lưu Telegram / Cài đặt -->
         <button 
           type="button"
           onclick="openBackupModal()" 
-          class="bg-blue-800/90 hover:bg-blue-900 text-white px-2 py-1.5 rounded-xl text-xs font-bold shadow border border-blue-400/40 flex items-center gap-0.5 active:scale-95 transition-all">
+          class="bg-blue-800/90 hover:bg-blue-900 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold shadow border border-blue-400/40 flex items-center gap-1 active:scale-95 transition-all">
           <span>💾</span>
-          <span class="text-[10px]">Lưu</span>
-        </button>
-
-        <!-- Nút Quét Máy Ảnh Dự Phòng -->
-        <button 
-          type="button"
-          onclick="openScanModal()" 
-          class="bg-amber-400 text-amber-950 hover:bg-amber-300 px-2 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-0.5 active:scale-95 transition-all">
-          <span>📷</span>
-          <span class="text-[10px]">Cam</span>
+          <span class="text-[11px]">Lưu</span>
         </button>
 
         <!-- Nút Thêm Mới -->
         <button 
           type="button"
           onclick="openCreateModal()" 
-          class="bg-white text-blue-700 hover:bg-blue-50 px-2.5 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-0.5 active:scale-95 transition-all">
+          class="bg-white text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-1 active:scale-95 transition-all">
           <span>+ Thêm</span>
         </button>
       </div>

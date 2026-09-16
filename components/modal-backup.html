@@ -1,0 +1,69 @@
+<!-- components/modal-backup.html -->
+<div id="backupModal" class="fixed inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-3 backdrop-blur-md overflow-y-auto hidden">
+  <div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-3.5 shadow-2xl border border-slate-200 text-xs">
+    <div class="flex justify-between items-center border-b pb-2.5">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-base">✈️</div>
+        <div>
+          <h3 class="font-extrabold text-slate-900 text-sm">Đồng Bộ & Sao Lưu</h3>
+          <p class="text-[10px] text-slate-500">Kênh Telegram & Tệp Dữ Liệu</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeBackupModal()" class="w-7 h-7 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center font-bold">✕</button>
+    </div>
+
+    <!-- Cấu hình Telegram tùy biến cho người dùng -->
+    <div class="bg-slate-50 border rounded-2xl p-3 space-y-2">
+      <div class="font-bold text-slate-700 flex items-center justify-between">
+        <span>⚙️ Khóa Kết Nối Telegram</span>
+        <button type="button" onclick="saveCustomTgConfig()" class="text-blue-600 hover:underline font-bold text-[10px]">Lưu cấu hình</button>
+      </div>
+      <div class="space-y-1.5">
+        <input id="cfgTgToken" type="password" placeholder="Bot Token..." class="w-full border rounded-lg p-1.5 font-mono text-[10px] bg-white">
+        <input id="cfgTgChatId" type="text" placeholder="Chat ID (vd: -1004351522635)..." class="w-full border rounded-lg p-1.5 font-mono text-[10px] bg-white">
+      </div>
+    </div>
+
+    <!-- Bật tắt tự động đẩy thông báo qua Telegram -->
+    <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3 space-y-1.5 text-emerald-950">
+      <div class="flex items-center justify-between">
+        <span class="font-bold flex items-center gap-1 text-emerald-900">
+          <span>⚡</span> Báo Telegram Khi Có KH Mới
+        </span>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="autoNotifyTg" onchange="toggleAutoNotify(this)" class="sr-only peer">
+          <div class="w-9 h-5 bg-slate-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+        </label>
+      </div>
+      <p class="text-[10px] text-emerald-800 leading-tight">
+        Gửi báo cáo tức thì về kênh khi thêm, duyệt khoản vay hoặc đổi trạng thái.
+      </p>
+    </div>
+
+    <!-- Nút sao lưu dạng File Json Telegram chuẩn xác 100% -->
+    <div class="grid grid-cols-2 gap-2">
+      <button type="button" onclick="backupToTelegram()" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 px-2 rounded-xl text-xs shadow flex items-center justify-center gap-1 transition">
+        🚀 Gửi File Lên Bot
+      </button>
+      <button type="button" onclick="restoreFromTelegram()" class="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-2 rounded-xl text-xs shadow flex items-center justify-center gap-1 transition">
+        🔄 Nạp Bản Mới Nhất
+      </button>
+    </div>
+
+    <!-- Sao lưu thủ công -->
+    <div class="pt-2 border-t border-slate-100 space-y-2">
+      <span class="font-bold text-slate-700 block">Tải về máy hoặc chia sẻ qua Zalo:</span>
+      <div class="grid grid-cols-2 gap-2">
+        <button type="button" onclick="downloadBackupFile()" class="bg-blue-600 text-white font-bold py-2 rounded-xl text-[11px] shadow">📥 Tải File JSON</button>
+        <button type="button" onclick="copyBackupText()" class="bg-indigo-600 text-white font-bold py-2 rounded-xl text-[11px] shadow">📋 Copy JSON</button>
+      </div>
+    </div>
+
+    <div class="pt-2 border-t border-slate-100 space-y-1">
+      <span class="font-bold text-slate-700 block">Khôi phục từ tệp JSON trên máy:</span>
+      <input type="file" accept=".json" onchange="restoreFromFile(event)" class="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-xl file:border-0 file:bg-slate-100 file:font-bold">
+    </div>
+
+    <button type="button" onclick="closeBackupModal()" class="w-full py-2 bg-slate-100 text-slate-600 rounded-xl font-bold">Đóng</button>
+  </div>
+</div>

@@ -1,0 +1,9 @@
+<!-- components/filter-bar.html -->
+<div class="bg-white border-b border-slate-200 px-3 py-2 shadow-sm flex items-center">
+  <div id="statusFilterBar" class="flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-0.5">
+    <button type="button" onclick="setFilterStatus('ALL')" data-status="ALL" class="px-2.5 py-1 rounded-full text-xs whitespace-nowrap transition bg-blue-600 text-white font-semibold">Tất cả</button>
+    <button type="button" onclick="setFilterStatus('Duyệt')" data-status="Duyệt" class="px-2.5 py-1 rounded-full text-xs whitespace-nowrap transition bg-slate-100 text-slate-600">Có bên Duyệt</button>
+    <button type="button" onclick="setFilterStatus('Đang thẩm định')" data-status="Đang thẩm định" class="px-2.5 py-1 rounded-full text-xs whitespace-nowrap transition bg-slate-100 text-slate-600">Đang thẩm định</button>
+    <button type="button" onclick="setFilterStatus('Từ chối')" data-status="Từ chối" class="px-2.5 py-1 rounded-full text-xs whitespace-nowrap transition bg-slate-100 text-slate-600">Bị Từ chối</button>
+  </div>
+</div>

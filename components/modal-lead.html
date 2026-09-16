@@ -1,0 +1,173 @@
+<!-- components/modal-lead.html -->
+<div id="leadModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm hidden">
+  <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-5 max-h-[92vh] overflow-y-auto space-y-4 shadow-2xl">
+    <div class="flex justify-between items-center border-b pb-2.5">
+      <h2 id="leadModalTitle" class="font-bold text-base text-slate-800">Thêm Khách Hàng Mới</h2>
+      <button type="button" onclick="closeLeadModal()" class="w-7 h-7 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold">✕</button>
+    </div>
+
+    <form id="leadForm" onsubmit="saveLeadForm(event)" class="space-y-3 text-xs">
+      <input type="hidden" id="editingLeadId">
+      <div>
+        <label class="block font-bold text-slate-700 mb-1">Họ và tên khách hàng *</label>
+        <input id="formName" required type="text" placeholder="Nguyễn Văn A" class="w-full border rounded-xl p-2 focus:outline-blue-500">
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <div class="col-span-2">
+          <label class="block font-bold text-slate-700 mb-1">Số điện thoại *</label>
+          <input id="formPhone" required type="tel" placeholder="0901234567" class="w-full border rounded-xl p-2 font-mono focus:outline-blue-500">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Loại SIM</label>
+          <select id="formSimCarrier" class="w-full border rounded-xl p-2 bg-white focus:outline-blue-500">
+            <option value="Viettel">Viettel</option>
+            <option value="Vinaphone">Vinaphone</option>
+            <option value="Mobifone">Mobifone</option>
+            <option value="Khác">Khác</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-bold text-slate-700 mb-1">Email cá nhân</label>
+        <input id="formEmail" type="email" placeholder="example@gmail.com" class="w-full border rounded-xl p-2 focus:outline-blue-500">
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Ngày sinh *</label>
+          <input id="formDob" required type="date" class="w-full border rounded-xl p-2 focus:outline-blue-500">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Số CCCD (12 số)</label>
+          <input id="formCccd" type="text" placeholder="09209500..." class="w-full border rounded-xl p-2 font-mono focus:outline-blue-500">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Số CMND cũ (9 số)</label>
+          <input id="formOldCmnd" type="text" placeholder="36589..." class="w-full border rounded-xl p-2 font-mono focus:outline-blue-500">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Giới tính</label>
+          <select id="formGender" class="w-full border rounded-xl p-2 bg-white">
+            <option value="Nam">Nam</option>
+            <option value="Nữ">Nữ</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-bold text-slate-700 mb-1">Địa chỉ thường trú (theo CCCD)</label>
+        <input id="formPermAddress" type="text" placeholder="Xã/Phường, Huyện/Quận, Tỉnh/TP" class="w-full border rounded-xl p-2">
+      </div>
+      <div>
+        <label class="block font-bold text-slate-700 mb-1">Địa chỉ tạm trú (Nơi ở hiện tại)</label>
+        <input id="formTempAddress" type="text" placeholder="Số nhà, đường, khu vực..." class="w-full border rounded-xl p-2">
+      </div>
+
+      <!-- CÔNG VIỆC, THU NHẬP & KHOẢN VAY -->
+      <div class="bg-blue-50/60 p-2.5 rounded-xl border border-blue-100 space-y-2">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Công việc / Chức vụ</label>
+            <input id="formJob" type="text" placeholder="Công nhân, NV..." class="w-full border rounded-xl p-2 bg-white">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Thu nhập (VNĐ)</label>
+            <input id="formIncome" type="text" placeholder="20.000.000" class="w-full border rounded-xl p-2 bg-white">
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Địa chỉ nơi làm việc</label>
+          <input id="formWorkAddress" type="text" placeholder="Số nhà, đường, KCN, Phường/Xã..." class="w-full border rounded-xl p-2 bg-white">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Thời gian làm việc</label>
+            <input id="formWorkTime" type="text" placeholder="VD: 2 năm / 24 tháng" class="w-full border rounded-xl p-2 bg-white">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Cần vay *</label>
+            <input id="formAmount" required type="text" placeholder="50.000.000" class="w-full border rounded-xl p-2 font-bold text-blue-700 bg-white">
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded-xl border">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Ngân hàng nhận</label>
+          <input id="formBankName" type="text" placeholder="MB Bank..." class="w-full border rounded-xl p-2 bg-white">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Số tài khoản</label>
+          <input id="formBankAccount" type="text" placeholder="Số TK..." class="w-full border rounded-xl p-2 bg-white font-mono">
+        </div>
+      </div>
+
+      <!-- KHẢO SÁT LỊCH SỬ GÓP CŨ -->
+      <div class="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 space-y-1.5">
+        <label class="block font-bold text-emerald-950">🔍 Khảo sát cty góp cũ (Khách đang hoặc từng góp ở đâu?)</label>
+        <div class="grid grid-cols-2 gap-1 pt-1" id="formPrevLendersContainer"></div>
+      </div>
+
+      <div class="bg-amber-50 p-2.5 rounded-xl border border-amber-200 space-y-1.5">
+        <label class="block font-bold text-amber-950">👥 2 Số điện thoại tham chiếu</label>
+        <div class="grid grid-cols-3 gap-1">
+          <input id="formRef1Rel" type="text" placeholder="Mối QH 1" class="border rounded-lg p-1 text-[11px] bg-white">
+          <input id="formRef1Name" type="text" placeholder="Họ tên 1" class="border rounded-lg p-1 text-[11px] bg-white">
+          <input id="formRef1Phone" type="tel" placeholder="SĐT 1" class="border rounded-lg p-1 text-[11px] font-mono bg-white">
+        </div>
+        <div class="grid grid-cols-3 gap-1">
+          <input id="formRef2Rel" type="text" placeholder="Mối QH 2" class="border rounded-lg p-1 text-[11px] bg-white">
+          <input id="formRef2Name" type="text" placeholder="Họ tên 2" class="border rounded-lg p-1 text-[11px] bg-white">
+          <input id="formRef2Phone" type="tel" placeholder="SĐT 2" class="border rounded-lg p-1 text-[11px] font-mono bg-white">
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-bold text-slate-700 mb-1">Lịch sử tín dụng CIC</label>
+        <select id="formCicStatus" class="w-full border rounded-xl p-2 bg-white">
+          <option value="SACH">Nhóm 1: Sạch CIC, chuẩn</option>
+          <option value="CHU_Y">Nhóm 2: Nợ chú ý / Trễ hạn</option>
+          <option value="NO_XAU">Nhóm 3-5: Nợ xấu</option>
+        </select>
+      </div>
+
+      <div class="bg-indigo-50 p-2.5 rounded-xl border border-indigo-100 space-y-1">
+        <label class="font-bold text-indigo-950 block">📄 Chứng từ có sẵn:</label>
+        <div class="grid grid-cols-2 gap-1 pt-1" id="formDocsContainer"></div>
+      </div>
+
+      <div class="bg-sky-50 p-2.5 rounded-xl border border-sky-200 space-y-1">
+        <label class="font-bold text-sky-950 block">🏛️ Nộp đơn tại Đơn vị tài chính ban đầu:</label>
+        <select id="formInitialLender" class="w-full border rounded-xl p-2 bg-white font-semibold text-sky-900">
+          <option value="TPBank">TPBank (Mới)</option>
+          <option value="FE Credit">FE Credit</option>
+          <option value="Home Credit">Home Credit</option>
+          <option value="HD Saison">HD Saison</option>
+          <option value="Mirae Asset (MAFC)">Mirae Asset (MAFC)</option>
+          <option value="MCredit">MCredit</option>
+          <option value="SHB Finance">SHB Finance</option>
+          <option value="VPBank">VPBank</option>
+          <option value="Cathay Bank (CUB)">Cathay Bank (CUB)</option>
+          <option value="Tnex">Tnex</option>
+          <option value="Cake by VPBank">Cake by VPBank</option>
+          <option value="Viettel Money">Viettel Money</option>
+          <option value="Tinvay">Tinvay</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block font-bold text-slate-700 mb-1">Ghi chú cuộc gọi</label>
+        <textarea id="formNote" rows="2" placeholder="Ghi chú thẩm định..." class="w-full border rounded-xl p-2"></textarea>
+      </div>
+
+      <div class="pt-2 flex gap-2">
+        <button type="button" onclick="closeLeadModal()" class="w-1/3 py-2.5 rounded-xl bg-slate-100 font-bold">Hủy</button>
+        <button type="submit" class="w-2/3 py-2.5 rounded-xl bg-blue-600 text-white font-bold shadow">Lưu Hồ Sơ</button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-// js/app.js - Đã liên kết tự động: Giải ngân thành công -> Hợp đồng -> Xuất phiếu
+// js/app.js - Tự động nhận diện mạng SIM 100% + Quy trình giải ngân & xuất phiếu
 let leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
 if (leads.length === 0 && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
   leads = DEFAULT_SAMPLE_LEADS;
@@ -16,6 +16,76 @@ let receiptLeadId = null;
 let receiptAppIdx = null;
 let contractLeadId = null;
 let contractAppIdx = null;
+
+// =================================================================
+// THUẬT TOÁN NHẬN DIỆN NHÀ MẠNG VIỄN THÔNG VIỆT NAM CHUẨN XÁC 100%
+// =================================================================
+function detectSimCarrier(phone) {
+  if (!phone) return 'Khác';
+  let p = phone.replace(/[^0-9]/g, '');
+  if (p.startsWith('84')) {
+    p = '0' + p.slice(2);
+  }
+  if (p.length < 3) return 'Khác';
+
+  const prefix = p.substring(0, 3);
+
+  const viettelPrefixes = [
+    '086', '096', '097', '098',
+    '032', '033', '034', '035', '036', '037', '038', '039'
+  ];
+  const vinaPrefixes = [
+    '088', '091', '094',
+    '081', '082', '083', '084', '085',
+    '087', '055' // iTel, Wintel
+  ];
+  const mobiPrefixes = [
+    '089', '090', '093',
+    '070', '079', '077', '076', '078'
+  ];
+  const vnMobilePrefixes = [
+    '092', '056', '058', '052'
+  ];
+  const gMobilePrefixes = [
+    '099', '059'
+  ];
+
+  if (viettelPrefixes.includes(prefix)) return 'Viettel';
+  if (vinaPrefixes.includes(prefix)) return 'Vinaphone';
+  if (mobiPrefixes.includes(prefix)) return 'Mobifone';
+  if (vnMobilePrefixes.includes(prefix)) return 'Vietnamobile';
+  if (gMobilePrefixes.includes(prefix)) return 'Gmobile';
+  return 'Khác';
+}
+
+function updateCarrierBadge(carrier) {
+  const badge = document.getElementById('carrierPreviewBadge');
+  if (!badge) return;
+  if (!carrier || carrier === 'Khác') {
+    badge.classList.add('hidden');
+    return;
+  }
+
+  badge.classList.remove('hidden');
+  let colorStyle = 'bg-slate-100 text-slate-700 border-slate-300';
+  if (carrier === 'Viettel') colorStyle = 'bg-red-50 text-red-700 border-red-200';
+  else if (carrier === 'Vinaphone') colorStyle = 'bg-sky-50 text-sky-700 border-sky-200';
+  else if (carrier === 'Mobifone') colorStyle = 'bg-blue-50 text-blue-700 border-blue-200';
+  else if (carrier === 'Vietnamobile') colorStyle = 'bg-amber-50 text-amber-700 border-amber-200';
+
+  badge.className = `text-[10px] px-2 py-0.5 rounded-full font-bold transition-all border ${colorStyle}`;
+  badge.innerText = `📶 ${carrier}`;
+}
+
+function handlePhoneInput(val) {
+  const clean = val.replace(/[^0-9]/g, '');
+  if (clean.length >= 3) {
+    const carrier = detectSimCarrier(clean);
+    updateCarrierBadge(carrier);
+  } else {
+    updateCarrierBadge('Khác');
+  }
+}
 
 function showToast(m) {
   const t = document.getElementById('toast');
@@ -224,6 +294,14 @@ function render() {
       `;
     });
 
+    // Tự động nhận diện mạng nếu chưa có trường simCarrier
+    const actualCarrier = lead.simCarrier || detectSimCarrier(lead.phone);
+    const carrierColor = actualCarrier === 'Vinaphone' ? 'bg-sky-50 text-sky-700 border-sky-200' :
+                         actualCarrier === 'Mobifone' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                         actualCarrier === 'Vietnamobile' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                         actualCarrier === 'Viettel' ? 'bg-red-50 text-red-700 border-red-200' :
+                         'bg-slate-100 text-slate-700 border-slate-200';
+
     html += `
       <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm space-y-3">
         <div class="flex justify-between items-start">
@@ -231,7 +309,7 @@ function render() {
             <div class="flex items-center gap-1.5 flex-wrap">
               <span class="font-bold text-slate-900 text-sm">${escapeHtml(lead.name)}</span>
               <span class="text-[11px] bg-blue-50 text-blue-800 px-2 py-0.5 rounded font-bold">${lead.age} tuổi</span>
-              <span class="text-[10px] bg-red-50 text-red-700 px-1.5 py-0.5 rounded border">📶 ${lead.simCarrier || 'Viettel'}</span>
+              <span class="text-[10px] ${carrierColor} px-1.5 py-0.5 rounded border font-semibold">📶 ${actualCarrier}</span>
             </div>
             <div class="text-xs text-slate-500 font-mono mt-0.5">${lead.phone} • CCCD: ${lead.cccd || 'Chưa có'}</div>
           </div>
@@ -302,6 +380,7 @@ function openCreateModal() {
   document.getElementById('leadModalTitle').innerText = 'Thêm Khách Hàng Mới';
   document.getElementById('leadForm').reset();
   document.getElementById('formDob').value = '1998-05-15';
+  updateCarrierBadge('Khác');
   renderDocCheckboxes();
   renderPrevLendersCheckboxes();
   document.getElementById('leadModal').classList.remove('hidden');
@@ -315,7 +394,6 @@ function openEditModal(id) {
   document.getElementById('formName').value = l.name || '';
   document.getElementById('formPhone').value = l.phone || '';
   document.getElementById('formEmail').value = l.email || '';
-  document.getElementById('formSimCarrier').value = l.simCarrier || 'Viettel';
   document.getElementById('formDob').value = l.dob || '1998-05-15';
   document.getElementById('formCccd').value = l.cccd || '';
   document.getElementById('formOldCmnd').value = l.oldCmnd || '';
@@ -337,6 +415,7 @@ function openEditModal(id) {
   document.getElementById('formRef2Phone').value = l.ref2Phone || '';
   document.getElementById('formCicStatus').value = l.cicStatus || 'SACH';
   document.getElementById('formNote').value = l.note || '';
+  updateCarrierBadge(l.simCarrier || detectSimCarrier(l.phone));
   renderDocCheckboxes(l.documents || []);
   renderPrevLendersCheckboxes(l.previousLenders || []);
   document.getElementById('leadModal').classList.remove('hidden');
@@ -353,12 +432,16 @@ function saveLeadForm(e) {
   const prevLenders = Array.from(document.querySelectorAll('.lead-prev-lender-chk:checked')).map(el => el.value);
   const initialLender = document.getElementById('formInitialLender').value || 'TPBank';
   const name = document.getElementById('formName').value;
+  const phone = document.getElementById('formPhone').value;
+  
+  // TỰ ĐỘNG NHẬN DIỆN MẠNG VIỄN THÔNG 100% TỪ SỐ ĐIỆN THOẠI
+  const autoCarrier = detectSimCarrier(phone);
 
   const d = {
     name: name,
-    phone: document.getElementById('formPhone').value,
+    phone: phone,
     email: document.getElementById('formEmail').value,
-    simCarrier: document.getElementById('formSimCarrier').value,
+    simCarrier: autoCarrier,
     dob: dob,
     age: calcAge(dob),
     cccd: document.getElementById('formCccd').value,
@@ -485,7 +568,6 @@ function saveContractForm(e) {
   saveStorage();
   if (typeof sendTelegramNotification === 'function') sendTelegramNotification('Duyệt & Lưu Hợp Đồng', l.name);
   
-  // Tự động mở phiếu xuất ngay sau khi lưu hợp đồng
   setTimeout(() => {
     openReceipt(contractLeadId, contractAppIdx);
   }, 200);
@@ -581,7 +663,6 @@ function saveCompleteLead() {
   closeCompleteModal();
   saveStorage();
 
-  // Tự động mở Hợp đồng & Phiếu xuất khi chọn Giải ngân thành công
   if (reason === 'Đã giải ngân thành công') {
     if (!l.applications || l.applications.length === 0) {
       l.applications = [{ lender: 'TPBank', result: 'Duyệt', rejectReason: '', contract: null }];

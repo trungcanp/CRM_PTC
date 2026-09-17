@@ -1,4 +1,17 @@
-// js/app.js - Bộ điều phối CRM: Tối ưu thu gọn danh sách hồ sơ Lưu Kho (Bấm để xem chi tiết)
+// js/app.js - Bộ điều phối CRM độc lập (Tự bảo vệ hiển thị, tối ưu thu gọn Lưu Kho)
+
+/**
+ * Hàm chống vỡ HTML và lỗi xss (Tích hợp trực tiếp, không phụ thuộc file khác)
+ */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 let leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
 if (leads.length === 0 && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
   leads = DEFAULT_SAMPLE_LEADS;
@@ -30,7 +43,7 @@ function toggleLeadDetail(id) {
 }
 
 // =================================================================
-// THUẬT TOÁN NHẬN DIỆN NHÀ MẠNG VIỄN THÔNG CHUẨN XÁC 100%
+// THUẬT TOÁN NHẬN DIỆN NHÀ MẠNG VIỄN THÔNG
 // =================================================================
 function detectSimCarrier(phone) {
   if (!phone) return 'Khác';
@@ -282,9 +295,11 @@ function openLoanMatchModal(leadId) {
 
   const sumEl = document.getElementById('matchLeadSummary');
   if (sumEl) {
+    const formattedIncome = typeof formatVND === 'function' ? formatVND(lead.income) : (lead.income || 0);
+    const formattedAmount = typeof formatVND === 'function' ? formatVND(lead.amount) : (lead.amount || 0);
     sumEl.innerHTML = `
-      <div><b>Thu nhập:</b> <span class="text-blue-700 font-bold">${formatVND(lead.income)}</span></div>
-      <div><b>Cần vay:</b> <span class="text-emerald-700 font-bold">${formatVND(lead.amount)}</span></div>
+      <div><b>Thu nhập:</b> <span class="text-blue-700 font-bold">${formattedIncome}</span></div>
+      <div><b>Cần vay:</b> <span class="text-emerald-700 font-bold">${formattedAmount}</span></div>
       <div><b>Mạng SIM:</b> 📶 ${carrier}</div>
       <div><b>CIC:</b> ${cicText}</div>
       <div><b>Ngân hàng:</b> ${lead.bankName || 'Chưa rõ'}</div>
@@ -380,6 +395,8 @@ function saveLeadForm(e) {
   const phone = document.getElementById('formPhone').value;
   const autoCarrier = detectSimCarrier(phone);
 
+  const parseNum = typeof parseNumeric === 'function' ? parseNumeric : (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
+
   const d = {
     name: name,
     phone: phone,
@@ -395,8 +412,8 @@ function saveLeadForm(e) {
     job: document.getElementById('formJob')?.value || '',
     workAddress: document.getElementById('formWorkAddress')?.value || '',
     workTime: document.getElementById('formWorkTime')?.value || '',
-    income: parseNumeric(document.getElementById('formIncome')?.value),
-    amount: parseNumeric(document.getElementById('formAmount')?.value) || 30000000,
+    income: parseNum(document.getElementById('formIncome')?.value),
+    amount: parseNum(document.getElementById('formAmount')?.value) || 30000000,
     bankName: document.getElementById('formBankName')?.value || '',
     bankAccount: document.getElementById('formBankAccount')?.value || '',
     previousLenders: prevLenders,
@@ -441,11 +458,13 @@ function saveLeadForm(e) {
 }
 
 // =================================================================
-// RENDER DANH SÁCH THẺ KHÁCH HÀNG (TỐI ƯU THU GỌN KHO CRM)
+// RENDER DANH SÁCH THẺ KHÁCH HÀNG (TỰ ĐỘNG BẢO VỆ VÀ THU GỌN KHO)
 // =================================================================
 function render() {
   const container = document.getElementById('leadsContainer');
   if (!container) return;
+
+  const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => `${(v || 0).toLocaleString('vi-VN')} đ`;
 
   const activeCount = leads.filter(l => !l.isCompleted).length;
   const archivedCount = leads.filter(l => l.isCompleted).length;
@@ -463,8 +482,8 @@ function render() {
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const m1 = l.name.toLowerCase().includes(q) || l.phone.includes(q) || (l.cccd && l.cccd.includes(q));
-      const m2 = l.applications?.some(a => a.lender.toLowerCase().includes(q) || (a.contract?.code && a.contract.code.toLowerCase().includes(q)));
+      const m1 = (l.name || '').toLowerCase().includes(q) || (l.phone || '').includes(q) || (l.cccd && l.cccd.includes(q));
+      const m2 = l.applications?.some(a => (a.lender || '').toLowerCase().includes(q) || (a.contract?.code && a.contract.code.toLowerCase().includes(q)));
       const m3 = l.previousLenders?.some(pl => pl.toLowerCase().includes(q));
       if (!m1 && !m2 && !m3) return false;
     }
@@ -503,8 +522,6 @@ function render() {
     // =============================================================
     if (activeTab === 'archived') {
       const isExpanded = expandedArchiveIds.has(lead.id);
-      
-      // Tìm xem có đơn vị nào đã duyệt và giải ngân không
       const approvedApp = (lead.applications || []).find(a => a.result === 'Duyệt' && a.contract);
       const isDisbursed = lead.completeReason === 'Đã giải ngân thành công' || !!approvedApp;
 
@@ -530,7 +547,6 @@ function render() {
 
       html += `
         <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm space-y-2 transition-all">
-          <!-- Thanh tóm tắt ngắn gọn -->
           <div class="flex justify-between items-center">
             <div>
               <div class="flex items-center gap-1.5 flex-wrap">
@@ -557,24 +573,22 @@ function render() {
             </div>
           </div>
 
-          <!-- Huy hiệu trạng thái lưu kho ngắn gọn 1 dòng -->
           <div class="bg-indigo-50/60 border border-indigo-100 rounded-xl p-2 flex justify-between items-center text-[11px]">
             <div class="truncate flex items-center gap-1">
               <span class="font-bold ${isDisbursed ? 'text-emerald-700' : 'text-indigo-950'}">
                 ${isDisbursed ? '🎉' : '📁'} ${escapeHtml(lead.completeReason || 'Hoàn tất')}
               </span>
-              ${approvedApp?.contract ? `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}: ${formatVND(approvedApp.contract.approvedAmount)})</span>` : ''}
+              ${approvedApp?.contract ? `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}: ${fmtVND(approvedApp.contract.approvedAmount)})</span>` : ''}
             </div>
             <span class="text-[10px] text-slate-500 shrink-0 ml-1 font-medium">${lead.completedDate || ''}</span>
           </div>
 
-          <!-- Khối chi tiết chỉ hiển thị khi bấm "Xem chi tiết" -->
           ${isExpanded ? `
             <div class="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-150">
               <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
-                <div class="flex justify-between"><span>Khoản vay:</span> <span class="font-bold text-blue-700">${formatVND(lead.amount)}</span></div>
+                <div class="flex justify-between"><span>Khoản vay:</span> <span class="font-bold text-blue-700">${fmtVND(lead.amount)}</span></div>
                 <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
-                <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${formatVND(lead.income)}</div>
+                <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${fmtVND(lead.income)}</div>
                 ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Nơi làm:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
                 <div class="text-[10px] text-slate-500">🏠 <b>Thường trú:</b> ${escapeHtml(lead.permAddress) || '---'}</div>
                 <div class="text-[10px] text-slate-500">👥 <b>Tham chiếu:</b> ${escapeHtml(lead.ref1Name) || '---'} (${lead.ref1Phone || '---'})</div>
@@ -582,13 +596,11 @@ function render() {
                 ${lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : ''}
               </div>
 
-              <!-- Lịch sử nộp các đơn vị -->
               <div class="bg-slate-100/60 rounded-xl p-2 space-y-1.5 border border-slate-200">
                 <span class="font-bold text-xs text-slate-800 block">🏛️ Tiến độ hồ sơ đã lưu:</span>
                 <div class="space-y-1">${appsHtml}</div>
               </div>
 
-              <!-- Nút liên hệ & sửa/xóa -->
               <div class="flex justify-between items-center pt-1 text-xs">
                 <div class="flex gap-1.5">
                   <a href="tel:${lead.phone}" class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">📞 Gọi</a>
@@ -638,9 +650,9 @@ function render() {
           contractDetails = `
             <div class="grid grid-cols-2 gap-1 text-slate-700 pt-1 border-t border-emerald-200">
               <div>Số HĐ: <b class="font-mono text-emerald-800">${escapeHtml(app.contract.code)}</b></div>
-              <div>Duyệt: <b class="text-emerald-800">${formatVND(app.contract.approvedAmount)}</b></div>
+              <div>Duyệt: <b class="text-emerald-800">${fmtVND(app.contract.approvedAmount)}</b></div>
               <div class="col-span-2 flex justify-between items-center pt-1">
-                <span>Kỳ: ${app.contract.tenor} tháng • Góp: ${formatVND(app.contract.monthlyPay)}/tháng</span>
+                <span>Kỳ: ${app.contract.tenor} tháng • Góp: ${fmtVND(app.contract.monthlyPay)}/tháng</span>
                 <button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="bg-teal-600 text-white px-2.5 py-1 rounded-lg font-bold shadow hover:bg-teal-700 active:scale-95 transition">🧾 Xuất Phiếu</button>
               </div>
             </div>
@@ -718,15 +730,14 @@ function render() {
         ${matchSummaryHtml}
 
         <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
-          <div class="flex justify-between"><span>Cần vay:</span> <span class="font-bold text-blue-700">${formatVND(lead.amount)}</span></div>
+          <div class="flex justify-between"><span>Cần vay:</span> <span class="font-bold text-blue-700">${fmtVND(lead.amount)}</span></div>
           <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
-          <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${formatVND(lead.income)}</div>
+          <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${fmtVND(lead.income)}</div>
           ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Đ/c làm việc:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
           <div class="text-[10px] text-slate-600 bg-emerald-50/50 p-1.5 rounded-lg border border-emerald-100"><b>🔍 Đang/Từng vay ở Cty:</b> ${prevLendersHtml}</div>
           <div><b>Chứng từ:</b> ${docsHtml}</div>
         </div>
 
-        <!-- TIẾN ĐỘ NỘP ĐA CÔNG TY KÈM NÚT NỘP DẠNG LIST CHỌN NHANH -->
         <div class="bg-indigo-50/50 rounded-xl p-2.5 border border-indigo-100 space-y-2">
           <div class="flex justify-between items-center">
             <span class="font-bold text-xs text-indigo-950">🏛️ Tiến độ nộp đa công ty:</span>
@@ -874,6 +885,7 @@ function openContractModal(leadId, aIdx) {
   const l = leads.find(x => x.id === leadId);
   const app = l.applications[aIdx];
   const c = app.contract;
+  const parseNum = typeof parseNumeric === 'function' ? parseNumeric : (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
 
   document.getElementById('contractCode').value = c ? c.code : ('HĐ-' + Date.now().toString().slice(-5));
   document.getElementById('contractAmount').value = c ? c.approvedAmount : (l.amount || 30000000);
@@ -889,11 +901,12 @@ function saveContractForm(e) {
   e.preventDefault();
   const l = leads.find(x => x.id === contractLeadId);
   if (!l) return;
+  const parseNum = typeof parseNumeric === 'function' ? parseNumeric : (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
   l.applications[contractAppIdx].contract = {
     code: document.getElementById('contractCode').value,
-    approvedAmount: parseNumeric(document.getElementById('contractAmount').value),
+    approvedAmount: parseNum(document.getElementById('contractAmount').value),
     tenor: Number(document.getElementById('contractTenor').value),
-    monthlyPay: parseNumeric(document.getElementById('contractMonthly').value),
+    monthlyPay: parseNum(document.getElementById('contractMonthly').value),
     disburseDate: document.getElementById('contractDate').value || new Date().toISOString().substring(0, 10)
   };
   showToast('Đã lưu hợp đồng');
@@ -929,6 +942,7 @@ function openReceipt(leadId, aIdx) {
   receiptLeadId = leadId;
   receiptAppIdx = aIdx;
 
+  const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => `${(v || 0).toLocaleString('vi-VN')} đ`;
   const c = app.contract || {};
   const dates = typeof calcPayDates === 'function' ? calcPayDates(c.disburseDate, c.tenor) : { first: '---', last: '---' };
   const theme = LENDER_THEMES[app.lender] || { bg: 'bg-slate-800', emoji: '💳', guide: 'Thanh toán qua ví điện tử hoặc điểm thu hộ liên kết.' };
@@ -938,7 +952,7 @@ function openReceipt(leadId, aIdx) {
   document.getElementById('receiptLenderTitle').innerText = app.lender;
   document.getElementById('receiptName').innerText = l.name;
   document.getElementById('receiptPhone').innerText = l.phone;
-  document.getElementById('receiptMonthlyPay').innerText = formatVND(c.monthlyPay);
+  document.getElementById('receiptMonthlyPay').innerText = fmtVND(c.monthlyPay);
   document.getElementById('receiptTenor').innerText = `${c.tenor || 12} tháng`;
   document.getElementById('receiptCode').innerText = c.code || '---';
   document.getElementById('receiptFirstDate').innerText = dates.first;
@@ -954,10 +968,11 @@ function copyPaymentMsg() {
   const l = leads.find(x => x.id === receiptLeadId);
   const app = l.applications[receiptAppIdx];
   const c = app.contract || {};
+  const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => `${(v || 0).toLocaleString('vi-VN')} đ`;
   const dates = typeof calcPayDates === 'function' ? calcPayDates(c.disburseDate, c.tenor) : { first: '---', last: '---' };
   const theme = LENDER_THEMES[app.lender] || { guide: 'Thanh toán qua ví điện tử hoặc điểm thu hộ.' };
 
-  const msg = `📢 THÔNG BÁO LỊCH THANH TOÁN KHOẢN VAY\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nĐơn vị: ${app.lender}\nSố HĐ: ${c.code || '---'}\nTiền góp: ${formatVND(c.monthlyPay)}/tháng (Kỳ hạn: ${c.tenor || 12} tháng)\n📅 Ngày đóng đầu tiên: ${dates.first}\n🏁 Ngày đóng cuối (Tất toán): ${dates.last}\n\n🏦 HƯỚNG DẪN ĐÓNG TIỀN:\n${theme.guide}`;
+  const msg = `📢 THÔNG BÁO LỊCH THANH TOÁN KHOẢN VAY\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nĐơn vị: ${app.lender}\nSố HĐ: ${c.code || '---'}\nTiền góp: ${fmtVND(c.monthlyPay)}/tháng (Kỳ hạn: ${c.tenor || 12} tháng)\n📅 Ngày đóng đầu tiên: ${dates.first}\n🏁 Ngày đóng cuối (Tất toán): ${dates.last}\n\n🏦 HƯỚNG DẪN ĐÓNG TIỀN:\n${theme.guide}`;
   
   navigator.clipboard.writeText(msg).then(() => showToast('Đã copy tin nhắn gửi Zalo!')).catch(() => showToast('Lỗi copy'));
 }

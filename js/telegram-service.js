@@ -37,33 +37,34 @@ badge.innerText = '⚠️ Chưa lưu đủ';
 }
 }
 /
-￼ Lưu cấu hình bảo mật vào bộ nhớ Safari với phản hồi trực quan 100%
+￼ Lưu cấu hình bảo mật vào bộ nhớ Safari với phản hồi Alert chính thức của iOS
 */
 function saveCustomTgConfig() {
 const tokenInput = document.getElementById('cfgTgToken');
 const chatIdInput = document.getElementById('cfgTgChatId');
 const btn = document.getElementById('btnSaveTgConfig');
+const btnText = document.getElementById('btnSaveTgText');
 const token = tokenInput ? tokenInput.value.trim() : '';
 const chatId = chatIdInput ? chatIdInput.value.trim() : '';
 if (!token && !chatId) {
-if (typeof showToast === 'function') showToast('⚠️ Vui lòng nhập Token hoặc Chat ID');
-alert('⚠️ Vui lòng nhập Bot Token và Chat ID trước khi lưu!');
+alert('⚠️ Vui lòng nhập Bot Token và Chat ID trước khi bấm Lưu!');
 return;
 }
 try {
 if (token) localStorage.setItem('crm_tg_token', token);
 if (chatId) localStorage.setItem('crm_tg_chatid', chatId);
-// Phản hồi trực quan đổi màu nút ngay lập tức
+// Đổi màu nút xanh lá cây ngay lập tức
 if (btn) {
-const origText = btn.innerHTML;
 btn.className = 'w-full bg-emerald-600 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5';
-btn.innerHTML = '<span>✓</span><span>ĐÃ LƯU VÀO MÁY THÀNH CÔNG!</span>';
+if (btnText) btnText.innerText = 'ĐÃ LƯU VÀO MÁY THÀNH CÔNG!';
 setTimeout(() => {
 btn.className = 'w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5';
-btn.innerHTML = origText;
-}, 2200);
+if (btnText) btnText.innerText = 'Lưu Cấu Hình Kết Nối';
+}, 2500);
 }
 updateTgStatusBadge();
+// BẬT HỘP THOẠI NỔI CỦA IPHONE ĐỂ BẠN THẤY PHẢN HỒI RÕ RÀNG 100%
+alert('✅ ĐÃ LƯU THÀNH CÔNG!\n\nBot Token và Chat ID đã được lưu vĩnh viễn trên iPhone của bạn. Từ giờ bạn chỉ cần bấm [Gửi Lên Kênh] để sao lưu.');
 if (typeof showToast === 'function') showToast('✓ Đã ghi nhớ cấu hình Telegram trên iPhone!');
 } catch (err) {
 console.error('Lỗi ghi nhớ Safari:', err);
@@ -210,6 +211,7 @@ disable_notification: true
 } catch (pinErr) {
 console.warn('Bot chưa có quyền ghim:', pinErr);
 }
+alert('✅ SAO LƯU THÀNH CÔNG!\n\nToàn bộ hồ sơ đã được gửi và ghim an toàn trên kênh Telegram của bạn.');
 if (typeof showToast === 'function') showToast('✓ Đã sao lưu & ghim bản mới nhất lên Telegram!');
 } else {
 alert('Telegram từ chối: ' + (msgData.description || 'Sai Bot Token hoặc Chat ID'));
@@ -259,6 +261,7 @@ if (Array.isArray(parsedData)) {
 leads = parsedData;
 if (typeof saveStorage === 'function') saveStorage();
 if (typeof closeBackupModal === 'function') closeBackupModal();
+alert(⁠✅ NẠP DỮ LIỆU THÀNH CÔNG!\n\nĐã khôi phục đầy đủ ${leads.length} hồ sơ từ Telegram.⁠);
 if (typeof showToast === 'function') showToast(⁠✓ Đã nạp lại ${leads.length} hồ sơ từ Telegram!⁠);
 } else {
 alert('Dữ liệu không đúng định dạng!');

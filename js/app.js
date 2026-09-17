@@ -1,6 +1,6 @@
-// js/app.js - Bộ điều phối CRM độc lập ĐẦY ĐỦ (Khôi phục 100% tính năng & Google Sheets API chuẩn chống đơ)
+// js/app.js - Bộ điều phối CRM (Google Sheets Sync V3 - Chống đơ 100%)
 
-const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwXjW0Era0nt-1lsfPhdLJu6VOIeriEayxhZJmwvg75ZrXokOUS-8nUvB3AwqyR1KV2/exec';
+const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwXjW0Era0nt-1lsfPhdLJu6VOleriEayxhZJmwvg75ZrXokOUS-8nUvB3AwqyR1KV2/exec';
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -16,7 +16,6 @@ function cleanJsonString(str) {
   return String(str).replace(/^\uFEFF/, '').trim();
 }
 
-// Bọc an toàn tuyệt đối khi đọc localStorage
 let leads = [];
 try {
   leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
@@ -70,7 +69,7 @@ async function loadLeadsFromCloud() {
     if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
       leads = json.data;
       localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
-      if (typeof showToast === 'function') showToast(`✓ Đã đồng bộ ${leads.length} hồ sơ từ Google Sheets!`);
+      if (typeof showToast === 'function') showToast(`✓ Đã đồng bộ ${leads.length} hồ sơ từ Sheets!`);
       render();
     }
   } catch (err) {
@@ -79,7 +78,7 @@ async function loadLeadsFromCloud() {
 }
 
 /**
- * Cập nhật giao diện và đồng bộ lên Google Sheets (Fix định dạng chống CORS và đẩy API chuẩn)
+ * Cập nhật giao diện và đồng bộ lên Google Sheets (Đã sửa lỗi CORS và PostData rỗng)
  */
 function saveStorage() {
   try {
@@ -87,15 +86,36 @@ function saveStorage() {
   } catch (e) {}
   render();
 
-  // Gọi Google API theo định dạng RAW_TEXT để tránh CORS Block
+  // ĐẨY DỮ LIỆU LÊN GOOGLE SHEETS
+  // KHÔNG dùng mode: 'no-cors' nữa. Dùng Content-Type text/plain để vượt qua preflight.
   try {
     fetch(GOOGLE_SHEET_API_URL, {
       method: 'POST',
-      mode: 'no-cors', // Chống lỗi đơ CORS
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
       body: JSON.stringify({ action: 'SYNC_ALL', leads: leads })
-    }).catch(err => console.warn('Lỗi đồng bộ ngầm:', err));
-  } catch (e) {}
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error("HTTP error " + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+      if (data.ok) {
+        console.log('✓ Đã đồng bộ Sheets thành công! Đã đẩy:', data.count, 'hồ sơ.');
+      } else {
+        console.error('❌ Lỗi từ Google Sheets:', data.error);
+        if (data.details) console.error('Chi tiết lỗi:', data.details);
+      }
+    })
+    .catch(err => {
+      console.warn('Lỗi gọi API đồng bộ:', err);
+    });
+  } catch (e) {
+    console.error('Lỗi khi fetch:', e);
+  }
 }
 
 function detectSimCarrier(phone) {
@@ -403,9 +423,6 @@ function applyMatchedPackage(leadId, lender) {
   openLoanMatchModal(leadId);
 }
 
-// =================================================================
-// LƯU FORM HỒ SƠ KHÁCH HÀNG
-// =================================================================
 function saveLeadForm(e) {
   e.preventDefault();
   const dob = document.getElementById('formDob').value;
@@ -479,9 +496,6 @@ function saveLeadForm(e) {
   }, 250);
 }
 
-// =================================================================
-// RENDER DANH SÁCH THẺ KHÁCH HÀNG
-// =================================================================
 function render() {
   const container = document.getElementById('leadsContainer');
   if (!container) return;
@@ -576,7 +590,7 @@ function render() {
               <div class="text-xs text-slate-500 font-mono mt-0.5">${lead.phone} • CCCD: ${lead.cccd || '---'}</div>
             </div>
             <div class="flex items-center gap-1">
-              <button type="button" onclick="toggleLeadDetail(${lead.id})" class="text-[10px] ${isExpanded ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'} font-extrabold px-2.5 py-1 rounded-full transition active:scale-95 flex items-center gap-0.5">
+              <button type="button" onclick="toggleLeadDetail(${lead.id})" class="text-[10px] ${isExpanded ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'} hover:bg-slate-200 font-extrabold px-2.5 py-1 rounded-full transition active:scale-95 flex items-center gap-0.5">
                 <span>${isExpanded ? '▲ Thu gọn' : '▼ Chi tiết'}</span>
               </button>
               <button type="button" onclick="toggleCompleteModal(${lead.id})" title="Mở lại hồ sơ đang xử lý" class="bg-slate-800 hover:bg-slate-900 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
@@ -751,8 +765,7 @@ function render() {
           <div class="flex justify-between items-center">
             <span class="font-bold text-xs text-indigo-950">🏛️ Tiến độ nộp đa công ty:</span>
             <button type="button" onclick="addAppPrompt(${lead.id})" class="text-[11px] bg-indigo-600 text-white font-bold px-2.5 py-1 rounded-lg shadow active:scale-95 transition flex items-center gap-1">
-              <span>+</span>
-              <span>Nộp Cty</span>
+              <span>+ Nộp Cty</span>
             </button>
           </div>
           <div class="space-y-1.5">${appsHtml}</div>

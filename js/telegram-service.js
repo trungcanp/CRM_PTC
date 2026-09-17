@@ -1,4 +1,4 @@
-// js/telegram-service.js - Quản lý gửi thông báo & sao lưu dữ liệu bảo mật (Không lộ Token)
+// js/telegram-service.js - Quản lý gửi thông báo & sao lưu dữ liệu bảo mật (Cơ chế Ghim Tin Nhắn Tự Động)
 
 /**
  * Lấy cấu hình Token và Chat ID được lưu an toàn trong máy người dùng
@@ -48,7 +48,7 @@ async function sendTelegramNotification(actionText, leadName) {
   if (!auto) return;
 
   const { token, chatId } = getTelegramConfig();
-  if (!token || !chatId) return; // Chưa cấu hình thì bỏ qua, không gây lỗi web
+  if (!token || !chatId) return;
 
   try {
     const safeAction = typeof escapeHtml === 'function' ? escapeHtml(actionText) : actionText;
@@ -66,7 +66,7 @@ async function sendTelegramNotification(actionText, leadName) {
 }
 
 /**
- * Sao lưu toàn bộ hồ sơ khách hàng dạng tệp .json gửi vào kênh Telegram
+ * Sao lưu toàn bộ hồ sơ khách hàng dạng tệp .json và TỰ ĐỘNG GHIM lên đầu kênh
  */
 async function backupToTelegram() {
   const { token, chatId } = getTelegramConfig();
@@ -97,7 +97,22 @@ async function backupToTelegram() {
 
     const d = await res.json();
     if (d.ok) {
-      if (typeof showToast === 'function') showToast('✓ Đã lưu dữ liệu lên Telegram thành công!');
+      // Tự động Ghim (Pin) tệp mới nhất này lên đầu kênh
+      try {
+        await fetch(`https://api.telegram.org/bot${token}/pinChatMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            chat_id: chatId,
+            message_id: d.result.message_id,
+            disable_notification: true
+          })
+        });
+      } catch (pinErr) {
+        console.warn('Chưa cấp quyền ghim tin nhắn cho bot:', pinErr);
+      }
+
+      if (typeof showToast === 'function') showToast('✓ Đã lưu & ghim bản mới nhất lên Telegram!');
     } else {
       if (typeof showToast === 'function') showToast('Telegram từ chối: ' + (d.description || 'Sai Token/Chat ID'));
     }
@@ -107,42 +122,57 @@ async function backupToTelegram() {
 }
 
 /**
- * Khôi phục dữ liệu từ bản sao lưu gần nhất trên kênh Telegram
+ * Khôi phục dữ liệu từ bản sao lưu GHIM gần nhất trên kênh Telegram
  */
 async function restoreFromTelegram() {
-  const { token } = getTelegramConfig();
+  const { token, chatId } = getTelegramConfig();
 
-  if (!token) {
-    if (typeof showToast === 'function') showToast('⚠️ Vui lòng lưu Token Telegram trước');
+  if (!token || !chatId) {
+    if (typeof showToast === 'function') showToast('⚠️ Vui lòng lưu Token và Chat ID trước');
     return;
   }
 
-  if (typeof showToast === 'function') showToast('Đang tìm bản sao lưu gần nhất...');
+  if (typeof showToast === 'function') showToast('Đang tìm bản sao lưu ghim gần nhất...');
 
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?allowed_updates=["channel_post","message"]`);
-    const d = await res.json();
-    
-    if (!d.ok || !d.result || d.result.length === 0) {
-      if (typeof showToast === 'function') showToast('Không tìm thấy tin nhắn tệp trên Telegram');
-      return;
+    let targetFileId = null;
+
+    // 1. Đọc tin nhắn GHIM trên đầu kênh qua lệnh getChat
+    const chatRes = await fetch(`https://api.telegram.org/bot${token}/getChat?chat_id=${chatId}`);
+    const chatData = await chatRes.json();
+
+    if (chatData.ok && chatData.result && chatData.result.pinned_message) {
+      const pinned = chatData.result.pinned_message;
+      if (pinned.document && pinned.document.file_name && pinned.document.file_name.endsWith('.json')) {
+        targetFileId = pinned.document.file_id;
+      }
     }
 
-    let targetFileId = null;
-    for (let i = d.result.length - 1; i >= 0; i--) {
-      const item = d.result[i];
-      const msg = item.message || item.channel_post;
-      if (msg && msg.document && msg.document.file_name && msg.document.file_name.endsWith('.json')) {
-        targetFileId = msg.document.file_id;
-        break;
+    // 2. Dự phòng qua getUpdates nếu chưa có tin ghim
+    if (!targetFileId) {
+      const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?allowed_updates=["channel_post","message"]`);
+      const d = await res.json();
+      
+      if (d.ok && d.result && d.result.length > 0) {
+        for (let i = d.result.length - 1; i >= 0; i--) {
+          const item = d.result[i];
+          const msg = item.message || item.channel_post;
+          if (msg && msg.document && msg.document.file_name && msg.document.file_name.endsWith('.json')) {
+            targetFileId = msg.document.file_id;
+            break;
+          }
+        }
       }
     }
 
     if (!targetFileId) {
-      if (typeof showToast === 'function') showToast('Chưa có tệp backup .json nào trên kênh!');
+      if (typeof showToast === 'function') {
+        showToast('Chưa có tệp ghim. Vui lòng bấm [🚀 Gửi File Lên Bot] lại 1 lần!');
+      }
       return;
     }
 
+    // 3. Lấy đường link tải tệp từ file_id
     const fileInfoRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${targetFileId}`);
     const fileInfo = await fileInfoRes.json();
     if (!fileInfo.ok) {
@@ -163,6 +193,7 @@ async function restoreFromTelegram() {
       if (typeof showToast === 'function') showToast('Định dạng tệp không tương thích!');
     }
   } catch (err) {
+    console.error('Lỗi khôi phục:', err);
     if (typeof showToast === 'function') showToast('Không thể khôi phục từ Telegram');
   }
 }

@@ -4,51 +4,43 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>CRM_PTC - Quản Lý Tín Dụng Chuyên Nghiệp</title>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Thư viện quét mã QR -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
-
   <style>
     body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
     input, textarea, select { user-select: text; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    #reader video { border-radius: 1rem; object-fit: cover; width: 100% !important; height: 100% !important; }
   </style>
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
 
   <div id="app" class="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-2xl relative pb-20">
-    <!-- Nơi các khối giao diện được nạp tự động -->
     <div id="comp-header"></div>
     <div id="comp-filter-bar"></div>
     
     <main id="leadsContainer" class="flex-1 p-3 space-y-3 overflow-y-auto">
-      <!-- Hồ sơ khách hàng render tại đây -->
+      <!-- Hồ sơ hiển thị tại đây -->
     </main>
   </div>
 
-  <!-- Nơi nạp các Modal chức năng -->
+  <!-- Các Modal -->
   <div id="comp-modal-lead"></div>
-  <div id="comp-modal-scan"></div>
+  <div id="comp-modal-loan-match"></div>
   <div id="comp-modal-receipt"></div>
   <div id="comp-modal-contract"></div>
   <div id="comp-modal-complete"></div>
   <div id="comp-modal-backup"></div>
 
-  <!-- Toast thông báo nổi -->
+  <!-- Toast -->
   <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-2xl font-medium hidden transition-all"></div>
 
-  <!-- BỘ ĐIỀU PHỐI NẠP ĐA TỆP SIÊU TỐC -->
   <script>
     async function loadComponent(targetId, filePath) {
       try {
-        const res = await fetch(filePath + '?v=' + Date.now()); // Chống dính bộ nhớ đệm cache cũ
+        const res = await fetch(filePath + '?v=' + Date.now());
         if (!res.ok) throw new Error(`Không tìm thấy: ${filePath}`);
         document.getElementById(targetId).innerHTML = await res.text();
       } catch (err) {
@@ -57,24 +49,23 @@
     }
 
     async function initSystem() {
-      // 1. Nạp đồng thời tất cả các tệp giao diện HTML
       await Promise.all([
         loadComponent('comp-header', 'components/header.html'),
         loadComponent('comp-filter-bar', 'components/filter-bar.html'),
         loadComponent('comp-modal-lead', 'components/modal-lead.html'),
-        loadComponent('comp-modal-scan', 'components/modal-scan.html'),
+        loadComponent('comp-modal-loan-match', 'components/modal-loan-match.html'),
         loadComponent('comp-modal-receipt', 'components/modal-receipt.html'),
         loadComponent('comp-modal-contract', 'components/modal-contract.html'),
         loadComponent('comp-modal-complete', 'components/modal-complete.html'),
         loadComponent('comp-modal-backup', 'components/modal-backup.html')
       ]);
 
-      // 2. Nạp tuần tự các tệp JavaScript logic
       const scripts = [
         'js/initial-data.js',
         'js/loan-calc.js',
         'js/qr-service.js',
         'js/telegram-service.js',
+        'js/loan-rules.js',
         'js/app.js'
       ];
 

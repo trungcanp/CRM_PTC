@@ -1,4 +1,4 @@
-// js/app.js - Bộ điều phối CRM độc lập (Tự bảo vệ hiển thị, tối ưu thu gọn Lưu Kho)
+// js/app.js - Bộ điều phối CRM độc lập (Tự bảo vệ hiển thị, chống đơ & lọc ký tự BOM)
 
 /**
  * Hàm chống vỡ HTML và lỗi xss (Tích hợp trực tiếp, không phụ thuộc file khác)
@@ -12,8 +12,24 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-let leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
-if (leads.length === 0 && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
+/**
+ * Làm sạch ký tự ẩn BOM (\uFEFF) và khoảng trắng thừa gây lỗi JSON.parse trên Safari
+ */
+function cleanJsonString(str) {
+  if (!str) return '';
+  return String(str).replace(/^\uFEFF/, '').trim();
+}
+
+// Bọc an toàn khi đọc localStorage để tránh crash toàn trang nếu dữ liệu tạm bị hỏng
+let leads = [];
+try {
+  leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
+} catch (e) {
+  console.warn('Phát hiện dữ liệu lưu trữ bị lỗi, tự động đặt lại danh sách sạch:', e);
+  leads = [];
+}
+
+if ((!Array.isArray(leads) || leads.length === 0) && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
   leads = DEFAULT_SAMPLE_LEADS;
 }
 
@@ -102,7 +118,11 @@ function showToast(m) {
 }
 
 function saveStorage() {
-  localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
+  try {
+    localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
+  } catch (e) {
+    console.warn('Lỗi ghi localStorage:', e);
+  }
   render();
 }
 
@@ -197,9 +217,7 @@ function ensureAddAppModalExists() {
         👉 <b>Chạm 1 chạm</b> vào ngân hàng hoặc công ty tài chính bạn muốn nộp:
       </p>
 
-      <div id="addAppPartnersList" class="grid grid-cols-2 gap-2 text-xs">
-        <!-- Danh sách nút nạp qua JS -->
-      </div>
+      <div id="addAppPartnersList" class="grid grid-cols-2 gap-2 text-xs"></div>
 
       <div class="pt-1">
         <button type="button" onclick="closeAddAppModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition">
@@ -458,7 +476,7 @@ function saveLeadForm(e) {
 }
 
 // =================================================================
-// RENDER DANH SÁCH THẺ KHÁCH HÀNG (TỰ ĐỘNG BẢO VỆ VÀ THU GỌN KHO)
+// RENDER DANH SÁCH THẺ KHÁCH HÀNG
 // =================================================================
 function render() {
   const container = document.getElementById('leadsContainer');
@@ -517,9 +535,6 @@ function render() {
                          actualCarrier === 'Viettel' ? 'bg-red-50 text-red-700 border-red-200' :
                          'bg-slate-100 text-slate-700 border-slate-200';
 
-    // =============================================================
-    // CHẾ ĐỘ THU GỌN KHI Ở TAB "📁 LƯU KHO"
-    // =============================================================
     if (activeTab === 'archived') {
       const isExpanded = expandedArchiveIds.has(lead.id);
       const approvedApp = (lead.applications || []).find(a => a.result === 'Duyệt' && a.contract);
@@ -618,9 +633,6 @@ function render() {
       return;
     }
 
-    // =============================================================
-    // CHẾ ĐỘ BÌNH THƯỜNG (CHO TAB "⚡ ĐANG XỬ LÝ" & "🎯 LỌC GÓI VAY")
-    // =============================================================
     let docsHtml = '';
     const docMap = typeof DOC_MAP !== 'undefined' ? DOC_MAP : {};
     (lead.documents || []).forEach(d => {
@@ -842,7 +854,10 @@ function openEditModal(id) {
   document.getElementById('leadModal').classList.remove('hidden');
 }
 
-function closeLeadModal() { document.getElementById('leadModal').classList.add('hidden'); }
+function closeLeadModal() { 
+  const m = document.getElementById('leadModal');
+  if (m) m.classList.add('hidden'); 
+}
 
 function deleteLead(id) {
   if (confirm('Xóa hồ sơ này?')) {
@@ -895,7 +910,10 @@ function openContractModal(leadId, aIdx) {
   document.getElementById('contractModal').classList.remove('hidden');
 }
 
-function closeContractModal() { document.getElementById('contractModal').classList.add('hidden'); }
+function closeContractModal() { 
+  const m = document.getElementById('contractModal');
+  if (m) m.classList.add('hidden'); 
+}
 
 function saveContractForm(e) {
   e.preventDefault();
@@ -962,7 +980,10 @@ function openReceipt(leadId, aIdx) {
   document.getElementById('receiptModal').classList.remove('hidden');
 }
 
-function closeReceiptModal() { document.getElementById('receiptModal').classList.add('hidden'); }
+function closeReceiptModal() { 
+  const m = document.getElementById('receiptModal');
+  if (m) m.classList.add('hidden'); 
+}
 
 function copyPaymentMsg() {
   const l = leads.find(x => x.id === receiptLeadId);
@@ -979,6 +1000,7 @@ function copyPaymentMsg() {
 
 function toggleCompleteModal(leadId) {
   const l = leads.find(x => x.id === leadId);
+  if (!l) return;
   if (l.isCompleted) {
     l.isCompleted = false;
     showToast('Đã mở lại hồ sơ đang xử lý');
@@ -989,7 +1011,10 @@ function toggleCompleteModal(leadId) {
   }
 }
 
-function closeCompleteModal() { document.getElementById('completeModal').classList.add('hidden'); }
+function closeCompleteModal() { 
+  const m = document.getElementById('completeModal');
+  if (m) m.classList.add('hidden'); 
+}
 
 function saveCompleteLead() {
   const l = leads.find(x => x.id === targetCompleteId);
@@ -1028,21 +1053,32 @@ function saveCompleteLead() {
 }
 
 function openBackupModal() {
-  const auto = localStorage.getItem('loan_crm_autotg') === 'true';
-  const chk = document.getElementById('autoNotifyTg');
-  if (chk) chk.checked = auto;
-  const cfg = typeof getTelegramConfig === 'function' ? getTelegramConfig() : { token: '', chatId: '' };
-  if (document.getElementById('cfgTgToken')) document.getElementById('cfgTgToken').value = cfg.token;
-  if (document.getElementById('cfgTgChatId')) document.getElementById('cfgTgChatId').value = cfg.chatId;
-  
-  if (typeof updateTgStatusBadge === 'function') {
-    updateTgStatusBadge();
+  const modal = document.getElementById('backupModal');
+  if (!modal) return;
+  try {
+    const auto = localStorage.getItem('loan_crm_autotg') === 'true';
+    const chk = document.getElementById('autoNotifyTg');
+    if (chk) chk.checked = auto;
+    const cfg = typeof getTelegramConfig === 'function' ? getTelegramConfig() : { token: '', chatId: '' };
+    const tokInput = document.getElementById('cfgTgToken');
+    const chatInput = document.getElementById('cfgTgChatId');
+    if (tokInput) tokInput.value = cfg.token || '';
+    if (chatInput) chatInput.value = cfg.chatId || '';
+    
+    if (typeof updateTgStatusBadge === 'function') {
+      updateTgStatusBadge();
+    }
+  } catch (e) {
+    console.warn('Lỗi chuẩn bị modal backup:', e);
   }
   
-  document.getElementById('backupModal').classList.remove('hidden');
+  modal.classList.remove('hidden');
 }
 
-function closeBackupModal() { document.getElementById('backupModal').classList.add('hidden'); }
+function closeBackupModal() { 
+  const modal = document.getElementById('backupModal');
+  if (modal) modal.classList.add('hidden'); 
+}
 
 function downloadBackupFile() {
   const blob = new Blob([JSON.stringify(leads, null, 2)], { type: 'application/json' });
@@ -1058,23 +1094,28 @@ function copyBackupText() {
 }
 
 /**
- * Nạp trực tiếp mã JSON từ bộ nhớ tạm iPhone (Không cần dùng file)
+ * Nạp trực tiếp mã JSON từ bộ nhớ tạm iPhone (Không cần file)
  */
 async function importJsonFromClipboard() {
   try {
     let text = '';
     if (navigator.clipboard && navigator.clipboard.readText) {
-      text = await navigator.clipboard.readText();
+      try {
+        text = await navigator.clipboard.readText();
+      } catch (clipErr) {
+        console.warn('Clipboard read error:', clipErr);
+      }
     }
     if (!text) {
-      text = prompt('Dán chuỗi mã JSON khách hàng vào đây:');
+      text = prompt('Dán chuỗi mã JSON khách hàng vào ô bên dưới:');
     }
     if (!text || !text.trim()) {
-      showToast('Bộ nhớ tạm đang rỗng!');
+      showToast('Chưa có nội dung sao chép!');
       return;
     }
 
-    const parsed = JSON.parse(text.trim());
+    const cleanRaw = cleanJsonString(text);
+    const parsed = JSON.parse(cleanRaw);
     if (Array.isArray(parsed) && parsed.length > 0) {
       leads = parsed;
       saveStorage();
@@ -1082,48 +1123,44 @@ async function importJsonFromClipboard() {
       alert(`✅ NẠP THÀNH CÔNG!\n\nĐã nhập đầy đủ ${leads.length} khách hàng vào hệ thống.`);
       showToast(`✓ Đã nạp thành công ${leads.length} hồ sơ!`);
     } else {
-      alert('❌ Dữ liệu sao chép không đúng định dạng danh sách khách hàng JSON!');
+      alert('❌ Dữ liệu sao chép không phải là danh sách khách hàng JSON hợp lệ!');
     }
   } catch (err) {
     console.error('Lỗi dán JSON:', err);
-    alert('❌ Không thể phân tích mã JSON. Hãy kiểm tra lại bạn đã copy trọn vẹn tệp hay chưa nhé!');
+    alert('❌ Không thể phân tích mã JSON. Hãy kiểm tra lại bạn đã sao chép trọn vẹn tệp hay chưa nhé!');
   }
 }
 
 /**
- * Khôi phục từ tệp máy: hỗ trợ cả tệp đuôi .json và .json.txt
+ * Khôi phục từ tệp có sẵn trên máy: tự lọc sạch ký tự BOM và nhận cả đuôi .json lẫn .txt
  */
 function restoreFromFile(e) {
-  const f = e.target.files[0];
+  const f = e.target.files && e.target.files[0];
   if (!f) return;
   const r = new FileReader();
   r.onload = (evt) => {
     try {
-      const p = JSON.parse(evt.target.result);
+      const raw = cleanJsonString(evt.target.result);
+      const p = JSON.parse(raw);
       if (Array.isArray(p)) { 
         leads = p; 
         saveStorage();
         closeBackupModal(); 
         alert(`✅ NẠP THÀNH CÔNG!\n\nĐã khôi phục ${leads.length} hồ sơ từ tệp của bạn.`);
         showToast('Khôi phục từ tệp thành công!'); 
+      } else {
+        alert('❌ Tệp không đúng định dạng danh sách mảng JSON [...]');
       }
     } catch (err) { 
-      alert('❌ Tệp bạn chọn không chứa mã JSON hợp lệ!');
+      console.error('Lỗi đọc tệp JSON:', err);
+      alert('❌ Tệp bạn chọn không chứa mã JSON hợp lệ hoặc bị lỗi cú pháp!');
       showToast('Tệp không hợp lệ'); 
+    } finally {
+      e.target.value = '';
     }
   };
-  r.readAsText(f);
+  r.readAsText(f, 'UTF-8');
 }
 
+// Khởi chạy render ngay khi nạp script
 render();
-```eof
-
----
-
-### Hướng dẫn thao tác Tệp 2:
-1. Bấm nút **Copy** ở góc trên bên phải khung mã `js/app.js` ở trên.
-2. Mở GitHub $\rightarrow$ vào thư mục **`js/`** $\rightarrow$ chọn file **`app.js`** $\rightarrow$ bấm biểu tượng cây bút chì ✏️.
-3. Chọn tất cả nội dung cũ $\rightarrow$ Xóa $\rightarrow$ Dán mã vừa copy vào $\rightarrow$ Bấm nút xanh **Commit changes**.
-
-Sau khi lưu tệp này:
-* Bạn vào CRM $\rightarrow$ Bấm **💾 Lưu** $\rightarrow$ bấm nút **Chọn tệp**: Tệp `leads.json.txt` đang có trên iPhone của bạn sẽ được nạp ngay mà không cần đổi tên!

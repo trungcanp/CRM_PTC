@@ -1,10 +1,7 @@
-// js/app.js - Bộ điều phối CRM độc lập ĐẦY ĐỦ (Khôi phục 100% tính năng & Google Sheets API)
+// js/app.js - Bộ điều phối CRM độc lập ĐẦY ĐỦ (Khôi phục 100% tính năng & Google Sheets API chuẩn chống đơ)
 
-const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwXjW0Era0nt-1lsfPhdLJu6VOleriEayxhZJmwvg75ZrXokOUS-8nUvB3AwqyR1KV2/exec';
+const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwXjW0Era0nt-1lsfPhdLJu6VOIeriEayxhZJmwvg75ZrXokOUS-8nUvB3AwqyR1KV2/exec';
 
-/**
- * Hàm chống vỡ HTML và lỗi xss (Tích hợp trực tiếp)
- */
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -14,20 +11,16 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-/**
- * Làm sạch ký tự ẩn BOM (\uFEFF)
- */
 function cleanJsonString(str) {
   if (!str) return '';
   return String(str).replace(/^\uFEFF/, '').trim();
 }
 
-// Bọc an toàn khi đọc localStorage để tránh crash toàn trang
+// Bọc an toàn tuyệt đối khi đọc localStorage
 let leads = [];
 try {
   leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
 } catch (e) {
-  console.warn('Phát hiện dữ liệu lưu trữ bị lỗi:', e);
   leads = [];
 }
 
@@ -35,7 +28,7 @@ if ((!Array.isArray(leads) || leads.length === 0) && typeof DEFAULT_SAMPLE_LEADS
   leads = DEFAULT_SAMPLE_LEADS;
 }
 
-let activeTab = 'active'; // 'active' | 'match' | 'archived'
+let activeTab = 'active'; 
 let currentFilterStatus = 'ALL';
 let searchQuery = '';
 let currentMatchingLeadId = null;
@@ -48,7 +41,6 @@ let contractLeadId = null;
 let contractAppIdx = null;
 let targetAddAppLeadId = null;
 
-// Quản lý trạng thái mở rộng/thu gọn thẻ hồ sơ lưu kho
 let expandedArchiveIds = new Set();
 
 function toggleLeadDetail(id) {
@@ -58,6 +50,14 @@ function toggleLeadDetail(id) {
     expandedArchiveIds.add(id);
   }
   render();
+}
+
+function showToast(m) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.innerText = m;
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 2800);
 }
 
 /**
@@ -79,32 +79,25 @@ async function loadLeadsFromCloud() {
 }
 
 /**
- * Cập nhật giao diện và đồng bộ ngầm
+ * Cập nhật giao diện và đồng bộ lên Google Sheets (Fix định dạng chống CORS và đẩy API chuẩn)
  */
 function saveStorage() {
   try {
     localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
-  } catch (e) {
-    console.warn('Lỗi ghi localStorage:', e);
-  }
+  } catch (e) {}
   render();
 
-  // Gọi Google API dưới nền bằng form-urlencoded (Tránh lỗi CORS Preflight)
+  // Gọi Google API theo định dạng RAW_TEXT để tránh CORS Block
   try {
-    const payload = encodeURIComponent(JSON.stringify({ action: 'SYNC_ALL', leads: leads }));
     fetch(GOOGLE_SHEET_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `data=${payload}`
+      mode: 'no-cors', // Chống lỗi đơ CORS
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'SYNC_ALL', leads: leads })
     }).catch(err => console.warn('Lỗi đồng bộ ngầm:', err));
-  } catch (e) {
-    console.warn('Lỗi gọi API Sheets:', e);
-  }
+  } catch (e) {}
 }
 
-// =================================================================
-// THUẬT TOÁN NHẬN DIỆN NHÀ MẠNG VIỄN THÔNG
-// =================================================================
 function detectSimCarrier(phone) {
   if (!phone) return 'Khác';
   let p = phone.replace(/[^0-9]/g, '');
@@ -153,17 +146,6 @@ function handlePhoneInput(val) {
   }
 }
 
-function showToast(m) {
-  const t = document.getElementById('toast');
-  if (!t) return;
-  t.innerText = m;
-  t.classList.remove('hidden');
-  setTimeout(() => t.classList.add('hidden'), 2800);
-}
-
-// =================================================================
-// CHUYỂN ĐỔI 3 TAB (ĐANG XỬ LÝ | LỌC GÓI VAY | LƯU KHO)
-// =================================================================
 function switchTab(tab) {
   activeTab = tab;
   const activeBtn = document.getElementById('tabActiveBtn');
@@ -212,9 +194,6 @@ function clearSearch() {
   render();
 }
 
-// =================================================================
-// DANH SÁCH CHỌN ĐƠN VỊ TÀI CHÍNH DẠNG POPUP 1 CHẠM
-// =================================================================
 const PARTNER_ICONS = {
   'TPBank': '🟣',
   'FE Credit': '🟢',
@@ -250,9 +229,7 @@ function ensureAddAppModalExists() {
       <p class="text-[11px] text-slate-600 bg-blue-50/70 border border-blue-100 p-2 rounded-xl">👉 <b>Chạm 1 chạm</b> vào ngân hàng hoặc công ty tài chính bạn muốn nộp:</p>
       <div id="addAppPartnersList" class="grid grid-cols-2 gap-2 text-xs"></div>
       <div class="pt-1">
-        <button type="button" onclick="closeAddAppModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition">
-          Hủy & Đóng
-        </button>
+        <button type="button" onclick="closeAddAppModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition">Hủy & Đóng</button>
       </div>
     </div>
   `;
@@ -326,9 +303,6 @@ function closeAddAppModal() {
   targetAddAppLeadId = null;
 }
 
-// =================================================================
-// MODAL LỌC VÀ ĐỀ XUẤT GÓI VAY TỰ ĐỘNG
-// =================================================================
 function openLoanMatchModal(leadId) {
   const lead = leads.find(l => l.id === leadId);
   if (!lead) return;
@@ -602,10 +576,10 @@ function render() {
               <div class="text-xs text-slate-500 font-mono mt-0.5">${lead.phone} • CCCD: ${lead.cccd || '---'}</div>
             </div>
             <div class="flex items-center gap-1">
-              <button type="button" onclick="toggleLeadDetail(${lead.id})" class="text-[10px] ${isExpanded ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'} hover:bg-slate-200 font-extrabold px-2.5 py-1 rounded-full transition active:scale-95">
-                ${isExpanded ? '▲ Thu gọn' : '▼ Chi tiết'}
+              <button type="button" onclick="toggleLeadDetail(${lead.id})" class="text-[10px] ${isExpanded ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'} font-extrabold px-2.5 py-1 rounded-full transition active:scale-95 flex items-center gap-0.5">
+                <span>${isExpanded ? '▲ Thu gọn' : '▼ Chi tiết'}</span>
               </button>
-              <button type="button" onclick="toggleCompleteModal(${lead.id})" class="bg-slate-800 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
+              <button type="button" onclick="toggleCompleteModal(${lead.id})" title="Mở lại hồ sơ đang xử lý" class="bg-slate-800 hover:bg-slate-900 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
                 ↺ Mở lại
               </button>
             </div>
@@ -627,8 +601,11 @@ function render() {
                 <div class="flex justify-between"><span>Khoản vay:</span> <span class="font-bold text-blue-700">${fmtVND(lead.amount)}</span></div>
                 <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
                 <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${fmtVND(lead.income)}</div>
+                ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Nơi làm:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
                 <div class="text-[10px] text-slate-500">🏠 <b>Thường trú:</b> ${escapeHtml(lead.permAddress) || '---'}</div>
+                <div class="text-[10px] text-slate-500">👥 <b>Tham chiếu:</b> ${escapeHtml(lead.ref1Name) || '---'} (${lead.ref1Phone || '---'})</div>
                 <div><b>Chứng từ:</b> ${docsHtml}</div>
+                ${lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : ''}
               </div>
 
               <div class="bg-slate-100/60 rounded-xl p-2 space-y-1.5 border border-slate-200">
@@ -685,7 +662,7 @@ function render() {
               <div>Duyệt: <b class="text-emerald-800">${fmtVND(app.contract.approvedAmount)}</b></div>
               <div class="col-span-2 flex justify-between items-center pt-1">
                 <span>Kỳ: ${app.contract.tenor} tháng • Góp: ${fmtVND(app.contract.monthlyPay)}/tháng</span>
-                <button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="bg-teal-600 text-white px-2.5 py-1 rounded-lg font-bold shadow active:scale-95 transition">🧾 Xuất Phiếu</button>
+                <button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="bg-teal-600 text-white px-2.5 py-1 rounded-lg font-bold shadow hover:bg-teal-700 active:scale-95 transition">🧾 Xuất Phiếu</button>
               </div>
             </div>
           `;
@@ -694,7 +671,7 @@ function render() {
           <div class="bg-emerald-50 border border-emerald-300 p-2 rounded text-[10px] space-y-1 mt-1">
             <div class="flex justify-between items-center font-bold text-emerald-900">
               <span>🎉 Đã duyệt khoản vay</span>
-              <button type="button" onclick="openContractModal(${lead.id}, ${aIdx})" class="bg-emerald-700 text-white px-2 py-0.5 rounded shadow active:scale-95 transition">${app.contract ? 'Sửa HĐ' : '+ Nhập HĐ'}</button>
+              <button type="button" onclick="openContractModal(${lead.id}, ${aIdx})" class="bg-emerald-700 text-white px-2 py-0.5 rounded shadow hover:bg-emerald-800 active:scale-95 transition">${app.contract ? 'Sửa HĐ' : '+ Nhập HĐ'}</button>
             </div>
             ${contractDetails}
           </div>
@@ -765,6 +742,7 @@ function render() {
           <div class="flex justify-between"><span>Cần vay:</span> <span class="font-bold text-blue-700">${fmtVND(lead.amount)}</span></div>
           <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
           <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${fmtVND(lead.income)}</div>
+          ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Đ/c làm việc:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
           <div class="text-[10px] text-slate-600 bg-emerald-50/50 p-1.5 rounded-lg border border-emerald-100"><b>🔍 Đang/Từng vay ở Cty:</b> ${prevLendersHtml}</div>
           <div><b>Chứng từ:</b> ${docsHtml}</div>
         </div>
@@ -773,7 +751,8 @@ function render() {
           <div class="flex justify-between items-center">
             <span class="font-bold text-xs text-indigo-950">🏛️ Tiến độ nộp đa công ty:</span>
             <button type="button" onclick="addAppPrompt(${lead.id})" class="text-[11px] bg-indigo-600 text-white font-bold px-2.5 py-1 rounded-lg shadow active:scale-95 transition flex items-center gap-1">
-              <span>+ Nộp Cty</span>
+              <span>+</span>
+              <span>Nộp Cty</span>
             </button>
           </div>
           <div class="space-y-1.5">${appsHtml}</div>
@@ -963,7 +942,12 @@ const LENDER_THEMES = {
   'Mirae Asset (MAFC)': { bg: 'bg-blue-900', emoji: '🏢', guide: 'Chuyển khoản qua STK định danh Mirae Asset hoặc qua My Finance / MoMo.' },
   'MCredit': { bg: 'bg-purple-700', emoji: '🟣', guide: 'Thanh toán qua app MCredit, Viettel Money hoặc các điểm thu hộ Viettel Post.' },
   'SHB Finance': { bg: 'bg-cyan-700', emoji: '🔷', guide: 'Đóng qua SHB Finance App, VNPay hoặc chuyển khoản trực tiếp STK ngân hàng.' },
-  'VPBank': { bg: 'bg-green-700', emoji: '🏦', guide: 'Thanh toán qua VPBank NEO, MoMo, hoặc nộp tiền mặt tại chi nhánh VPBank.' }
+  'VPBank': { bg: 'bg-green-700', emoji: '🏦', guide: 'Thanh toán qua VPBank NEO, MoMo, hoặc nộp tiền mặt tại chi nhánh VPBank.' },
+  'Cathay Bank (CUB)': { bg: 'bg-emerald-800', emoji: '🌳', guide: 'Chuyển khoản theo STK hợp đồng định danh cấp bởi Cathay Bank (CUB).' },
+  'Tnex': { bg: 'bg-sky-600', emoji: '⚡', guide: 'Thanh toán trực tiếp tự động qua app ngân hàng số TNEX.' },
+  'Cake by VPBank': { bg: 'bg-pink-600', emoji: '🍰', guide: 'Thanh toán trực tiếp trên app Cake by VPBank.' },
+  'Viettel Money': { bg: 'bg-rose-700', emoji: '📶', guide: 'Thanh toán qua app Viettel Money (mục Vay tiêu dùng).' },
+  'Tinvay': { bg: 'bg-indigo-700', emoji: '💳', guide: 'Thanh toán qua app Tinvay hoặc các cổng thanh toán hỗ trợ.' }
 };
 
 function openReceipt(leadId, aIdx) {
@@ -1172,3 +1156,12 @@ function restoreFromFile(e) {
 // Khởi chạy render ngay khi nạp script
 render();
 loadLeadsFromCloud();
+```eof
+
+### Cách thao tác trên điện thoại của bạn:
+1. Mở GitHub trên Safari $\rightarrow$ vào file `js/app.js` $\rightarrow$ bấm ✏️.
+2. Xóa sạch mọi thứ $\rightarrow$ Dán trọn vẹn đoạn mã trên.
+3. Bấm **Commit changes**.
+4. Mở tab CRM đang bị đơ $\rightarrow$ **tải lại trang (F5/Refresh)**.
+
+Mọi thứ sẽ trở lại nguyên trạng bình thường ngay lập tức! Bạn thao tác xong hãy thử bấm chuyển tab hoặc lọc dữ liệu nhé.

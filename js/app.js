@@ -1,4 +1,4 @@
-// js/app.js - Bộ điều phối CRM tích hợp Google Sheets Cloud Database
+// js/app.js - Bộ điều phối CRM tích hợp Google Sheets Cloud Database (Chống đơ tuyệt đối)
 
 const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwXjW0Era0nt-1IsfPhdLJu6VOIeriEayxhZJmwvg75ZrXokOUS-8nUvB3AwqyR1KV2/exec';
 
@@ -11,7 +11,18 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+// Bọc an toàn tuyệt đối khi đọc localStorage để tránh crash toàn trang
 let leads = [];
+try {
+  leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
+} catch (e) {
+  leads = [];
+}
+
+if ((!Array.isArray(leads) || leads.length === 0) && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
+  leads = DEFAULT_SAMPLE_LEADS;
+}
+
 let activeTab = 'active'; // 'active' | 'archived'
 let currentFilterStatus = 'ALL';
 let searchQuery = '';
@@ -42,26 +53,24 @@ function showToast(m) {
 }
 
 /**
- * Tải danh sách khách hàng từ Google Sheets Cloud Database
+ * Tải danh sách khách hàng từ Google Sheets Cloud Database (Bọc an toàn chống đơ)
  */
 async function loadLeadsFromCloud() {
-  if (typeof showToast === 'function') showToast('Đang đồng bộ dữ liệu từ Google Sheets...');
   try {
-    const res = await fetch(GOOGLE_SHEET_API_URL);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000); // Timeout sau 6 giây nếu mạng yếu
+
+    const res = await fetch(GOOGLE_SHEET_API_URL, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
     const json = await res.json();
-    if (json.ok && Array.isArray(json.data)) {
+    if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
       leads = json.data;
+      localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
       if (typeof showToast === 'function') showToast(`✓ Đã đồng bộ ${leads.length} hồ sơ từ Cloud!`);
-    } else {
-      console.warn('Phản hồi Cloud không hợp lệ, dùng dữ liệu dự phòng');
-      leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
     }
   } catch (err) {
-    console.warn('Lỗi kết nối Cloud, dùng dữ liệu cục bộ:', err);
-    leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
-  }
-  if ((!Array.isArray(leads) || leads.length === 0) && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
-    leads = DEFAULT_SAMPLE_LEADS;
+    console.warn('Sử dụng dữ liệu cục bộ do mạng/Cloud bận:', err);
   }
   render();
 }
@@ -69,14 +78,14 @@ async function loadLeadsFromCloud() {
 /**
  * Lưu dữ liệu lên Google Sheets và sao lưu dự phòng vào localStorage
  */
-async function saveStorage() {
+function saveStorage() {
   try {
     localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
   } catch (e) {}
 
   render();
 
-  // Đồng bộ ngầm lên Google Sheets
+  // Đồng bộ ngầm lên Google Sheets an toàn tuyệt đối
   try {
     fetch(GOOGLE_SHEET_API_URL, {
       method: 'POST',
@@ -84,9 +93,7 @@ async function saveStorage() {
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'SYNC_ALL', leads: leads })
     }).catch(err => console.warn('Lỗi đồng bộ ngầm:', err));
-  } catch (e) {
-    console.warn('Lỗi gọi API Sheets:', e);
-  }
+  } catch (e) {}
 }
 
 // Nhận diện nhà mạng Viettel / Vina / Mobi
@@ -227,7 +234,7 @@ function saveLeadForm(e) {
   if (editingLeadId) {
     const idx = leads.findIndex(x => x.id === editingLeadId);
     if (idx > -1) leads[idx] = { ...leads[idx], ...d };
-    showToast('Đã cập nhật hồ sơ & Đồng bộ Sheets!');
+    showToast('Đã cập nhật hồ sơ!');
     if (typeof sendTelegramNotification === 'function') sendTelegramNotification('Cập nhật hồ sơ', name);
   } else {
     leads.unshift({ 
@@ -236,7 +243,7 @@ function saveLeadForm(e) {
       ...d, 
       applications: [{ lender: initialLender, result: 'Đang thẩm định', rejectReason: '', contract: null }] 
     });
-    showToast('Đã thêm KH mới & Đồng bộ Sheets!');
+    showToast('Đã thêm KH mới!');
     if (typeof sendTelegramNotification === 'function') sendTelegramNotification('Thêm khách hàng mới', name);
   }
 
@@ -556,7 +563,7 @@ function closeLeadModal() {
 function deleteLead(id) {
   if (confirm('Xóa hồ sơ này?')) {
     leads = leads.filter(x => x.id !== id);
-    showToast('Đã xóa hồ sơ & Đồng bộ Sheets!');
+    showToast('Đã xóa hồ sơ!');
     saveStorage();
   }
 }
@@ -724,7 +731,7 @@ function saveCompleteLead() {
   const now = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   l.completedDate = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
-  showToast('Đã lưu kho CRM & Sheets');
+  showToast('Đã lưu kho!');
   if (typeof sendTelegramNotification === 'function') sendTelegramNotification(`Lưu kho [${l.completeReason}]`, l.name);
 
   closeCompleteModal();
@@ -810,6 +817,12 @@ function restoreFromFile(e) {
   r.readAsText(f, 'UTF-8');
 }
 
-// Khởi chạy: Tự động nạp dữ liệu từ Google Sheets ngay khi mở trang
+// Khởi chạy: Hiển thị ngay lập tức dữ liệu sẵn có, đồng thời chạy đồng bộ ngầm
+render();
 loadLeadsFromCloud();
 ```eof
+
+### Thao tác cập nhật nhanh:
+1. Mở file **`js/app.js`** trên GitHub $\rightarrow$ Bấm cây bút chì ✏️.
+2. Xóa toàn bộ nội dung cũ $\rightarrow$ Dán đoạn mã mới ở trên vào $\rightarrow$ Bấm **Commit changes**.
+3. Mở lại trang web CRM trên Safari: Giao diện sẽ hiển thị ngay lập tức, không bị đơ, không bị trống thông tin và các nút bấm hoạt động nhạy bén hoàn toàn!

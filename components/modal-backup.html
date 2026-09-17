@@ -1,6 +1,6 @@
 <!-- components/modal-backup.html -->
 <div id="backupModal" class="fixed inset-0 bg-slate-950/75 z-50 flex items-center justify-center p-3 backdrop-blur-md overflow-y-auto hidden">
-<div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-3.5 shadow-2xl border border-slate-200 text-xs animate-in fade-in duration-150">
+<div class="bg-white w-full max-w-sm rounded-3xl p-5 space-y-3.5 shadow-2xl border border-slate-200 text-xs">
 <!-- Tiêu đề Modal -->
 <div class="flex justify-between items-center border-b pb-2.5">
 <div class="flex items-center gap-2">
@@ -10,7 +10,7 @@
 <p class="text-[10px] text-slate-500 font-medium">Bảo Mật Kênh Telegram</p>
 </div>
 </div>
-<button type="button" onclick="closeBackupModal()" class="w-7 h-7 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center font-bold">✕</button>
+<button type="button" onclick="closeBackupModal()" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full flex items-center justify-center font-bold text-sm cursor-pointer">✕</button>
 </div>
 <!-- KHUNG CẤU HÌNH TELEGRAM -->
 <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3 space-y-2.5">
@@ -35,7 +35,7 @@ class="w-full border-2 border-slate-200 focus:border-blue-500 rounded-xl p-2 pr-
 type="button" 
 onclick="toggleTokenVisibility()" 
 title="Hiện/Ẩn Token"
-class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs p-0.5 font-bold">
+class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 text-xs p-1 font-bold cursor-pointer">
 👁️
 </button>
 </div>
@@ -68,7 +68,7 @@ class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-blac
 </span>
 <label class="relative inline-flex items-center cursor-pointer">
 <input type="checkbox" id="autoNotifyTg" onchange="toggleAutoNotify(this)" class="sr-only peer">
-<div class="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-emerald-600"></div>
+<div class="w-8 h-4 bg-slate-300 rounded-full peer peer-checked:bg-emerald-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4"></div>
 </label>
 </div>
 <p class="text-[9px] text-emerald-800 leading-tight">
@@ -77,11 +77,11 @@ Tự động gửi thông báo ngắn về kênh khi thêm, sửa hoặc duyệt
 </div>
 <!-- CÁC NÚT SAO LƯU & NẠP DỮ LIỆU TELEGRAM -->
 <div class="grid grid-cols-2 gap-2 pt-1">
-<button type="button" onclick="backupToTelegram()" class="bg-sky-600 hover:bg-sky-700 text-white font-extrabold py-2.5 px-2 rounded-xl text-xs shadow active:scale-95 flex items-center justify-center gap-1 transition">
+<button type="button" onclick="backupToTelegram()" class="bg-sky-600 hover:bg-sky-700 text-white font-extrabold py-2.5 px-2 rounded-xl text-xs shadow active:scale-95 flex items-center justify-center gap-1 transition cursor-pointer">
 <span>🚀</span>
 <span>Gửi Lên Kênh</span>
 </button>
-<button type="button" onclick="restoreFromTelegram()" class="bg-slate-800 hover:bg-slate-900 text-white font-extrabold py-2.5 px-2 rounded-xl text-xs shadow active:scale-95 flex items-center justify-center gap-1 transition">
+<button type="button" onclick="restoreFromTelegram()" class="bg-slate-800 hover:bg-slate-900 text-white font-extrabold py-2.5 px-2 rounded-xl text-xs shadow active:scale-95 flex items-center justify-center gap-1 transition cursor-pointer">
 <span>🔄</span>
 <span>Nạp Bản Mới Nhất</span>
 </button>
@@ -89,27 +89,28 @@ Tự động gửi thông báo ngắn về kênh khi thêm, sửa hoặc duyệt
 <!-- KHÔI PHỤC DỮ LIỆU TỪ MÁY HOẶC BỘ NHỚ TẠM -->
 <div class="pt-2 border-t border-slate-100 space-y-2">
 <div class="grid grid-cols-2 gap-2">
-<button type="button" onclick="downloadBackupFile()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-[10px] transition">📥 Tải File JSON</button>
-<button type="button" onclick="copyBackupText()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-[10px] transition">📋 Copy Mã JSON</button>
+<button type="button" onclick="downloadBackupFile()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-[10px] transition cursor-pointer">📥 Tải File JSON</button>
+<button type="button" onclick="copyBackupText()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-xl text-[10px] transition cursor-pointer">📋 Copy Mã JSON</button>
 </div>
-<!-- TIỆN ÍCH DÁN TRỰC TIẾP TỪ BỘ NHỚ TẠM IPHONE -->
+<!-- TIỆN ÍCH DÁN TRỰC TIẾP TỪ BỘ NHỚ TẠM -->
 <button 
 type="button" 
 onclick="importJsonFromClipboard()" 
-class="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold py-2 rounded-xl text-[11px] shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition">
+class="w-full bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold py-2 rounded-xl text-[11px] shadow-sm flex items-center justify-center gap-1.5 active:scale-95 transition cursor-pointer">
 <span>📋</span> Dán Trực Tiếp Từ Bộ Nhớ Tạm
 </button>
 <div>
-<label class="block text-[10px] text-slate-500 font-medium pb-1">Hoặc chọn tệp (Hỗ trợ cả .json và .txt):</label>
+<label class="block text-[10px] text-slate-500 font-medium pb-1">Hoặc nạp tệp (Nhận cả .json và .json.txt):</label>
 <input 
 type="file" 
+id="backupFileInput"
 accept=".json,.txt,text/plain,application/json" 
 onchange="restoreFromFile(event)" 
 class="w-full text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded-xl file:border-0 file:bg-slate-200 file:text-slate-700 file:font-bold cursor-pointer"
 >
 </div>
 </div>
-<button type="button" onclick="closeBackupModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-xs transition">
+<button type="button" onclick="closeBackupModal()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-bold text-xs transition cursor-pointer">
 Đóng
 </button>
 </div>

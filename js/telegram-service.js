@@ -50,7 +50,7 @@ function checkTgInputStatus() {
 }
 
 /**
- * Lưu cấu hình và kiểm tra kết nối trực tiếp với Telegram API
+ * Lưu cấu hình và kiểm tra kết nối trực tiếp với Telegram API (Giữ nguyên bản chuẩn của bạn)
  */
 async function saveCustomTgConfig() {
   const tokenInput = document.getElementById('cfgTgToken');
@@ -71,7 +71,7 @@ async function saveCustomTgConfig() {
     return;
   }
 
-  // 1. Lưu vào bộ nhớ máy
+  // 1. Lưu ngay vào bộ nhớ máy
   try {
     localStorage.setItem('crm_tg_token', token);
     localStorage.setItem('crm_tg_chatid', chatId);
@@ -79,11 +79,11 @@ async function saveCustomTgConfig() {
     console.warn('Lỗi ghi nhớ localStorage:', err);
   }
 
-  // 2. Hiển thị tiến trình kiểm tra kết nối
+  // 2. Hiển thị tiến trình đang kiểm tra kết nối thực tế
   if (btnText) btnText.innerText = '⏳ Đang kiểm tra kết nối Bot...';
   if (btn) btn.className = 'w-full bg-indigo-600 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5';
 
-  // 3. Gọi trực tiếp API Telegram để xác minh Token
+  // 3. Gọi trực tiếp API Telegram để xác minh tính chính xác của Token
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
     const data = await res.json();
@@ -215,7 +215,7 @@ async function decompressText(base64) {
 
 /**
  * Sao lưu hồ sơ lên Telegram DƯỚI DẠNG TỆP FILE (sendDocument)
- * Tự động ghim (Pin) tệp lên đỉnh kênh để khôi phục 1 chạm
+ * Tự động ghim (Pin) tệp lên đầu kênh và ghi nhớ file_id
  */
 async function backupToTelegram() {
   const { token, chatId } = getTelegramConfig();
@@ -246,9 +246,16 @@ async function backupToTelegram() {
 
     const data = await res.json();
 
-    if (data.ok) {
-      // Tự động ghim tin nhắn chứa tệp này lên đầu kênh
-      if (data.result && data.result.message_id) {
+    if (data.ok && data.result) {
+      // 1. Lưu mã tệp gần nhất vào bộ nhớ máy để nạp tức thì
+      if (data.result.document && data.result.document.file_id) {
+        try {
+          localStorage.setItem('crm_tg_last_file_id', data.result.document.file_id);
+        } catch (e) {}
+      }
+
+      // 2. Tự động Ghim (Pin) tệp lên đầu kênh
+      if (data.result.message_id) {
         try {
           await fetch(`https://api.telegram.org/bot${token}/pinChatMessage`, {
             method: 'POST',
@@ -263,6 +270,7 @@ async function backupToTelegram() {
           console.warn('Lỗi ghim tệp:', pinErr);
         }
       }
+
       if (typeof showToast === 'function') showToast(`✓ Đã gửi tệp ${currentLeads.length} hồ sơ lên Telegram thành công!`);
     } else {
       if (typeof showToast === 'function') showToast(`❌ Telegram từ chối: ${data.description || 'Lỗi gửi tệp'}`);
@@ -274,7 +282,7 @@ async function backupToTelegram() {
 }
 
 /**
- * Khôi phục hồ sơ từ Telegram (Ưu tiên đọc tệp ghim trên đầu kênh)
+ * Khôi phục hồ sơ từ Telegram (Tự động tìm tệp ghim trên đầu kênh hoặc tệp đã lưu)
  */
 async function restoreFromTelegram() {
   const { token, chatId } = getTelegramConfig();
@@ -289,21 +297,28 @@ async function restoreFromTelegram() {
   try {
     let targetFileId = null;
 
-    // 1. Tìm tệp trong tin nhắn GHIM trên đầu kênh qua getChat
+    // 1. Ưu tiên tìm tệp từ tin nhắn GHIM trên đầu kênh qua getChat
     try {
       const chatRes = await fetch(`https://api.telegram.org/bot${token}/getChat?chat_id=${chatId}`);
       const chatData = await chatRes.json();
       if (chatData.ok && chatData.result && chatData.result.pinned_message) {
         const pinDoc = chatData.result.pinned_message.document;
-        if (pinDoc && pinDoc.file_id) {
+        if (pinDoc && pinDoc.file_id && (pinDoc.file_name || '').endsWith('.json')) {
           targetFileId = pinDoc.file_id;
         }
       }
     } catch (chatErr) {
-      console.warn('Lỗi đọc getChat:', chatErr);
+      console.warn('Lỗi đọc tệp ghim qua getChat:', chatErr);
     }
 
-    // 2. Dự phòng: Quét qua getUpdates nếu chưa có ghim
+    // 2. Dự phòng: Đọc mã tệp gần nhất đã lưu trong máy
+    if (!targetFileId) {
+      try {
+        targetFileId = localStorage.getItem('crm_tg_last_file_id');
+      } catch (e) {}
+    }
+
+    // 3. Dự phòng qua getUpdates
     if (!targetFileId) {
       try {
         const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?allowed_updates=["channel_post","message"]`);
@@ -312,7 +327,7 @@ async function restoreFromTelegram() {
           for (let i = d.result.length - 1; i >= 0; i--) {
             const item = d.result[i];
             const msg = item.message || item.channel_post;
-            if (msg && msg.document && msg.document.file_id) {
+            if (msg && msg.document && (msg.document.file_name || '').endsWith('.json')) {
               targetFileId = msg.document.file_id;
               break;
             }
@@ -324,15 +339,15 @@ async function restoreFromTelegram() {
     }
 
     if (!targetFileId) {
-      if (typeof showToast === 'function') showToast('Chưa có tệp backup! Hãy bấm [Gửi Lên Kênh] trước một lần.');
+      if (typeof showToast === 'function') showToast('💡 Hãy bấm [Gửi Lên Kênh] một lần để tạo bản sao lưu đầu tiên!');
       return;
     }
 
-    // 3. Lấy link và tải trực tiếp dữ liệu tệp JSON
+    // 4. Lấy link và tải trực tiếp nội dung file JSON về nạp vào CRM
     const fileInfoRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${targetFileId}`);
     const fileInfo = await fileInfoRes.json();
     if (!fileInfo.ok || !fileInfo.result || !fileInfo.result.file_path) {
-      if (typeof showToast === 'function') showToast('Không lấy được tệp từ Telegram');
+      if (typeof showToast === 'function') showToast('Không lấy được link tệp từ Telegram');
       return;
     }
 
@@ -349,20 +364,15 @@ async function restoreFromTelegram() {
       if (typeof showToast === 'function') showToast('Định dạng tệp không hợp lệ');
     }
   } catch (err) {
-    console.error('Lỗi khôi phục:', err);
-    if (typeof showToast === 'function') showToast('Chưa nạp được từ link trực tiếp. Hãy tải tệp từ kênh rồi chọn nạp tệp!');
+    console.error('Lỗi khôi phục từ Telegram:', err);
+    if (typeof showToast === 'function') showToast('💡 Hãy tải tệp từ kênh Telegram rồi bấm [Chọn tệp] hoặc [Dán mã]!');
   }
 }
 ```eof
 
 ---
 
-### 🛠️ 2 Bước Kích Hoạt Hoàn Chỉnh:
-
-1. **Cập nhật code:**
-   * Mở file **`js/telegram-service.js`** trên GitHub $\rightarrow$ bấm ✏️.
-   * Xóa toàn bộ nội dung cũ $\rightarrow$ dán đoạn mã vừa cập nhật ở trên vào $\rightarrow$ bấm **Commit changes**.
-2. **Kích hoạt tệp ghim:**
-   * Chờ 30 giây, mở lại CRM trên Safari iPhone.
-   * Bấm **💾 Lưu** $\rightarrow$ bấm **🚀 Gửi Lên Kênh** một lần. Hệ thống sẽ gửi tệp và tự động ghim lên đầu kênh Telegram.
-   * Sau đó bạn bấm thử **🔄 Nạp Bản Mới Nhất**: Hệ thống sẽ đọc thẳng tệp đang ghim và nạp lại toàn bộ hồ sơ khách hàng ngay lập tức!
+### Hướng dẫn kiểm tra sau khi cập nhật:
+1. Bạn mở đúng file **`js/telegram-service.js`** trên GitHub $\rightarrow$ dán đoạn mã chuẩn trên vào $\rightarrow$ **Commit changes**.
+2. Trên web CRM: Bấm **💾 Lưu** $\rightarrow$ Chạm **🚀 Gửi Lên Kênh** một lần (tệp sẽ được gửi và tự động ghim lên đầu kênh Telegram).
+3. Sau đó, bạn bấm thử **🔄 Nạp Bản Mới Nhất**: Hệ thống sẽ tự tìm thấy tệp và nạp ngay lập tức!

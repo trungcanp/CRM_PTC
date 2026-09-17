@@ -1,8 +1,7 @@
-// js/app.js - Bộ điều phối CRM độc lập (Tự bảo vệ hiển thị, chống đơ & lọc ký tự BOM)
+// js/app.js - Bộ điều phối CRM tích hợp Google Sheets Cloud Database
 
-/**
- * Hàm chống vỡ HTML và lỗi xss (Tích hợp trực tiếp, không phụ thuộc file khác)
- */
+const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwXjW0Era0nt-1IsfPhdLJu6VOIeriEayxhZJmwvg75ZrXokOUS-8nUvB3AwqyR1KV2/exec';
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -12,41 +11,17 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-/**
- * Làm sạch ký tự ẩn BOM (\uFEFF) và khoảng trắng thừa gây lỗi JSON.parse trên Safari
- */
-function cleanJsonString(str) {
-  if (!str) return '';
-  return String(str).replace(/^\uFEFF/, '').trim();
-}
-
-// Bọc an toàn khi đọc localStorage để tránh crash toàn trang nếu dữ liệu tạm bị hỏng
 let leads = [];
-try {
-  leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
-} catch (e) {
-  console.warn('Phát hiện dữ liệu lưu trữ bị lỗi, tự động đặt lại danh sách sạch:', e);
-  leads = [];
-}
-
-if ((!Array.isArray(leads) || leads.length === 0) && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
-  leads = DEFAULT_SAMPLE_LEADS;
-}
-
-let activeTab = 'active'; // 'active' | 'match' | 'archived'
+let activeTab = 'active'; // 'active' | 'archived'
 let currentFilterStatus = 'ALL';
 let searchQuery = '';
-let currentMatchingLeadId = null;
-
 let editingLeadId = null;
 let targetCompleteId = null;
 let receiptLeadId = null;
 let receiptAppIdx = null;
 let contractLeadId = null;
 let contractAppIdx = null;
-let targetAddAppLeadId = null;
 
-// Quản lý trạng thái mở rộng/thu gọn thẻ hồ sơ lưu kho
 let expandedArchiveIds = new Set();
 
 function toggleLeadDetail(id) {
@@ -58,9 +33,63 @@ function toggleLeadDetail(id) {
   render();
 }
 
-// =================================================================
-// THUẬT TOÁN NHẬN DIỆN NHÀ MẠNG VIỄN THÔNG
-// =================================================================
+function showToast(m) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.innerText = m;
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 2800);
+}
+
+/**
+ * Tải danh sách khách hàng từ Google Sheets Cloud Database
+ */
+async function loadLeadsFromCloud() {
+  if (typeof showToast === 'function') showToast('Đang đồng bộ dữ liệu từ Google Sheets...');
+  try {
+    const res = await fetch(GOOGLE_SHEET_API_URL);
+    const json = await res.json();
+    if (json.ok && Array.isArray(json.data)) {
+      leads = json.data;
+      if (typeof showToast === 'function') showToast(`✓ Đã đồng bộ ${leads.length} hồ sơ từ Cloud!`);
+    } else {
+      console.warn('Phản hồi Cloud không hợp lệ, dùng dữ liệu dự phòng');
+      leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
+    }
+  } catch (err) {
+    console.warn('Lỗi kết nối Cloud, dùng dữ liệu cục bộ:', err);
+    leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
+  }
+  if ((!Array.isArray(leads) || leads.length === 0) && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
+    leads = DEFAULT_SAMPLE_LEADS;
+  }
+  render();
+}
+
+/**
+ * Lưu dữ liệu lên Google Sheets và sao lưu dự phòng vào localStorage
+ */
+async function saveStorage() {
+  try {
+    localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
+  } catch (e) {}
+
+  render();
+
+  // Đồng bộ ngầm lên Google Sheets
+  try {
+    fetch(GOOGLE_SHEET_API_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'SYNC_ALL', leads: leads })
+    }).catch(err => console.warn('Lỗi đồng bộ ngầm:', err));
+  } catch (e) {
+    console.warn('Lỗi gọi API Sheets:', e);
+  }
+}
+
+// Nhận diện nhà mạng Viettel / Vina / Mobi
 function detectSimCarrier(phone) {
   if (!phone) return 'Khác';
   let p = phone.replace(/[^0-9]/g, '');
@@ -71,14 +100,10 @@ function detectSimCarrier(phone) {
   const viettelPrefixes = ['086', '096', '097', '098', '032', '033', '034', '035', '036', '037', '038', '039'];
   const vinaPrefixes = ['088', '091', '094', '081', '082', '083', '084', '085', '087', '055'];
   const mobiPrefixes = ['089', '090', '093', '070', '079', '077', '076', '078'];
-  const vnMobilePrefixes = ['092', '056', '058', '052'];
-  const gMobilePrefixes = ['099', '059'];
 
   if (viettelPrefixes.includes(prefix)) return 'Viettel';
   if (vinaPrefixes.includes(prefix)) return 'Vinaphone';
   if (mobiPrefixes.includes(prefix)) return 'Mobifone';
-  if (vnMobilePrefixes.includes(prefix)) return 'Vietnamobile';
-  if (gMobilePrefixes.includes(prefix)) return 'Gmobile';
   return 'Khác';
 }
 
@@ -94,7 +119,6 @@ function updateCarrierBadge(carrier) {
   if (carrier === 'Viettel') colorStyle = 'bg-red-50 text-red-700 border-red-200';
   else if (carrier === 'Vinaphone') colorStyle = 'bg-sky-50 text-sky-700 border-sky-200';
   else if (carrier === 'Mobifone') colorStyle = 'bg-blue-50 text-blue-700 border-blue-200';
-  else if (carrier === 'Vietnamobile') colorStyle = 'bg-amber-50 text-amber-700 border-amber-200';
 
   badge.className = `text-[10px] px-2 py-0.5 rounded-full font-bold transition-all border ${colorStyle}`;
   badge.innerText = `📶 ${carrier}`;
@@ -109,37 +133,16 @@ function handlePhoneInput(val) {
   }
 }
 
-function showToast(m) {
-  const t = document.getElementById('toast');
-  if (!t) return;
-  t.innerText = m;
-  t.classList.remove('hidden');
-  setTimeout(() => t.classList.add('hidden'), 2800);
-}
-
-function saveStorage() {
-  try {
-    localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
-  } catch (e) {
-    console.warn('Lỗi ghi localStorage:', e);
-  }
-  render();
-}
-
-// =================================================================
-// CHUYỂN ĐỔI 3 TAB (ĐANG XỬ LÝ | LỌC GÓI VAY | LƯU KHO)
-// =================================================================
+// Chuyển tab Đang Xử Lý | Lưu Kho
 function switchTab(tab) {
   activeTab = tab;
   const activeBtn = document.getElementById('tabActiveBtn');
-  const matchBtn = document.getElementById('tabMatchBtn');
   const archivedBtn = document.getElementById('tabArchivedBtn');
 
   const defaultBtnClass = 'py-1.5 rounded-xl text-center flex items-center justify-center gap-1 transition-all text-blue-200 hover:text-white';
   const activeBtnClass = 'py-1.5 rounded-xl text-center flex items-center justify-center gap-1 transition-all bg-white shadow-md font-extrabold';
 
   if (activeBtn) activeBtn.className = tab === 'active' ? `${activeBtnClass} text-blue-800` : defaultBtnClass;
-  if (matchBtn) matchBtn.className = tab === 'match' ? `${activeBtnClass} text-amber-900` : defaultBtnClass;
   if (archivedBtn) archivedBtn.className = tab === 'archived' ? `${activeBtnClass} text-indigo-900` : defaultBtnClass;
 
   render();
@@ -177,243 +180,18 @@ function clearSearch() {
   render();
 }
 
-// =================================================================
-// DANH SÁCH CHỌN ĐƠN VỊ TÀI CHÍNH DẠNG POPUP 1 CHẠM
-// =================================================================
-const PARTNER_ICONS = {
-  'TPBank': '🟣',
-  'FE Credit': '🟢',
-  'Home Credit': '🔴',
-  'HD Saison': '🟡',
-  'Mirae Asset (MAFC)': '🏢',
-  'MCredit': '🟣',
-  'SHB Finance': '🔷',
-  'VPBank': '🏦',
-  'Cathay Bank (CUB)': '🌳',
-  'Tnex': '⚡',
-  'Cake by VPBank': '🍰',
-  'Viettel Money': '📶',
-  'Tinvay': '💳'
-};
-
-function ensureAddAppModalExists() {
-  if (document.getElementById('addAppModal')) return;
-  const modalDiv = document.createElement('div');
-  modalDiv.id = 'addAppModal';
-  modalDiv.className = 'fixed inset-0 bg-slate-900/70 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm hidden';
-  modalDiv.innerHTML = `
-    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-4 max-h-[88vh] overflow-y-auto space-y-3 shadow-2xl animate-in fade-in">
-      <div class="flex justify-between items-center border-b pb-2">
-        <div>
-          <h3 class="font-black text-sm text-slate-900 flex items-center gap-1.5">
-            <span>🏛️</span> Chọn Đơn Vị Nộp Hồ Sơ
-          </h3>
-          <p id="addAppTargetName" class="text-[10px] text-slate-500 mt-0.5">Khách hàng: ---</p>
-        </div>
-        <button type="button" onclick="closeAddAppModal()" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-500 font-bold">✕</button>
-      </div>
-
-      <p class="text-[11px] text-slate-600 bg-blue-50/70 border border-blue-100 p-2 rounded-xl">
-        👉 <b>Chạm 1 chạm</b> vào ngân hàng hoặc công ty tài chính bạn muốn nộp:
-      </p>
-
-      <div id="addAppPartnersList" class="grid grid-cols-2 gap-2 text-xs"></div>
-
-      <div class="pt-1">
-        <button type="button" onclick="closeAddAppModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition">
-          Hủy & Đóng
-        </button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modalDiv);
-}
-
-function addAppPrompt(leadId) {
-  ensureAddAppModalExists();
-  const l = leads.find(x => x.id === leadId);
-  if (!l) return;
-  targetAddAppLeadId = leadId;
-
-  document.getElementById('addAppTargetName').innerText = `Khách hàng: ${l.name} (${l.phone})`;
-  const container = document.getElementById('addAppPartnersList');
-  const appliedLenders = (l.applications || []).map(a => a.lender);
-
-  const partners = typeof ALL_PARTNERS !== 'undefined' ? ALL_PARTNERS : [
-    'TPBank', 'FE Credit', 'Home Credit', 'HD Saison', 
-    'Mirae Asset (MAFC)', 'MCredit', 'SHB Finance', 'VPBank', 
-    'Cathay Bank (CUB)', 'Tnex', 'Cake by VPBank', 'Viettel Money', 'Tinvay'
-  ];
-
-  let html = '';
-  partners.forEach(lender => {
-    const isApplied = appliedLenders.includes(lender);
-    const icon = PARTNER_ICONS[lender] || '🏛️';
-
-    if (isApplied) {
-      html += `
-        <button type="button" disabled class="p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-400 text-left flex items-center justify-between opacity-70 cursor-not-allowed">
-          <div class="truncate font-semibold">${icon} ${lender}</div>
-          <span class="text-[9px] font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Đã có</span>
-        </button>
-      `;
-    } else {
-      html += `
-        <button type="button" onclick="selectPartnerLender('${escapeHtml(lender)}')" class="p-2.5 rounded-xl border-2 border-indigo-100 hover:border-indigo-500 bg-white hover:bg-indigo-50 text-slate-800 text-left flex items-center justify-between shadow-sm active:scale-95 transition">
-          <div class="truncate font-bold text-[11px]">${icon} ${lender}</div>
-          <span class="text-[10px] text-indigo-600 font-extrabold">+ Nộp</span>
-        </button>
-      `;
-    }
-  });
-
-  container.innerHTML = html;
-  document.getElementById('addAppModal').classList.remove('hidden');
-}
-
-function selectPartnerLender(lender) {
-  if (!targetAddAppLeadId) return;
-  const l = leads.find(x => x.id === targetAddAppLeadId);
-  if (!l) return;
-  if (!l.applications) l.applications = [];
-
-  const exists = l.applications.some(a => a.lender === lender);
-  if (exists) {
-    showToast(`Hồ sơ đã có nộp tại ${lender}`);
-    return;
-  }
-
-  l.applications.push({ lender, result: 'Đang thẩm định', rejectReason: '', contract: null });
-  showToast(`✓ Đã thêm ${lender} vào tiến độ!`);
-  closeAddAppModal();
-  saveStorage();
-  if (typeof sendTelegramNotification === 'function') sendTelegramNotification(`Thêm nộp đơn vị ${lender}`, l.name);
-}
-
-function closeAddAppModal() {
-  const modal = document.getElementById('addAppModal');
-  if (modal) modal.classList.add('hidden');
-  targetAddAppLeadId = null;
-}
-
-// =================================================================
-// MODAL LỌC VÀ ĐỀ XUẤT GÓI VAY TỰ ĐỘNG
-// =================================================================
-function openLoanMatchModal(leadId) {
-  const lead = leads.find(l => l.id === leadId);
-  if (!lead) return;
-  currentMatchingLeadId = leadId;
-
-  const age = lead.age || (typeof calcAge === 'function' ? calcAge(lead.dob) : 25);
-  const carrier = lead.simCarrier || detectSimCarrier(lead.phone);
-  const cicText = lead.cicStatus === 'SACH' ? '✅ Chuẩn nhóm 1 (Sạch)' : '⚠️ Có nợ chú ý/nợ xấu';
-
-  const nameEl = document.getElementById('matchTargetLeadName');
-  if (nameEl) nameEl.innerText = `Khách hàng: ${lead.name} (${age} tuổi) • SĐT: ${lead.phone}`;
-
-  const sumEl = document.getElementById('matchLeadSummary');
-  if (sumEl) {
-    const formattedIncome = typeof formatVND === 'function' ? formatVND(lead.income) : (lead.income || 0);
-    const formattedAmount = typeof formatVND === 'function' ? formatVND(lead.amount) : (lead.amount || 0);
-    sumEl.innerHTML = `
-      <div><b>Thu nhập:</b> <span class="text-blue-700 font-bold">${formattedIncome}</span></div>
-      <div><b>Cần vay:</b> <span class="text-emerald-700 font-bold">${formattedAmount}</span></div>
-      <div><b>Mạng SIM:</b> 📶 ${carrier}</div>
-      <div><b>CIC:</b> ${cicText}</div>
-      <div><b>Ngân hàng:</b> ${lead.bankName || 'Chưa rõ'}</div>
-      <div class="col-span-2 text-slate-600 truncate"><b>Đã/đang góp tại:</b> ${(lead.previousLenders || []).join(', ') || 'Chưa từng (Khách mới)'}</div>
-    `;
-  }
-
-  const matchedList = typeof matchLoanPackages === 'function' ? matchLoanPackages(lead) : [];
-  const badgeEl = document.getElementById('matchStatsBadge');
-  if (badgeEl) badgeEl.innerText = `${matchedList.length} gói đạt chuẩn`;
-
-  const container = document.getElementById('matchedPackagesContainer');
-  if (container) {
-    if (matchedList.length === 0) {
-      container.innerHTML = `
-        <div class="p-6 text-center bg-white rounded-2xl border border-dashed text-slate-500 text-xs space-y-1">
-          <div class="text-xl">⚠️</div>
-          <p class="font-bold text-slate-700">Chưa có gói vay hoàn toàn khớp</p>
-          <p class="text-[10px]">Hãy kiểm tra lại độ tuổi hoặc bổ sung thêm chứng từ (BHYT, Bằng lái xe, Cà vẹt).</p>
-        </div>
-      `;
-    } else {
-      let html = '';
-      matchedList.forEach(pkg => {
-        const isAlreadyApplied = lead.applications?.some(a => a.lender === pkg.lender);
-        html += `
-          <div class="bg-white border-2 border-emerald-500/50 rounded-2xl p-3 shadow-sm space-y-2 relative overflow-hidden">
-            <div class="flex justify-between items-start">
-              <div>
-                <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${pkg.badge}">🏛️ ${pkg.lender}</span>
-                <h4 class="font-bold text-xs text-slate-900 mt-1">${pkg.title}</h4>
-                <span class="text-[10px] text-indigo-700 font-semibold block">${pkg.priority}</span>
-              </div>
-              <div class="text-right">
-                <span class="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">Khả thi ${pkg.matchRate}</span>
-                <div class="text-[10px] font-bold text-slate-700 mt-1">${pkg.maxAmount}</div>
-              </div>
-            </div>
-            <p class="text-[10px] text-slate-600 leading-tight bg-slate-50 p-2 rounded-xl border border-slate-100">💡 <b>Điều kiện:</b> ${pkg.note}</p>
-            <div class="pt-1 flex justify-between items-center border-t border-slate-100">
-              <span class="text-[10px] text-slate-500">${isAlreadyApplied ? '✓ Đã có trong danh sách nộp' : 'Chưa nộp đơn vị này'}</span>
-              <button 
-                type="button" 
-                onclick="applyMatchedPackage(${lead.id}, '${pkg.lender}')" 
-                class="${isAlreadyApplied ? 'bg-slate-200 text-slate-600' : 'bg-blue-600 hover:bg-blue-700 text-white shadow active:scale-95'} font-extrabold text-[11px] px-3 py-1.5 rounded-xl transition">
-                ${isAlreadyApplied ? '✓ Đã Nộp' : '+ Nộp Gói Này'}
-              </button>
-            </div>
-          </div>
-        `;
-      });
-      container.innerHTML = html;
-    }
-  }
-
-  const modalEl = document.getElementById('loanMatchModal');
-  if (modalEl) modalEl.classList.remove('hidden');
-}
-
-function closeLoanMatchModal() {
-  const modalEl = document.getElementById('loanMatchModal');
-  if (modalEl) modalEl.classList.add('hidden');
-}
-
-function applyMatchedPackage(leadId, lender) {
-  const l = leads.find(x => x.id === leadId);
-  if (!l) return;
-  if (!l.applications) l.applications = [];
-
-  const exists = l.applications.some(a => a.lender === lender);
-  if (exists) {
-    showToast(`Hồ sơ đã có nộp tại ${lender}`);
-    return;
-  }
-
-  l.applications.push({ lender, result: 'Đang thẩm định', rejectReason: '', contract: null });
-  showToast(`Đã thêm ${lender} vào tiến độ nộp!`);
-  saveStorage();
-  openLoanMatchModal(leadId);
-}
-
-// =================================================================
-// LƯU FORM HỒ SƠ KHÁCH HÀNG
-// =================================================================
+// Lưu Form Hồ Sơ
 function saveLeadForm(e) {
   e.preventDefault();
   const dob = document.getElementById('formDob').value;
   const docs = Array.from(document.querySelectorAll('.lead-doc-chk:checked')).map(el => el.value);
   const prevLenders = Array.from(document.querySelectorAll('.lead-prev-lender-chk:checked')).map(el => el.value);
-  const apps = Array.from(document.querySelectorAll('.lead-app-chk:checked')).map(el => el.value);
   const initialLender = document.getElementById('formInitialLender')?.value || 'TPBank';
   const name = document.getElementById('formName').value;
   const phone = document.getElementById('formPhone').value;
   const autoCarrier = detectSimCarrier(phone);
 
-  const parseNum = typeof parseNumeric === 'function' ? parseNumeric : (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
+  const parseNum = (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
 
   const d = {
     name: name,
@@ -435,7 +213,6 @@ function saveLeadForm(e) {
     bankName: document.getElementById('formBankName')?.value || '',
     bankAccount: document.getElementById('formBankAccount')?.value || '',
     previousLenders: prevLenders,
-    installedApps: apps,
     ref1Rel: document.getElementById('formRef1Rel')?.value || '',
     ref1Name: document.getElementById('formRef1Name')?.value || '',
     ref1Phone: document.getElementById('formRef1Phone')?.value || '',
@@ -447,37 +224,27 @@ function saveLeadForm(e) {
     note: document.getElementById('formNote')?.value || ''
   };
 
-  let savedLeadId = null;
-
   if (editingLeadId) {
     const idx = leads.findIndex(x => x.id === editingLeadId);
     if (idx > -1) leads[idx] = { ...leads[idx], ...d };
-    savedLeadId = editingLeadId;
-    showToast('Đã cập nhật hồ sơ');
+    showToast('Đã cập nhật hồ sơ & Đồng bộ Sheets!');
     if (typeof sendTelegramNotification === 'function') sendTelegramNotification('Cập nhật hồ sơ', name);
   } else {
-    savedLeadId = Date.now();
     leads.unshift({ 
-      id: savedLeadId, 
+      id: Date.now(), 
       isCompleted: false, 
       ...d, 
       applications: [{ lender: initialLender, result: 'Đang thẩm định', rejectReason: '', contract: null }] 
     });
-    showToast('Đã thêm khách hàng mới');
+    showToast('Đã thêm KH mới & Đồng bộ Sheets!');
     if (typeof sendTelegramNotification === 'function') sendTelegramNotification('Thêm khách hàng mới', name);
   }
 
   closeLeadModal();
   saveStorage();
-
-  setTimeout(() => {
-    openLoanMatchModal(savedLeadId);
-  }, 250);
 }
 
-// =================================================================
-// RENDER DANH SÁCH THẺ KHÁCH HÀNG
-// =================================================================
+// Render giao diện danh sách thẻ
 function render() {
   const container = document.getElementById('leadsContainer');
   if (!container) return;
@@ -496,7 +263,6 @@ function render() {
   const filtered = leads.filter(l => {
     if (activeTab === 'active' && l.isCompleted) return false;
     if (activeTab === 'archived' && !l.isCompleted) return false;
-    if (activeTab === 'match' && l.isCompleted) return false;
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -531,9 +297,7 @@ function render() {
     const actualCarrier = lead.simCarrier || detectSimCarrier(lead.phone);
     const carrierColor = actualCarrier === 'Vinaphone' ? 'bg-sky-50 text-sky-700 border-sky-200' :
                          actualCarrier === 'Mobifone' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                         actualCarrier === 'Vietnamobile' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                         actualCarrier === 'Viettel' ? 'bg-red-50 text-red-700 border-red-200' :
-                         'bg-slate-100 text-slate-700 border-slate-200';
+                         'bg-red-50 text-red-700 border-red-200';
 
     if (activeTab === 'archived') {
       const isExpanded = expandedArchiveIds.has(lead.id);
@@ -547,19 +311,6 @@ function render() {
       });
       if (!docsHtml) docsHtml = '<span class="text-slate-400 italic text-[10px]"> Chưa có</span>';
 
-      let appsHtml = '';
-      (lead.applications || []).forEach((app, aIdx) => {
-        appsHtml += `
-          <div class="bg-white rounded-lg p-2 border border-slate-200 text-xs flex justify-between items-center">
-            <span class="font-bold text-slate-800 truncate">🏛️ ${app.lender}</span>
-            <div class="flex items-center gap-1.5">
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded ${app.result === 'Duyệt' ? 'bg-emerald-100 text-emerald-800' : app.result === 'Từ chối' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}">${app.result}</span>
-              ${app.contract ? `<button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="text-[10px] bg-teal-600 text-white font-bold px-2 py-0.5 rounded active:scale-95 transition">🧾 Phiếu</button>` : ''}
-            </div>
-          </div>
-        `;
-      });
-
       html += `
         <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm space-y-2 transition-all">
           <div class="flex justify-between items-center">
@@ -572,17 +323,10 @@ function render() {
               <div class="text-xs text-slate-500 font-mono mt-0.5">${lead.phone} • CCCD: ${lead.cccd || '---'}</div>
             </div>
             <div class="flex items-center gap-1">
-              <button 
-                type="button" 
-                onclick="toggleLeadDetail(${lead.id})" 
-                class="text-[10px] ${isExpanded ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'} hover:bg-slate-200 font-extrabold px-2.5 py-1 rounded-full transition active:scale-95 flex items-center gap-0.5">
-                <span>${isExpanded ? '▲ Thu gọn' : '▼ Chi tiết'}</span>
+              <button type="button" onclick="toggleLeadDetail(${lead.id})" class="text-[10px] ${isExpanded ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'} font-extrabold px-2.5 py-1 rounded-full transition active:scale-95">
+                ${isExpanded ? '▲ Thu gọn' : '▼ Chi tiết'}
               </button>
-              <button 
-                type="button" 
-                onclick="toggleCompleteModal(${lead.id})" 
-                title="Mở lại hồ sơ đang xử lý"
-                class="bg-slate-800 hover:bg-slate-900 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
+              <button type="button" onclick="toggleCompleteModal(${lead.id})" class="bg-slate-800 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
                 ↺ Mở lại
               </button>
             </div>
@@ -593,38 +337,25 @@ function render() {
               <span class="font-bold ${isDisbursed ? 'text-emerald-700' : 'text-indigo-950'}">
                 ${isDisbursed ? '🎉' : '📁'} ${escapeHtml(lead.completeReason || 'Hoàn tất')}
               </span>
-              ${approvedApp?.contract ? `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}: ${fmtVND(approvedApp.contract.approvedAmount)})</span>` : ''}
             </div>
             <span class="text-[10px] text-slate-500 shrink-0 ml-1 font-medium">${lead.completedDate || ''}</span>
           </div>
 
           ${isExpanded ? `
             <div class="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-150">
-              <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
+              <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1 border border-slate-100">
                 <div class="flex justify-between"><span>Khoản vay:</span> <span class="font-bold text-blue-700">${fmtVND(lead.amount)}</span></div>
                 <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
                 <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${fmtVND(lead.income)}</div>
-                ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Nơi làm:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
                 <div class="text-[10px] text-slate-500">🏠 <b>Thường trú:</b> ${escapeHtml(lead.permAddress) || '---'}</div>
-                <div class="text-[10px] text-slate-500">👥 <b>Tham chiếu:</b> ${escapeHtml(lead.ref1Name) || '---'} (${lead.ref1Phone || '---'})</div>
                 <div><b>Chứng từ:</b> ${docsHtml}</div>
-                ${lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : ''}
               </div>
-
-              <div class="bg-slate-100/60 rounded-xl p-2 space-y-1.5 border border-slate-200">
-                <span class="font-bold text-xs text-slate-800 block">🏛️ Tiến độ hồ sơ đã lưu:</span>
-                <div class="space-y-1">${appsHtml}</div>
-              </div>
-
               <div class="flex justify-between items-center pt-1 text-xs">
                 <div class="flex gap-1.5">
                   <a href="tel:${lead.phone}" class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">📞 Gọi</a>
                   <a href="https://zalo.me/${lead.phone}" target="_blank" class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded font-bold">💬 Zalo</a>
                 </div>
-                <div class="flex gap-1">
-                  <button type="button" onclick="openEditModal(${lead.id})" class="text-slate-700 px-2 py-1 font-semibold hover:bg-slate-100 rounded">Sửa</button>
-                  <button type="button" onclick="deleteLead(${lead.id})" class="text-rose-600 px-2 py-1 font-semibold hover:bg-rose-50 rounded">Xóa</button>
-                </div>
+                <button type="button" onclick="deleteLead(${lead.id})" class="text-rose-600 px-2 py-1 font-semibold hover:bg-rose-50 rounded">Xóa</button>
               </div>
             </div>
           ` : ''}
@@ -665,7 +396,7 @@ function render() {
               <div>Duyệt: <b class="text-emerald-800">${fmtVND(app.contract.approvedAmount)}</b></div>
               <div class="col-span-2 flex justify-between items-center pt-1">
                 <span>Kỳ: ${app.contract.tenor} tháng • Góp: ${fmtVND(app.contract.monthlyPay)}/tháng</span>
-                <button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="bg-teal-600 text-white px-2.5 py-1 rounded-lg font-bold shadow hover:bg-teal-700 active:scale-95 transition">🧾 Xuất Phiếu</button>
+                <button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="bg-teal-600 text-white px-2.5 py-1 rounded-lg font-bold shadow">🧾 Xuất Phiếu</button>
               </div>
             </div>
           `;
@@ -674,7 +405,7 @@ function render() {
           <div class="bg-emerald-50 border border-emerald-300 p-2 rounded text-[10px] space-y-1 mt-1">
             <div class="flex justify-between items-center font-bold text-emerald-900">
               <span>🎉 Đã duyệt khoản vay</span>
-              <button type="button" onclick="openContractModal(${lead.id}, ${aIdx})" class="bg-emerald-700 text-white px-2 py-0.5 rounded shadow hover:bg-emerald-800 active:scale-95 transition">${app.contract ? 'Sửa HĐ' : '+ Nhập HĐ'}</button>
+              <button type="button" onclick="openContractModal(${lead.id}, ${aIdx})" class="bg-emerald-700 text-white px-2 py-0.5 rounded shadow">${app.contract ? 'Sửa HĐ' : '+ Nhập HĐ'}</button>
             </div>
             ${contractDetails}
           </div>
@@ -700,26 +431,8 @@ function render() {
       `;
     });
 
-    let matchSummaryHtml = '';
-    if (activeTab === 'match') {
-      const matchedPkgs = typeof matchLoanPackages === 'function' ? matchLoanPackages(lead) : [];
-      let pkgPills = '';
-      matchedPkgs.slice(0, 3).forEach(p => {
-        pkgPills += `<span class="inline-block bg-amber-50 text-amber-900 border border-amber-200 rounded px-1.5 py-0.5 text-[10px] font-bold">⭐ ${p.lender} (${p.matchRate})</span>`;
-      });
-      matchSummaryHtml = `
-        <div class="bg-amber-50/70 border border-amber-300 rounded-xl p-2 space-y-1">
-          <div class="flex justify-between items-center text-[10px] font-black text-amber-950">
-            <span>🎯 ${matchedPkgs.length} GÓI VAY ĐẠT CHUẨN:</span>
-            <button type="button" onclick="openLoanMatchModal(${lead.id})" class="text-blue-700 underline font-extrabold">Xem tất cả ➔</button>
-          </div>
-          <div class="flex flex-wrap gap-1">${pkgPills || '<span class="text-slate-500 text-[10px]">Chưa tìm thấy gói hoàn toàn khớp</span>'}</div>
-        </div>
-      `;
-    }
-
     html += `
-      <div class="bg-white rounded-2xl p-3.5 border ${activeTab === 'match' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-slate-200'} shadow-sm space-y-3">
+      <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm space-y-3">
         <div class="flex justify-between items-start">
           <div>
             <div class="flex items-center gap-1.5 flex-wrap">
@@ -729,23 +442,15 @@ function render() {
             </div>
             <div class="text-xs text-slate-500 font-mono mt-0.5">${lead.phone} • CCCD: ${lead.cccd || 'Chưa có'}</div>
           </div>
-          <div class="flex gap-1">
-            <button type="button" onclick="openLoanMatchModal(${lead.id})" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] px-2.5 py-1 rounded-full font-extrabold shadow-sm active:scale-95 transition">
-              🎯 Lọc Gói
-            </button>
-            <button type="button" onclick="toggleCompleteModal(${lead.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-[10px] px-2 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
-              ✓ Xong
-            </button>
-          </div>
+          <button type="button" onclick="toggleCompleteModal(${lead.id})" class="bg-slate-800 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
+            ✓ Xong
+          </button>
         </div>
-
-        ${matchSummaryHtml}
 
         <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
           <div class="flex justify-between"><span>Cần vay:</span> <span class="font-bold text-blue-700">${fmtVND(lead.amount)}</span></div>
           <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
           <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${fmtVND(lead.income)}</div>
-          ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Đ/c làm việc:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
           <div class="text-[10px] text-slate-600 bg-emerald-50/50 p-1.5 rounded-lg border border-emerald-100"><b>🔍 Đang/Từng vay ở Cty:</b> ${prevLendersHtml}</div>
           <div><b>Chứng từ:</b> ${docsHtml}</div>
         </div>
@@ -753,10 +458,7 @@ function render() {
         <div class="bg-indigo-50/50 rounded-xl p-2.5 border border-indigo-100 space-y-2">
           <div class="flex justify-between items-center">
             <span class="font-bold text-xs text-indigo-950">🏛️ Tiến độ nộp đa công ty:</span>
-            <button type="button" onclick="addAppPrompt(${lead.id})" class="text-[11px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-2.5 py-1 rounded-lg shadow active:scale-95 transition flex items-center gap-1">
-              <span>+</span>
-              <span>Nộp Cty</span>
-            </button>
+            <button type="button" onclick="addAppPrompt(${lead.id})" class="text-[11px] bg-indigo-600 text-white font-bold px-2.5 py-1 rounded-lg shadow">+ Nộp Cty</button>
           </div>
           <div class="space-y-1.5">${appsHtml}</div>
         </div>
@@ -777,9 +479,7 @@ function render() {
   container.innerHTML = html;
 }
 
-// =================================================================
-// CÁC HÀM KHỞI ĐỘNG VÀ XỬ LÝ FORM
-// =================================================================
+// Các hàm tiện ích form và modal
 function renderDocCheckboxes(selectedDocs = []) {
   const c = document.getElementById('formDocsContainer');
   if (!c) return;
@@ -845,12 +545,6 @@ function openEditModal(id) {
   updateCarrierBadge(l.simCarrier || detectSimCarrier(l.phone));
   renderDocCheckboxes(l.documents || []);
   renderPrevLendersCheckboxes(l.previousLenders || []);
-  
-  const userApps = l.installedApps || [];
-  document.querySelectorAll('.lead-app-chk').forEach(el => {
-    el.checked = userApps.includes(el.value);
-  });
-
   document.getElementById('leadModal').classList.remove('hidden');
 }
 
@@ -862,9 +556,20 @@ function closeLeadModal() {
 function deleteLead(id) {
   if (confirm('Xóa hồ sơ này?')) {
     leads = leads.filter(x => x.id !== id);
-    showToast('Đã xóa hồ sơ');
+    showToast('Đã xóa hồ sơ & Đồng bộ Sheets!');
     saveStorage();
   }
+}
+
+function addAppPrompt(leadId) {
+  const lender = prompt("Chọn Công ty Tài chính / Ngân hàng:\n" + (typeof ALL_PARTNERS !== 'undefined' ? ALL_PARTNERS.join(', ') : ''), "TPBank");
+  if (!lender) return;
+  const l = leads.find(x => x.id === leadId);
+  if (!l) return;
+  if (!l.applications) l.applications = [];
+  l.applications.push({ lender, result: 'Đang thẩm định', rejectReason: '', contract: null });
+  showToast(`Đã thêm ${lender}`);
+  saveStorage();
 }
 
 function removeApp(leadId, aIdx) {
@@ -900,7 +605,6 @@ function openContractModal(leadId, aIdx) {
   const l = leads.find(x => x.id === leadId);
   const app = l.applications[aIdx];
   const c = app.contract;
-  const parseNum = typeof parseNumeric === 'function' ? parseNumeric : (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
 
   document.getElementById('contractCode').value = c ? c.code : ('HĐ-' + Date.now().toString().slice(-5));
   document.getElementById('contractAmount').value = c ? c.approvedAmount : (l.amount || 30000000);
@@ -919,7 +623,7 @@ function saveContractForm(e) {
   e.preventDefault();
   const l = leads.find(x => x.id === contractLeadId);
   if (!l) return;
-  const parseNum = typeof parseNumeric === 'function' ? parseNumeric : (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
+  const parseNum = (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
   l.applications[contractAppIdx].contract = {
     code: document.getElementById('contractCode').value,
     approvedAmount: parseNum(document.getElementById('contractAmount').value),
@@ -945,12 +649,7 @@ const LENDER_THEMES = {
   'Mirae Asset (MAFC)': { bg: 'bg-blue-900', emoji: '🏢', guide: 'Chuyển khoản qua STK định danh Mirae Asset hoặc qua My Finance / MoMo.' },
   'MCredit': { bg: 'bg-purple-700', emoji: '🟣', guide: 'Thanh toán qua app MCredit, Viettel Money hoặc các điểm thu hộ Viettel Post.' },
   'SHB Finance': { bg: 'bg-cyan-700', emoji: '🔷', guide: 'Đóng qua SHB Finance App, VNPay hoặc chuyển khoản trực tiếp STK ngân hàng.' },
-  'VPBank': { bg: 'bg-green-700', emoji: '🏦', guide: 'Thanh toán qua VPBank NEO, MoMo, hoặc nộp tiền mặt tại chi nhánh VPBank.' },
-  'Cathay Bank (CUB)': { bg: 'bg-emerald-800', emoji: '🌳', guide: 'Chuyển khoản theo STK hợp đồng định danh cấp bởi Cathay Bank (CUB).' },
-  'Tnex': { bg: 'bg-sky-600', emoji: '⚡', guide: 'Thanh toán trực tiếp tự động qua app ngân hàng số TNEX.' },
-  'Cake by VPBank': { bg: 'bg-pink-600', emoji: '🍰', guide: 'Thanh toán trực tiếp trên app Cake by VPBank.' },
-  'Viettel Money': { bg: 'bg-rose-700', emoji: '📶', guide: 'Thanh toán qua app Viettel Money (mục Vay tiêu dùng).' },
-  'Tinvay': { bg: 'bg-indigo-700', emoji: '💳', guide: 'Thanh toán qua app Tinvay hoặc các cổng thanh toán hỗ trợ.' }
+  'VPBank': { bg: 'bg-green-700', emoji: '🏦', guide: 'Thanh toán qua VPBank NEO, MoMo, hoặc nộp tiền mặt tại chi nhánh VPBank.' }
 };
 
 function openReceipt(leadId, aIdx) {
@@ -1003,7 +702,7 @@ function toggleCompleteModal(leadId) {
   if (!l) return;
   if (l.isCompleted) {
     l.isCompleted = false;
-    showToast('Đã mở lại hồ sơ đang xử lý');
+    showToast('Đã mở lại hồ sơ');
     saveStorage();
   } else {
     targetCompleteId = leadId;
@@ -1020,36 +719,16 @@ function saveCompleteLead() {
   const l = leads.find(x => x.id === targetCompleteId);
   if (!l) return;
 
-  const reason = document.getElementById('completeReason').value;
   l.isCompleted = true;
-  l.completeReason = reason;
+  l.completeReason = document.getElementById('completeReason').value;
   const now = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   l.completedDate = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
-  showToast('Đã lưu kho CRM');
+  showToast('Đã lưu kho CRM & Sheets');
   if (typeof sendTelegramNotification === 'function') sendTelegramNotification(`Lưu kho [${l.completeReason}]`, l.name);
 
   closeCompleteModal();
   saveStorage();
-
-  if (reason === 'Đã giải ngân thành công') {
-    if (!l.applications || l.applications.length === 0) {
-      l.applications = [{ lender: 'TPBank', result: 'Duyệt', rejectReason: '', contract: null }];
-    }
-
-    let appIdx = l.applications.findIndex(a => a.result === 'Duyệt');
-    if (appIdx === -1) {
-      appIdx = 0;
-      l.applications[0].result = 'Duyệt';
-    }
-
-    const app = l.applications[appIdx];
-    if (app.contract && app.contract.code) {
-      setTimeout(() => { openReceipt(l.id, appIdx); }, 300);
-    } else {
-      setTimeout(() => { openContractModal(l.id, appIdx); }, 300);
-    }
-  }
 }
 
 function openBackupModal() {
@@ -1064,14 +743,8 @@ function openBackupModal() {
     const chatInput = document.getElementById('cfgTgChatId');
     if (tokInput) tokInput.value = cfg.token || '';
     if (chatInput) chatInput.value = cfg.chatId || '';
-    
-    if (typeof updateTgStatusBadge === 'function') {
-      updateTgStatusBadge();
-    }
-  } catch (e) {
-    console.warn('Lỗi chuẩn bị modal backup:', e);
-  }
-  
+    if (typeof updateTgStatusBadge === 'function') updateTgStatusBadge();
+  } catch (e) {}
   modal.classList.remove('hidden');
 }
 
@@ -1093,68 +766,43 @@ function copyBackupText() {
   navigator.clipboard.writeText(JSON.stringify(leads)).then(() => showToast('Đã copy mã! Dán vào Zalo.')).catch(() => showToast('Lỗi copy'));
 }
 
-/**
- * Nạp trực tiếp mã JSON từ bộ nhớ tạm iPhone (Không cần file)
- */
 async function importJsonFromClipboard() {
   try {
     let text = '';
     if (navigator.clipboard && navigator.clipboard.readText) {
-      try {
-        text = await navigator.clipboard.readText();
-      } catch (clipErr) {
-        console.warn('Clipboard read error:', clipErr);
-      }
+      try { text = await navigator.clipboard.readText(); } catch (e) {}
     }
-    if (!text) {
-      text = prompt('Dán chuỗi mã JSON khách hàng vào ô bên dưới:');
-    }
-    if (!text || !text.trim()) {
-      showToast('Chưa có nội dung sao chép!');
-      return;
-    }
-
-    const cleanRaw = cleanJsonString(text);
-    const parsed = JSON.parse(cleanRaw);
+    if (!text) text = prompt('Dán chuỗi JSON vào đây:');
+    if (!text) return;
+    const parsed = JSON.parse(text.replace(/^\uFEFF/, '').trim());
     if (Array.isArray(parsed) && parsed.length > 0) {
       leads = parsed;
       saveStorage();
       closeBackupModal();
-      alert(`✅ NẠP THÀNH CÔNG!\n\nĐã nhập đầy đủ ${leads.length} khách hàng vào hệ thống.`);
       showToast(`✓ Đã nạp thành công ${leads.length} hồ sơ!`);
     } else {
-      alert('❌ Dữ liệu sao chép không phải là danh sách khách hàng JSON hợp lệ!');
+      alert('❌ Dữ liệu không hợp lệ');
     }
   } catch (err) {
-    console.error('Lỗi dán JSON:', err);
-    alert('❌ Không thể phân tích mã JSON. Hãy kiểm tra lại bạn đã sao chép trọn vẹn tệp hay chưa nhé!');
+    alert('❌ Lỗi đọc JSON');
   }
 }
 
-/**
- * Khôi phục từ tệp có sẵn trên máy: tự lọc sạch ký tự BOM và nhận cả đuôi .json lẫn .txt
- */
 function restoreFromFile(e) {
   const f = e.target.files && e.target.files[0];
   if (!f) return;
   const r = new FileReader();
   r.onload = (evt) => {
     try {
-      const raw = cleanJsonString(evt.target.result);
-      const p = JSON.parse(raw);
-      if (Array.isArray(p)) { 
-        leads = p; 
+      const parsed = JSON.parse(evt.target.result.replace(/^\uFEFF/, '').trim());
+      if (Array.isArray(parsed)) {
+        leads = parsed;
         saveStorage();
-        closeBackupModal(); 
-        alert(`✅ NẠP THÀNH CÔNG!\n\nĐã khôi phục ${leads.length} hồ sơ từ tệp của bạn.`);
-        showToast('Khôi phục từ tệp thành công!'); 
-      } else {
-        alert('❌ Tệp không đúng định dạng danh sách mảng JSON [...]');
+        closeBackupModal();
+        showToast(`✓ Đã nạp ${leads.length} hồ sơ từ tệp!`);
       }
-    } catch (err) { 
-      console.error('Lỗi đọc tệp JSON:', err);
-      alert('❌ Tệp bạn chọn không chứa mã JSON hợp lệ hoặc bị lỗi cú pháp!');
-      showToast('Tệp không hợp lệ'); 
+    } catch (err) {
+      alert('❌ Tệp không hợp lệ');
     } finally {
       e.target.value = '';
     }
@@ -1162,5 +810,6 @@ function restoreFromFile(e) {
   r.readAsText(f, 'UTF-8');
 }
 
-// Khởi chạy render ngay khi nạp script
-render();
+// Khởi chạy: Tự động nạp dữ liệu từ Google Sheets ngay khi mở trang
+loadLeadsFromCloud();
+```eof

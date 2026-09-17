@@ -50,9 +50,9 @@ function checkTgInputStatus() {
 }
 
 /**
- * Lưu cấu hình bảo mật vào bộ nhớ thiết bị
+ * Lưu cấu hình và kiểm tra kết nối trực tiếp với Telegram API
  */
-function saveCustomTgConfig() {
+async function saveCustomTgConfig() {
   const tokenInput = document.getElementById('cfgTgToken');
   const chatIdInput = document.getElementById('cfgTgChatId');
   const btn = document.getElementById('btnSaveTgConfig');
@@ -62,29 +62,76 @@ function saveCustomTgConfig() {
   const chatId = chatIdInput ? chatIdInput.value.trim() : '';
 
   if (!token || !chatId) {
-    alert('⚠️ Vui lòng nhập đầy đủ cả Bot Token và Chat ID trước khi bấm Lưu!');
+    if (btnText) btnText.innerText = '⚠️ Vui lòng nhập đủ Token & Chat ID';
+    if (btn) btn.className = 'w-full bg-amber-600 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5';
+    setTimeout(() => {
+      if (btnText) btnText.innerText = 'Lưu Cấu Hình Kết Nối';
+      if (btn) btn.className = 'w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer';
+    }, 2500);
     return;
   }
 
+  // 1. Lưu ngay vào bộ nhớ máy
   try {
     localStorage.setItem('crm_tg_token', token);
     localStorage.setItem('crm_tg_chatid', chatId);
-
-    if (btn) {
-      btn.className = 'w-full bg-emerald-600 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5';
-      if (btnText) btnText.innerText = '✓ ĐÃ LƯU THÀNH CÔNG!';
-      setTimeout(() => {
-        btn.className = 'w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer';
-        if (btnText) btnText.innerText = 'Lưu Cấu Hình Kết Nối';
-      }, 2500);
-    }
-
-    updateTgStatusBadge();
-    alert('✅ ĐÃ LƯU THÀNH CÔNG!\n\nBot Token và Chat ID đã được ghi nhớ vào iPhone của bạn.');
-    if (typeof showToast === 'function') showToast('✓ Đã lưu cấu hình Telegram!');
   } catch (err) {
-    console.error('Lỗi ghi nhớ Safari:', err);
-    alert('⚠️ Trình duyệt chặn lưu dữ liệu. Hãy chuyển sang Tab thường của Safari để lưu trữ vĩnh viễn nhé!');
+    console.warn('Lỗi ghi nhớ localStorage:', err);
+  }
+
+  // 2. Hiển thị tiến trình đang kiểm tra kết nối thực tế
+  if (btnText) btnText.innerText = '⏳ Đang kiểm tra kết nối Bot...';
+  if (btn) btn.className = 'w-full bg-indigo-600 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5';
+
+  // 3. Gọi trực tiếp API Telegram để xác minh tính chính xác của Token
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+    const data = await res.json();
+
+    if (data.ok && data.result) {
+      const botUser = data.result.username ? `@${data.result.username}` : 'Bot';
+      if (btnText) btnText.innerText = `✓ ĐÃ KẾT NỐI (${botUser})!`;
+      if (btn) btn.className = 'w-full bg-emerald-600 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5';
+      
+      const badge = document.getElementById('tgConfigStatusBadge');
+      if (badge) {
+        badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
+        badge.innerText = `✓ Đã kết nối (${botUser})`;
+      }
+      if (typeof showToast === 'function') showToast(`✓ Đã lưu & kết nối thành công ${botUser}!`);
+
+      setTimeout(() => {
+        if (btnText) btnText.innerText = 'Lưu Cấu Hình Kết Nối';
+        if (btn) btn.className = 'w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer';
+      }, 3000);
+    } else {
+      const errDesc = data.description || 'Token không hợp lệ';
+      if (btnText) btnText.innerText = `❌ Lỗi: ${errDesc}`;
+      if (btn) btn.className = 'w-full bg-rose-600 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5';
+      
+      const badge = document.getElementById('tgConfigStatusBadge');
+      if (badge) {
+        badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200';
+        badge.innerText = '❌ Sai Token';
+      }
+      if (typeof showToast === 'function') showToast(`❌ Telegram từ chối: ${errDesc}`);
+
+      setTimeout(() => {
+        if (btnText) btnText.innerText = 'Lưu Cấu Hình Kết Nối';
+        if (btn) btn.className = 'w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer';
+      }, 3500);
+    }
+  } catch (netErr) {
+    // Nếu mạng chập chờn, máy vẫn bảo toàn dữ liệu cấu hình đã lưu
+    if (btnText) btnText.innerText = '✓ ĐÃ LƯU (Chưa kiểm tra mạng)';
+    if (btn) btn.className = 'w-full bg-emerald-600 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5';
+    updateTgStatusBadge();
+    if (typeof showToast === 'function') showToast('✓ Đã lưu cấu hình vào máy!');
+
+    setTimeout(() => {
+      if (btnText) btnText.innerText = 'Lưu Cấu Hình Kết Nối';
+      if (btn) btn.className = 'w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer';
+    }, 2500);
   }
 }
 
@@ -129,14 +176,53 @@ async function sendTelegramNotification(actionText, leadName) {
 }
 
 /**
- * Sao lưu hồ sơ lên Telegram DƯỚI DẠNG TỆP (sendDocument)
- * Không bao giờ bị lỗi giới hạn độ dài ký tự (Message is too long)
+ * Nén chuỗi Base64
+ */
+async function compressText(text) {
+  if (typeof CompressionStream === 'undefined') return text;
+  try {
+    const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
+    const response = new Response(stream);
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  } catch (e) {
+    return text;
+  }
+}
+
+/**
+ * Giải nén chuỗi Base64
+ */
+async function decompressText(base64) {
+  if (typeof DecompressionStream === 'undefined') return base64;
+  try {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    const response = new Response(stream);
+    return await response.text();
+  } catch (e) {
+    return base64;
+  }
+}
+
+/**
+ * Sao lưu hồ sơ lên Telegram DƯỚI DẠNG TỆP FILE (sendDocument)
+ * Không bao giờ bị lỗi quá tải ký tự (Message is too long)
  */
 async function backupToTelegram() {
   const { token, chatId } = getTelegramConfig();
 
   if (!token || !chatId) {
-    alert('⚠️ Vui lòng nhập Bot Token và Chat ID rồi bấm [Lưu Cấu Hình Kết Nối] trước!');
+    if (typeof showToast === 'function') showToast('⚠️ Vui lòng nhập Bot Token và Chat ID trước!');
     return;
   }
 
@@ -162,32 +248,73 @@ async function backupToTelegram() {
     const data = await res.json();
 
     if (data.ok) {
-      alert(`✅ SAO LƯU THÀNH CÔNG!\n\nTệp chứa ${currentLeads.length} hồ sơ đã được gửi an toàn vào kênh Telegram của bạn.`);
-      if (typeof showToast === 'function') showToast(`✓ Đã gửi tệp ${currentLeads.length} hồ sơ lên Telegram!`);
+      if (typeof showToast === 'function') showToast(`✓ Đã gửi tệp ${currentLeads.length} hồ sơ lên Telegram thành công!`);
     } else {
-      alert('❌ Telegram từ chối: ' + (data.description || 'Sai Bot Token hoặc Chat ID'));
+      if (typeof showToast === 'function') showToast(`❌ Telegram từ chối: ${data.description || 'Lỗi gửi tệp'}`);
     }
   } catch (err) {
     console.error('Lỗi gửi tệp:', err);
-    alert('❌ Lỗi kết nối: Không thể gửi tệp lên Telegram!');
+    if (typeof showToast === 'function') showToast('❌ Lỗi kết nối mạng: Không thể gửi tệp lên Telegram!');
   }
 }
 
 /**
- * Hướng dẫn khôi phục từ Telegram
+ * Khôi phục hồ sơ từ Telegram
  */
-function restoreFromTelegram() {
-  alert('💡 HƯỚNG DẪN NẠP LẠI TỪ TELEGRAM:\n\n1. Mở kênh Telegram, bấm vào tệp [CRM_PTC_Backup_....json] vừa lưu.\n2. Chọn [Chia sẻ / Copy] hoặc [Lưu vào Tệp].\n3. Quay lại đây: Bấm nút [📋 Dán Trực Tiếp Từ Bộ Nhớ Tạm] hoặc [Chọn tệp] là toàn bộ khách hàng sẽ được nạp lại tức thì!');
+async function restoreFromTelegram() {
+  const { token, chatId } = getTelegramConfig();
+
+  if (!token || !chatId) {
+    if (typeof showToast === 'function') showToast('⚠️ Vui lòng lưu cấu hình Bot Token và Chat ID trước!');
+    return;
+  }
+
+  if (typeof showToast === 'function') showToast('Đang tìm bản sao lưu từ Telegram...');
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?allowed_updates=["channel_post","message"]`);
+    const d = await res.json();
+    if (!d.ok || !d.result || d.result.length === 0) {
+      if (typeof showToast === 'function') showToast('Không tìm thấy tin nhắn trên Telegram');
+      return;
+    }
+
+    let targetFileId = null;
+    for (let i = d.result.length - 1; i >= 0; i--) {
+      const item = d.result[i];
+      const msg = item.message || item.channel_post;
+      if (msg && msg.document && msg.document.file_name && msg.document.file_name.endsWith('.json')) {
+        targetFileId = msg.document.file_id;
+        break;
+      }
+    }
+
+    if (!targetFileId) {
+      if (typeof showToast === 'function') showToast('Chưa có tệp backup .json nào trên kênh!');
+      return;
+    }
+
+    const fileInfoRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${targetFileId}`);
+    const fileInfo = await fileInfoRes.json();
+    if (!fileInfo.ok) {
+      if (typeof showToast === 'function') showToast('Không lấy được tệp từ Telegram');
+      return;
+    }
+
+    const downloadUrl = `https://api.telegram.org/file/bot${token}/${fileInfo.result.file_path}`;
+    const contentRes = await fetch(downloadUrl);
+    const parsedData = await contentRes.json();
+
+    if (Array.isArray(parsedData)) {
+      leads = parsedData;
+      if (typeof saveStorage === 'function') saveStorage();
+      if (typeof closeBackupModal === 'function') closeBackupModal();
+      if (typeof showToast === 'function') showToast(`✓ Đã nạp thành công ${leads.length} hồ sơ từ Telegram!`);
+    } else {
+      if (typeof showToast === 'function') showToast('Định dạng tệp không hợp lệ');
+    }
+  } catch (err) {
+    console.error('Lỗi khôi phục:', err);
+    if (typeof showToast === 'function') showToast('Chưa nạp được tệp từ link trực tiếp. Hãy tải tệp từ kênh rồi chọn nạp tệp!');
+  }
 }
-```eof
-
-### 🔍 Vì sao vừa rồi lại bị báo *"message is too long"*?
-
-* **Bạn nhớ hoàn toàn chuẩn xác!** Khi gửi bằng **tệp file đính kèm (`sendDocument`)**, Telegram không bao giờ giới hạn dung lượng (dù bạn có 12 khách hay 1.000 khách, dung lượng vài MB Telegram vẫn nhận mượt mà).
-* Ở lần cập nhật trước, sau khi gửi file, code lại cố gắng gửi thêm 1 tin nhắn chữ nội bộ dài tới 13.000 ký tự để làm cơ chế ghim. Telegram có quy tắc cứng: **bất kỳ tin nhắn chữ nào vượt quá 4.096 ký tự đều bị từ chối với lỗi *message is too long***.
-
-### 🛠️ Cách khắc phục trong bản cập nhật trên:
-1. **Loại bỏ hoàn toàn lệnh gửi tin nhắn chữ quá tải**: Trở lại chuẩn gửi **tệp file `.json` đính kèm 100%**.
-2. **Không bao giờ bị lỗi giới hạn độ dài nữa**: Bạn bấm **🚀 Gửi Lên Kênh** là tệp file sẽ bay thẳng vào kênh Telegram ngay tức khắc.
-
-Bạn mở file **`js/telegram-service.js`** trên GitHub, dán đoạn mã mới ở trên vào và bấm **Commit changes**. Sau đó vào web bấm lại nút **🚀 Gửi Lên Kênh** là sẽ thành công ngay!

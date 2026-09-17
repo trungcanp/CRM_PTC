@@ -1,4 +1,4 @@
-// js/app.js - Bộ điều phối CRM: Tích hợp chọn Đơn vị nộp dạng danh sách 1 chạm (không gõ thủ công)
+// js/app.js - Bộ điều phối CRM: Tối ưu thu gọn danh sách hồ sơ Lưu Kho (Bấm để xem chi tiết)
 let leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
 if (leads.length === 0 && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
   leads = DEFAULT_SAMPLE_LEADS;
@@ -16,6 +16,18 @@ let receiptAppIdx = null;
 let contractLeadId = null;
 let contractAppIdx = null;
 let targetAddAppLeadId = null;
+
+// Quản lý trạng thái mở rộng/thu gọn thẻ hồ sơ lưu kho
+let expandedArchiveIds = new Set();
+
+function toggleLeadDetail(id) {
+  if (expandedArchiveIds.has(id)) {
+    expandedArchiveIds.delete(id);
+  } else {
+    expandedArchiveIds.add(id);
+  }
+  render();
+}
 
 // =================================================================
 // THUẬT TOÁN NHẬN DIỆN NHÀ MẠNG VIỄN THÔNG CHUẨN XÁC 100%
@@ -133,7 +145,7 @@ function clearSearch() {
 }
 
 // =================================================================
-// DANH SÁCH CHỌN ĐƠN VỊ TÀI CHÍNH DẠNG POPUP 1 CHẠM (THAY THẾ PROMPT)
+// DANH SÁCH CHỌN ĐƠN VỊ TÀI CHÍNH DẠNG POPUP 1 CHẠM
 // =================================================================
 const PARTNER_ICONS = {
   'TPBank': '🟣',
@@ -254,7 +266,7 @@ function closeAddAppModal() {
 }
 
 // =================================================================
-// MODAL LỌC VÀ ĐỀ XUẤT GÓI VAY TỰ ĐỘNG THEO 6 ĐIỀU KIỆN
+// MODAL LỌC VÀ ĐỀ XUẤT GÓI VAY TỰ ĐỘNG
 // =================================================================
 function openLoanMatchModal(leadId) {
   const lead = leads.find(l => l.id === leadId);
@@ -355,7 +367,7 @@ function applyMatchedPackage(leadId, lender) {
 }
 
 // =================================================================
-// BƯỚC 1: LƯU HỒ SƠ -> BƯỚC 2: TỰ ĐỘNG CHUYỂN SANG BƯỚC LỌC GÓI VAY
+// LƯU FORM HỒ SƠ KHÁCH HÀNG
 // =================================================================
 function saveLeadForm(e) {
   e.preventDefault();
@@ -429,7 +441,7 @@ function saveLeadForm(e) {
 }
 
 // =================================================================
-// RENDER DANH SÁCH THẺ KHÁCH HÀNG
+// RENDER DANH SÁCH THẺ KHÁCH HÀNG (TỐI ƯU THU GỌN KHO CRM)
 // =================================================================
 function render() {
   const container = document.getElementById('leadsContainer');
@@ -479,6 +491,124 @@ function render() {
 
   let html = '';
   filtered.forEach(lead => {
+    const actualCarrier = lead.simCarrier || detectSimCarrier(lead.phone);
+    const carrierColor = actualCarrier === 'Vinaphone' ? 'bg-sky-50 text-sky-700 border-sky-200' :
+                         actualCarrier === 'Mobifone' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                         actualCarrier === 'Vietnamobile' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                         actualCarrier === 'Viettel' ? 'bg-red-50 text-red-700 border-red-200' :
+                         'bg-slate-100 text-slate-700 border-slate-200';
+
+    // =============================================================
+    // CHẾ ĐỘ THU GỌN KHI Ở TAB "📁 LƯU KHO"
+    // =============================================================
+    if (activeTab === 'archived') {
+      const isExpanded = expandedArchiveIds.has(lead.id);
+      
+      // Tìm xem có đơn vị nào đã duyệt và giải ngân không
+      const approvedApp = (lead.applications || []).find(a => a.result === 'Duyệt' && a.contract);
+      const isDisbursed = lead.completeReason === 'Đã giải ngân thành công' || !!approvedApp;
+
+      let docsHtml = '';
+      const docMap = typeof DOC_MAP !== 'undefined' ? DOC_MAP : {};
+      (lead.documents || []).forEach(d => {
+        docsHtml += `<span class="inline-block bg-white text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 ml-1">✓ ${docMap[d] || d}</span>`;
+      });
+      if (!docsHtml) docsHtml = '<span class="text-slate-400 italic text-[10px]"> Chưa có</span>';
+
+      let appsHtml = '';
+      (lead.applications || []).forEach((app, aIdx) => {
+        appsHtml += `
+          <div class="bg-white rounded-lg p-2 border border-slate-200 text-xs flex justify-between items-center">
+            <span class="font-bold text-slate-800 truncate">🏛️ ${app.lender}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded ${app.result === 'Duyệt' ? 'bg-emerald-100 text-emerald-800' : app.result === 'Từ chối' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}">${app.result}</span>
+              ${app.contract ? `<button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="text-[10px] bg-teal-600 text-white font-bold px-2 py-0.5 rounded active:scale-95 transition">🧾 Phiếu</button>` : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+        <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm space-y-2 transition-all">
+          <!-- Thanh tóm tắt ngắn gọn -->
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-slate-900 text-sm">${escapeHtml(lead.name)}</span>
+                <span class="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">${lead.age} tuổi</span>
+                <span class="text-[10px] ${carrierColor} px-1.5 py-0.5 rounded border font-semibold">📶 ${actualCarrier}</span>
+              </div>
+              <div class="text-xs text-slate-500 font-mono mt-0.5">${lead.phone} • CCCD: ${lead.cccd || '---'}</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button 
+                type="button" 
+                onclick="toggleLeadDetail(${lead.id})" 
+                class="text-[10px] ${isExpanded ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'} hover:bg-slate-200 font-extrabold px-2.5 py-1 rounded-full transition active:scale-95 flex items-center gap-0.5">
+                <span>${isExpanded ? '▲ Thu gọn' : '▼ Chi tiết'}</span>
+              </button>
+              <button 
+                type="button" 
+                onclick="toggleCompleteModal(${lead.id})" 
+                title="Mở lại hồ sơ đang xử lý"
+                class="bg-slate-800 hover:bg-slate-900 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
+                ↺ Mở lại
+              </button>
+            </div>
+          </div>
+
+          <!-- Huy hiệu trạng thái lưu kho ngắn gọn 1 dòng -->
+          <div class="bg-indigo-50/60 border border-indigo-100 rounded-xl p-2 flex justify-between items-center text-[11px]">
+            <div class="truncate flex items-center gap-1">
+              <span class="font-bold ${isDisbursed ? 'text-emerald-700' : 'text-indigo-950'}">
+                ${isDisbursed ? '🎉' : '📁'} ${escapeHtml(lead.completeReason || 'Hoàn tất')}
+              </span>
+              ${approvedApp?.contract ? `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}: ${formatVND(approvedApp.contract.approvedAmount)})</span>` : ''}
+            </div>
+            <span class="text-[10px] text-slate-500 shrink-0 ml-1 font-medium">${lead.completedDate || ''}</span>
+          </div>
+
+          <!-- Khối chi tiết chỉ hiển thị khi bấm "Xem chi tiết" -->
+          ${isExpanded ? `
+            <div class="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-150">
+              <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
+                <div class="flex justify-between"><span>Khoản vay:</span> <span class="font-bold text-blue-700">${formatVND(lead.amount)}</span></div>
+                <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
+                <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${formatVND(lead.income)}</div>
+                ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Nơi làm:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
+                <div class="text-[10px] text-slate-500">🏠 <b>Thường trú:</b> ${escapeHtml(lead.permAddress) || '---'}</div>
+                <div class="text-[10px] text-slate-500">👥 <b>Tham chiếu:</b> ${escapeHtml(lead.ref1Name) || '---'} (${lead.ref1Phone || '---'})</div>
+                <div><b>Chứng từ:</b> ${docsHtml}</div>
+                ${lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : ''}
+              </div>
+
+              <!-- Lịch sử nộp các đơn vị -->
+              <div class="bg-slate-100/60 rounded-xl p-2 space-y-1.5 border border-slate-200">
+                <span class="font-bold text-xs text-slate-800 block">🏛️ Tiến độ hồ sơ đã lưu:</span>
+                <div class="space-y-1">${appsHtml}</div>
+              </div>
+
+              <!-- Nút liên hệ & sửa/xóa -->
+              <div class="flex justify-between items-center pt-1 text-xs">
+                <div class="flex gap-1.5">
+                  <a href="tel:${lead.phone}" class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">📞 Gọi</a>
+                  <a href="https://zalo.me/${lead.phone}" target="_blank" class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded font-bold">💬 Zalo</a>
+                </div>
+                <div class="flex gap-1">
+                  <button type="button" onclick="openEditModal(${lead.id})" class="text-slate-700 px-2 py-1 font-semibold hover:bg-slate-100 rounded">Sửa</button>
+                  <button type="button" onclick="deleteLead(${lead.id})" class="text-rose-600 px-2 py-1 font-semibold hover:bg-rose-50 rounded">Xóa</button>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+      return;
+    }
+
+    // =============================================================
+    // CHẾ ĐỘ BÌNH THƯỜNG (CHO TAB "⚡ ĐANG XỬ LÝ" & "🎯 LỌC GÓI VAY")
+    // =============================================================
     let docsHtml = '';
     const docMap = typeof DOC_MAP !== 'undefined' ? DOC_MAP : {};
     (lead.documents || []).forEach(d => {
@@ -546,13 +676,6 @@ function render() {
       `;
     });
 
-    const actualCarrier = lead.simCarrier || detectSimCarrier(lead.phone);
-    const carrierColor = actualCarrier === 'Vinaphone' ? 'bg-sky-50 text-sky-700 border-sky-200' :
-                         actualCarrier === 'Mobifone' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                         actualCarrier === 'Vietnamobile' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                         actualCarrier === 'Viettel' ? 'bg-red-50 text-red-700 border-red-200' :
-                         'bg-slate-100 text-slate-700 border-slate-200';
-
     let matchSummaryHtml = '';
     if (activeTab === 'match') {
       const matchedPkgs = typeof matchLoanPackages === 'function' ? matchLoanPackages(lead) : [];
@@ -586,20 +709,13 @@ function render() {
             <button type="button" onclick="openLoanMatchModal(${lead.id})" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] px-2.5 py-1 rounded-full font-extrabold shadow-sm active:scale-95 transition">
               🎯 Lọc Gói
             </button>
-            <button type="button" onclick="toggleCompleteModal(${lead.id})" class="${lead.isCompleted ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-white'} text-[10px] px-2 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
-              ${lead.isCompleted ? '↺ Mở' : '✓ Xong'}
+            <button type="button" onclick="toggleCompleteModal(${lead.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-[10px] px-2 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
+              ✓ Xong
             </button>
           </div>
         </div>
 
         ${matchSummaryHtml}
-
-        ${lead.isCompleted ? `
-          <div class="bg-indigo-50 border border-indigo-200 p-2 rounded-xl text-[11px] text-indigo-950 space-y-0.5">
-            <div class="font-bold">✅ Đã lưu kho CRM (${lead.completedDate || 'Gần đây'})</div>
-            <div class="text-slate-700 text-[10px]">Lý do: <b>${escapeHtml(lead.completeReason || 'Hoàn tất')}</b></div>
-          </div>
-        ` : ''}
 
         <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
           <div class="flex justify-between"><span>Cần vay:</span> <span class="font-bold text-blue-700">${formatVND(lead.amount)}</span></div>
@@ -639,7 +755,7 @@ function render() {
 }
 
 // =================================================================
-// CÁC HÀM TIỆN ÍCH KHỞI ĐỘNG FORM
+// CÁC HÀM KHỞI ĐỘNG VÀ XỬ LÝ FORM
 // =================================================================
 function renderDocCheckboxes(selectedDocs = []) {
   const c = document.getElementById('formDocsContainer');
@@ -850,7 +966,7 @@ function toggleCompleteModal(leadId) {
   const l = leads.find(x => x.id === leadId);
   if (l.isCompleted) {
     l.isCompleted = false;
-    showToast('Đã mở lại hồ sơ');
+    showToast('Đã mở lại hồ sơ đang xử lý');
     saveStorage();
   } else {
     targetCompleteId = leadId;

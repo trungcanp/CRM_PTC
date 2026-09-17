@@ -16,6 +16,24 @@ function cleanJsonString(str) {
   return String(str).replace(/^\uFEFF/, '').trim();
 }
 
+/**
+ * THUẬT TOÁN ĐỊNH DẠNG TIỀN THÔNG MINH
+ * Nếu nhập số nhỏ hơn 100,000 (VD: 2500, 30000), tự động hiểu là nhập tắt và nhân với 1,000
+ */
+function smartFormatMoney(el) {
+  let val = parseInt(String(el.value).replace(/[^0-9]/g, ''), 10);
+  if (!val) {
+    el.value = '';
+    return;
+  }
+  // Nếu nhập tắt (nhỏ hơn 100k), tự nhân 1000
+  if (val < 100000) {
+    val = val * 1000;
+  }
+  // Hiển thị đẹp mắt với dấu chấm
+  el.value = new Intl.NumberFormat('vi-VN').format(val);
+}
+
 // Bọc an toàn tuyệt đối khi đọc localStorage
 let leads = [];
 try {
@@ -758,8 +776,7 @@ function render() {
           <div class="flex justify-between items-center">
             <span class="font-bold text-xs text-indigo-950">🏛️ Tiến độ nộp đa công ty:</span>
             <button type="button" onclick="addAppPrompt(${lead.id})" class="text-[11px] bg-indigo-600 text-white font-bold px-2.5 py-1 rounded-lg shadow active:scale-95 transition flex items-center gap-1">
-              <span>+</span>
-              <span>Nộp Cty</span>
+              <span>+ Nộp Cty</span>
             </button>
           </div>
           <div class="space-y-1.5">${appsHtml}</div>
@@ -904,12 +921,19 @@ function openContractModal(leadId, aIdx) {
   const l = leads.find(x => x.id === leadId);
   const app = l.applications[aIdx];
   const c = app.contract;
-  const parseNum = typeof parseNumeric === 'function' ? parseNumeric : (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
+  
+  const defaultAmount = c ? c.approvedAmount : (l.amount || 30000000);
+  const defaultMonthly = c ? c.monthlyPay : Math.round((l.amount || 30000000) * 1.15 / 12);
 
   document.getElementById('contractCode').value = c ? c.code : ('HĐ-' + Date.now().toString().slice(-5));
-  document.getElementById('contractAmount').value = c ? c.approvedAmount : (l.amount || 30000000);
-  document.getElementById('contractTenor').value = c ? c.tenor : 12;
-  document.getElementById('contractMonthly').value = c ? c.monthlyPay : Math.round((l.amount || 30000000) * 1.15 / 12);
+  
+  // Hiển thị đẹp mắt lúc vừa mở lên
+  document.getElementById('contractAmount').value = new Intl.NumberFormat('vi-VN').format(defaultAmount);
+  document.getElementById('contractMonthly').value = new Intl.NumberFormat('vi-VN').format(defaultMonthly);
+  
+  const tenorEl = document.getElementById('contractTenor');
+  if (tenorEl) tenorEl.value = c ? c.tenor : 12;
+
   document.getElementById('contractDate').value = c ? c.disburseDate : new Date().toISOString().substring(0, 10);
   document.getElementById('contractModal').classList.remove('hidden');
 }
@@ -923,14 +947,22 @@ function saveContractForm(e) {
   e.preventDefault();
   const l = leads.find(x => x.id === contractLeadId);
   if (!l) return;
-  const parseNum = typeof parseNumeric === 'function' ? parseNumeric : (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
+
+  const parseNumSmart = (v) => {
+    let n = parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
+    // Phòng hờ user gõ "2500" rồi bấm Lưu luôn mà ko chạm ra ngoài để format
+    if (n > 0 && n < 100000) n = n * 1000;
+    return n;
+  };
+
   l.applications[contractAppIdx].contract = {
     code: document.getElementById('contractCode').value,
-    approvedAmount: parseNum(document.getElementById('contractAmount').value),
+    approvedAmount: parseNumSmart(document.getElementById('contractAmount').value),
     tenor: Number(document.getElementById('contractTenor').value),
-    monthlyPay: parseNum(document.getElementById('contractMonthly').value),
+    monthlyPay: parseNumSmart(document.getElementById('contractMonthly').value),
     disburseDate: document.getElementById('contractDate').value || new Date().toISOString().substring(0, 10)
   };
+  
   showToast('Đã lưu hợp đồng');
   closeContractModal();
   saveStorage();

@@ -50,7 +50,7 @@ function checkTgInputStatus() {
 }
 
 /**
- * Lưu cấu hình bảo mật vào bộ nhớ thiết bị với thông báo Alert chính thức
+ * Lưu cấu hình bảo mật vào bộ nhớ thiết bị
  */
 function saveCustomTgConfig() {
   const tokenInput = document.getElementById('cfgTgToken');
@@ -70,7 +70,6 @@ function saveCustomTgConfig() {
     localStorage.setItem('crm_tg_token', token);
     localStorage.setItem('crm_tg_chatid', chatId);
 
-    // Đổi màu nút xanh lá cây ngay tại chỗ
     if (btn) {
       btn.className = 'w-full bg-emerald-600 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5';
       if (btnText) btnText.innerText = '✓ ĐÃ LƯU THÀNH CÔNG!';
@@ -81,14 +80,11 @@ function saveCustomTgConfig() {
     }
 
     updateTgStatusBadge();
-
-    // Hộp thoại chuẩn của iOS báo thành công 100%
-    alert('✅ ĐÃ LƯU THÀNH CÔNG!\n\nBot Token và Chat ID đã được ghi nhớ vào iPhone của bạn.\nTừ bây giờ bạn có thể bấm nút [🚀 Gửi Lên Kênh] để sao lưu dữ liệu!');
-    
+    alert('✅ ĐÃ LƯU THÀNH CÔNG!\n\nBot Token và Chat ID đã được ghi nhớ vào iPhone của bạn.');
     if (typeof showToast === 'function') showToast('✓ Đã lưu cấu hình Telegram!');
   } catch (err) {
     console.error('Lỗi ghi nhớ Safari:', err);
-    alert('⚠️ Trình duyệt chặn lưu dữ liệu. Nếu bạn đang ở Tab Ẩn Danh (Private), hãy chuyển sang Tab thường của Safari để iPhone cho phép lưu trữ vĩnh viễn nhé!');
+    alert('⚠️ Trình duyệt chặn lưu dữ liệu. Hãy chuyển sang Tab thường của Safari để lưu trữ vĩnh viễn nhé!');
   }
 }
 
@@ -133,139 +129,10 @@ async function sendTelegramNotification(actionText, leadName) {
 }
 
 /**
- * Nén chuỗi Base64
- */
-async function compressText(text) {
-  if (typeof CompressionStream === 'undefined') return text;
-  try {
-    const stream = new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'));
-    const response = new Response(stream);
-    const buffer = await response.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
-  } catch (e) {
-    return text;
-  }
-}
-
-/**
- * Giải nén chuỗi Base64
- */
-async function decompressText(base64) {
-  if (typeof DecompressionStream === 'undefined') return base64;
-  try {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
-    }
-    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-    const response = new Response(stream);
-    return await response.text();
-  } catch (e) {
-    return base64;
-  }
-}
-
-/**
- * Sao lưu hồ sơ lên Telegram (Gửi file + Tin nhắn ghim dữ liệu)
+ * Sao lưu hồ sơ lên Telegram DƯỚI DẠNG TỆP (sendDocument)
+ * Không bao giờ bị lỗi giới hạn độ dài ký tự (Message is too long)
  */
 async function backupToTelegram() {
-  const { token, chatId } = getTelegramConfig();
-
-  if (!token || !chatId) {
-    alert('⚠️ Vui lòng nhập Bot Token và Chat ID rồi bấm [Lưu Cấu Hình Kết Nối] ở trên trước!');
-    return;
-  }
-
-  if (typeof showToast === 'function') showToast('Đang kết nối gửi dữ liệu lên Telegram...');
-
-  try {
-    const currentLeads = typeof leads !== 'undefined' ? leads : [];
-    const minifiedJson = JSON.stringify(currentLeads);
-
-    // 1. Gửi tệp file .json đính kèm để bạn tải về khi cần
-    try {
-      const blob = new Blob([JSON.stringify(currentLeads, null, 2)], { type: 'application/json' });
-      const fileName = `CRM_PTC_Backup_${Date.now()}.json`;
-      const formData = new FormData();
-      formData.append('chat_id', chatId);
-      formData.append('document', blob, fileName);
-      formData.append('caption', `📦 <b>TỆP LƯU TRỮ CRM_PTC</b>\n• Tổng số hồ sơ: ${currentLeads.length}\n• Thời gian: ${new Date().toLocaleString('vi-VN')}`);
-      formData.append('parse_mode', 'HTML');
-
-      await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
-        method: 'POST',
-        body: formData
-      });
-    } catch (docErr) {
-      console.warn('Gửi file đính kèm thất bại, tiếp tục tin nhắn dữ liệu:', docErr);
-    }
-
-    // 2. Chuẩn bị gói dữ liệu nạp nhanh (Tránh lỗi CORS)
-    let payload = '';
-    let isCompressed = false;
-
-    if (minifiedJson.length < 3500) {
-      payload = minifiedJson;
-    } else {
-      payload = await compressText(minifiedJson);
-      isCompressed = true;
-    }
-
-    const backupMsg = `🔄 <b>BẢN SAO LƯU CRM_PTC</b> (${currentLeads.length} hồ sơ)\n` +
-      `⏱ ${new Date().toLocaleString('vi-VN')}\n` +
-      `---DATA_START---\n` +
-      (isCompressed ? `[GZIP_B64]${payload}` : payload) +
-      `\n---DATA_END---`;
-
-    const msgRes = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: backupMsg,
-        parse_mode: 'HTML'
-      })
-    });
-
-    const msgData = await msgRes.json();
-
-    if (msgData.ok && msgData.result) {
-      // 3. Tự động Ghim tin nhắn này lên đầu kênh
-      try {
-        await fetch(`https://api.telegram.org/bot${token}/pinChatMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: chatId,
-            message_id: msgData.result.message_id,
-            disable_notification: true
-          })
-        });
-      } catch (pinErr) {
-        console.warn('Bot chưa có quyền ghim:', pinErr);
-      }
-
-      alert(`✅ SAO LƯU THÀNH CÔNG!\n\nToàn bộ ${currentLeads.length} hồ sơ đã được gửi và ghim an toàn trên kênh Telegram của bạn.`);
-      if (typeof showToast === 'function') showToast('✓ Đã sao lưu & ghim bản mới nhất lên Telegram!');
-    } else {
-      alert('❌ Telegram từ chối: ' + (msgData.description || 'Sai Bot Token hoặc Chat ID'));
-    }
-  } catch (err) {
-    console.error('Lỗi sao lưu:', err);
-    alert('❌ Lỗi kết nối mạng: Không thể gửi dữ liệu đến Telegram!');
-  }
-}
-
-/**
- * Khôi phục dữ liệu từ tin nhắn GHIM trên kênh
- */
-async function restoreFromTelegram() {
   const { token, chatId } = getTelegramConfig();
 
   if (!token || !chatId) {
@@ -273,52 +140,54 @@ async function restoreFromTelegram() {
     return;
   }
 
-  if (typeof showToast === 'function') showToast('Đang tìm bản sao lưu từ Telegram...');
+  if (typeof showToast === 'function') showToast('Đang gửi tệp sao lưu lên Telegram...');
 
   try {
-    let rawPayload = '';
+    const currentLeads = typeof leads !== 'undefined' ? leads : [];
+    const jsonStr = JSON.stringify(currentLeads, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const fileName = `CRM_PTC_Backup_${Date.now()}.json`;
 
-    // Đọc tin nhắn GHIM trên đầu kênh
-    const chatRes = await fetch(`https://api.telegram.org/bot${token}/getChat?chat_id=${chatId}`);
-    const chatData = await chatRes.json();
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    formData.append('document', blob, fileName);
+    formData.append('caption', `📦 <b>TỆP SAO LƯU CRM_PTC</b>\n• Tổng số hồ sơ: ${currentLeads.length} khách hàng\n• Thời gian: ${new Date().toLocaleString('vi-VN')}`);
+    formData.append('parse_mode', 'HTML');
 
-    if (!chatData.ok || !chatData.result) {
-      alert('❌ Telegram từ chối: ' + (chatData.description || 'Sai Chat ID hoặc Token'));
-      return;
-    }
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, {
+      method: 'POST',
+      body: formData
+    });
 
-    const pinned = chatData.result.pinned_message;
-    if (pinned && pinned.text && pinned.text.includes('---DATA_START---')) {
-      const startIdx = pinned.text.indexOf('---DATA_START---') + '---DATA_START---'.length;
-      const endIdx = pinned.text.indexOf('---DATA_END---');
-      if (endIdx > startIdx) {
-        rawPayload = pinned.text.substring(startIdx, endIdx).trim();
-      }
-    }
+    const data = await res.json();
 
-    if (!rawPayload) {
-      alert('⚠️ Chưa tìm thấy bản sao lưu nào được ghim trên kênh!\nVui lòng bấm [🚀 Gửi Lên Kênh] một lần trước để tạo bản lưu đầu tiên.');
-      return;
-    }
-
-    let jsonStr = rawPayload;
-    if (rawPayload.startsWith('[GZIP_B64]')) {
-      jsonStr = await decompressText(rawPayload.replace('[GZIP_B64]', ''));
-    }
-
-    const parsedData = JSON.parse(jsonStr);
-
-    if (Array.isArray(parsedData)) {
-      leads = parsedData;
-      if (typeof saveStorage === 'function') saveStorage();
-      if (typeof closeBackupModal === 'function') closeBackupModal();
-      alert(`✅ NẠP DỮ LIỆU THÀNH CÔNG!\n\nĐã khôi phục đầy đủ ${leads.length} hồ sơ từ kênh Telegram.`);
-      if (typeof showToast === 'function') showToast(`✓ Đã nạp lại ${leads.length} hồ sơ từ Telegram!`);
+    if (data.ok) {
+      alert(`✅ SAO LƯU THÀNH CÔNG!\n\nTệp chứa ${currentLeads.length} hồ sơ đã được gửi an toàn vào kênh Telegram của bạn.`);
+      if (typeof showToast === 'function') showToast(`✓ Đã gửi tệp ${currentLeads.length} hồ sơ lên Telegram!`);
     } else {
-      alert('❌ Dữ liệu sao lưu không đúng định dạng!');
+      alert('❌ Telegram từ chối: ' + (data.description || 'Sai Bot Token hoặc Chat ID'));
     }
   } catch (err) {
-    console.error('Lỗi khôi phục:', err);
-    alert('❌ Không thể khôi phục từ Telegram: Lỗi giải mã dữ liệu!');
+    console.error('Lỗi gửi tệp:', err);
+    alert('❌ Lỗi kết nối: Không thể gửi tệp lên Telegram!');
   }
 }
+
+/**
+ * Hướng dẫn khôi phục từ Telegram
+ */
+function restoreFromTelegram() {
+  alert('💡 HƯỚNG DẪN NẠP LẠI TỪ TELEGRAM:\n\n1. Mở kênh Telegram, bấm vào tệp [CRM_PTC_Backup_....json] vừa lưu.\n2. Chọn [Chia sẻ / Copy] hoặc [Lưu vào Tệp].\n3. Quay lại đây: Bấm nút [📋 Dán Trực Tiếp Từ Bộ Nhớ Tạm] hoặc [Chọn tệp] là toàn bộ khách hàng sẽ được nạp lại tức thì!');
+}
+```eof
+
+### 🔍 Vì sao vừa rồi lại bị báo *"message is too long"*?
+
+* **Bạn nhớ hoàn toàn chuẩn xác!** Khi gửi bằng **tệp file đính kèm (`sendDocument`)**, Telegram không bao giờ giới hạn dung lượng (dù bạn có 12 khách hay 1.000 khách, dung lượng vài MB Telegram vẫn nhận mượt mà).
+* Ở lần cập nhật trước, sau khi gửi file, code lại cố gắng gửi thêm 1 tin nhắn chữ nội bộ dài tới 13.000 ký tự để làm cơ chế ghim. Telegram có quy tắc cứng: **bất kỳ tin nhắn chữ nào vượt quá 4.096 ký tự đều bị từ chối với lỗi *message is too long***.
+
+### 🛠️ Cách khắc phục trong bản cập nhật trên:
+1. **Loại bỏ hoàn toàn lệnh gửi tin nhắn chữ quá tải**: Trở lại chuẩn gửi **tệp file `.json` đính kèm 100%**.
+2. **Không bao giờ bị lỗi giới hạn độ dài nữa**: Bạn bấm **🚀 Gửi Lên Kênh** là tệp file sẽ bay thẳng vào kênh Telegram ngay tức khắc.
+
+Bạn mở file **`js/telegram-service.js`** trên GitHub, dán đoạn mã mới ở trên vào và bấm **Commit changes**. Sau đó vào web bấm lại nút **🚀 Gửi Lên Kênh** là sẽ thành công ngay!

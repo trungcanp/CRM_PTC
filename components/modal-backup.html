@@ -12,7 +12,7 @@
 </div>
 <button type="button" onclick="closeBackupModal()" class="w-7 h-7 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center font-bold">✕</button>
 </div>
-<!-- KHUNG CẤU HÌNH TELEGRAM (CÓ PHẢN HỒI NỔI 100%) -->
+<!-- KHUNG CẤU HÌNH TELEGRAM -->
 <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-3 space-y-2.5">
 <div class="flex justify-between items-center">
 <span class="font-extrabold text-slate-800 text-[11px] flex items-center gap-1">
@@ -50,11 +50,11 @@ oninput="checkTgInputStatus()"
 class="w-full border-2 border-slate-200 focus:border-blue-500 rounded-xl p-2 font-mono text-[10px] bg-white text-slate-900 outline-none transition"
 >
 </div>
-<!-- NÚT LƯU TO RÕ RÀNG VỚI PHẢN HỒI KÉP -->
+<!-- NÚT LƯU TO RÕ RÀNG -->
 <button 
 type="button" 
 id="btnSaveTgConfig"
-onclick="handleSaveTgClick()" 
+onclick="saveCustomTgConfig()" 
 class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-1.5 cursor-pointer">
 <span>💾</span>
 <span id="btnSaveTgText">Lưu Cấu Hình Kết Nối</span>
@@ -101,32 +101,3 @@ Tự động gửi thông báo ngắn về kênh khi thêm, sửa hoặc duyệt
 </button>
 </div>
 </div>
-<script>
-// Tự động kiểm tra trạng thái Token ngay khi gõ hoặc mở bảng
-function checkTgInputStatus() {
-const t = (document.getElementById('cfgTgToken')?.value || '').trim();
-const c = (document.getElementById('cfgTgChatId')?.value || '').trim();
-const badge = document.getElementById('tgConfigStatusBadge');
-if (!badge) return;
-if (t && c) {
-badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
-badge.innerText = '✓ Đã kết nối';
-} else {
-badge.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200';
-badge.innerText = '⚠️ Chưa lưu đủ';
-}
-}
-// Xử lý trực tiếp nút lưu chống kẹt cache
-function handleSaveTgClick() {
-if (typeof saveCustomTgConfig === 'function') {
-saveCustomTgConfig();
-} else {
-const t = (document.getElementById('cfgTgToken')?.value || '').trim();
-const c = (document.getElementById('cfgTgChatId')?.value || '').trim();
-if (t) localStorage.setItem('crm_tg_token', t);
-if (c) localStorage.setItem('crm_tg_chatid', c);
-checkTgInputStatus();
-alert('✅ ĐÃ LƯU THÀNH CÔNG!\n\nBot Token và Chat ID đã được lưu vĩnh viễn trên máy của bạn.');
-}
-}
-</script>

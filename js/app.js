@@ -1034,6 +1034,12 @@ function openBackupModal() {
   const cfg = typeof getTelegramConfig === 'function' ? getTelegramConfig() : { token: '', chatId: '' };
   if (document.getElementById('cfgTgToken')) document.getElementById('cfgTgToken').value = cfg.token;
   if (document.getElementById('cfgTgChatId')) document.getElementById('cfgTgChatId').value = cfg.chatId;
+  
+  // Tự động kiểm tra và cập nhật huy hiệu trạng thái ngay khi mở Modal
+  if (typeof updateTgStatusBadge === 'function') {
+    updateTgStatusBadge();
+  }
+  
   document.getElementById('backupModal').classList.remove('hidden');
 }
 

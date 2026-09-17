@@ -1,14 +1,13 @@
-// js/app.js - Tự động nhận diện mạng SIM 100% + Quy trình giải ngân & xuất phiếu
+// js/app.js - Điều phối dữ liệu CRM và tự động mở bước Lọc gói vay
 let leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
 if (leads.length === 0 && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
   leads = DEFAULT_SAMPLE_LEADS;
 }
 
-let activeTab = 'active';
+let activeTab = 'active'; // 'active' | 'match' | 'archived'
 let currentFilterStatus = 'ALL';
 let searchQuery = '';
-let html5QrScanner = null;
-let currentZoom = 1;
+let currentMatchingLeadId = null;
 
 let editingLeadId = null;
 let targetCompleteId = null;
@@ -18,37 +17,20 @@ let contractLeadId = null;
 let contractAppIdx = null;
 
 // =================================================================
-// THUẬT TOÁN NHẬN DIỆN NHÀ MẠNG VIỄN THÔNG VIỆT NAM CHUẨN XÁC 100%
+// THUẬT TOÁN NHẬN DIỆN NHÀ MẠNG VIỄN THÔNG CHUẨN XÁC 100%
 // =================================================================
 function detectSimCarrier(phone) {
   if (!phone) return 'Khác';
   let p = phone.replace(/[^0-9]/g, '');
-  if (p.startsWith('84')) {
-    p = '0' + p.slice(2);
-  }
+  if (p.startsWith('84')) p = '0' + p.slice(2);
   if (p.length < 3) return 'Khác';
 
   const prefix = p.substring(0, 3);
-
-  const viettelPrefixes = [
-    '086', '096', '097', '098',
-    '032', '033', '034', '035', '036', '037', '038', '039'
-  ];
-  const vinaPrefixes = [
-    '088', '091', '094',
-    '081', '082', '083', '084', '085',
-    '087', '055' // iTel, Wintel
-  ];
-  const mobiPrefixes = [
-    '089', '090', '093',
-    '070', '079', '077', '076', '078'
-  ];
-  const vnMobilePrefixes = [
-    '092', '056', '058', '052'
-  ];
-  const gMobilePrefixes = [
-    '099', '059'
-  ];
+  const viettelPrefixes = ['086', '096', '097', '098', '032', '033', '034', '035', '036', '037', '038', '039'];
+  const vinaPrefixes = ['088', '091', '094', '081', '082', '083', '084', '085', '087', '055'];
+  const mobiPrefixes = ['089', '090', '093', '070', '079', '077', '076', '078'];
+  const vnMobilePrefixes = ['092', '056', '058', '052'];
+  const gMobilePrefixes = ['099', '059'];
 
   if (viettelPrefixes.includes(prefix)) return 'Viettel';
   if (vinaPrefixes.includes(prefix)) return 'Vinaphone';
@@ -65,7 +47,6 @@ function updateCarrierBadge(carrier) {
     badge.classList.add('hidden');
     return;
   }
-
   badge.classList.remove('hidden');
   let colorStyle = 'bg-slate-100 text-slate-700 border-slate-300';
   if (carrier === 'Viettel') colorStyle = 'bg-red-50 text-red-700 border-red-200';
@@ -80,8 +61,7 @@ function updateCarrierBadge(carrier) {
 function handlePhoneInput(val) {
   const clean = val.replace(/[^0-9]/g, '');
   if (clean.length >= 3) {
-    const carrier = detectSimCarrier(clean);
-    updateCarrierBadge(carrier);
+    updateCarrierBadge(detectSimCarrier(clean));
   } else {
     updateCarrierBadge('Khác');
   }
@@ -100,54 +80,22 @@ function saveStorage() {
   render();
 }
 
-function renderDocCheckboxes(selectedDocs = []) {
-  const c = document.getElementById('formDocsContainer');
-  if (!c) return;
-  c.innerHTML = '';
-  for (const [k, lbl] of Object.entries(DOC_MAP)) {
-    const checked = selectedDocs.includes(k) ? 'checked' : '';
-    c.innerHTML += `<label class="flex items-center gap-1"><input type="checkbox" value="${k}" ${checked} class="lead-doc-chk"> ${lbl}</label>`;
-  }
-}
-
-function renderPrevLendersCheckboxes(selectedLenders = []) {
-  const c = document.getElementById('formPrevLendersContainer');
-  if (!c) return;
-  c.innerHTML = '';
-  ALL_PARTNERS.forEach(lender => {
-    const checked = selectedLenders.includes(lender) ? 'checked' : '';
-    c.innerHTML += `<label class="flex items-center gap-1"><input type="checkbox" value="${lender}" ${checked} class="lead-prev-lender-chk"> ${lender}</label>`;
-  });
-}
-
+// =================================================================
+// CHUYỂN ĐỔI 3 TAB (ĐANG XỬ LÝ | LỌC GÓI VAY | LƯU KHO)
+// =================================================================
 function switchTab(tab) {
   activeTab = tab;
   const activeBtn = document.getElementById('tabActiveBtn');
+  const matchBtn = document.getElementById('tabMatchBtn');
   const archivedBtn = document.getElementById('tabArchivedBtn');
-  
-  if (activeBtn) {
-    activeBtn.className = tab === 'active' 
-      ? 'flex-1 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5 transition-all bg-white text-blue-800 shadow-md' 
-      : 'flex-1 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5 transition-all text-blue-200 hover:text-white';
-    const badge = activeBtn.querySelector('span:last-child');
-    if (badge) {
-      badge.className = tab === 'active' 
-        ? 'bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-extrabold' 
-        : 'bg-blue-800/80 text-blue-200 text-[10px] px-1.5 py-0.5 rounded-full font-extrabold';
-    }
-  }
 
-  if (archivedBtn) {
-    archivedBtn.className = tab === 'archived' 
-      ? 'flex-1 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5 transition-all bg-white text-indigo-900 shadow-md' 
-      : 'flex-1 py-1.5 rounded-xl text-center flex items-center justify-center gap-1.5 transition-all text-blue-200 hover:text-white';
-    const badge = archivedBtn.querySelector('span:last-child');
-    if (badge) {
-      badge.className = tab === 'archived' 
-        ? 'bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full font-extrabold' 
-        : 'bg-blue-800/80 text-blue-200 text-[10px] px-1.5 py-0.5 rounded-full font-extrabold';
-    }
-  }
+  const defaultBtnClass = 'py-1.5 rounded-xl text-center flex items-center justify-center gap-1 transition-all text-blue-200 hover:text-white';
+  const activeBtnClass = 'py-1.5 rounded-xl text-center flex items-center justify-center gap-1 transition-all bg-white shadow-md font-extrabold';
+
+  if (activeBtn) activeBtn.className = tab === 'active' ? `${activeBtnClass} text-blue-800` : defaultBtnClass;
+  if (matchBtn) matchBtn.className = tab === 'match' ? `${activeBtnClass} text-amber-900` : defaultBtnClass;
+  if (archivedBtn) archivedBtn.className = tab === 'archived' ? `${activeBtnClass} text-indigo-900` : defaultBtnClass;
+
   render();
 }
 
@@ -183,6 +131,177 @@ function clearSearch() {
   render();
 }
 
+// =================================================================
+// MODAL LỌC VÀ ĐỀ XUẤT GÓI VAY TỰ ĐỘNG THEO 6 ĐIỀU KIỆN
+// =================================================================
+function openLoanMatchModal(leadId) {
+  const lead = leads.find(l => l.id === leadId);
+  if (!lead) return;
+  currentMatchingLeadId = leadId;
+
+  const age = lead.age || calcAge(lead.dob);
+  const carrier = lead.simCarrier || detectSimCarrier(lead.phone);
+  const cicText = lead.cicStatus === 'SACH' ? '✅ Chuẩn nhóm 1 (Sạch)' : '⚠️ Có nợ chú ý/nợ xấu';
+
+  document.getElementById('matchTargetLeadName').innerText = `Khách hàng: ${lead.name} (${age} tuổi) • SĐT: ${lead.phone}`;
+
+  document.getElementById('matchLeadSummary').innerHTML = `
+    <div><b>Thu nhập:</b> <span class="text-blue-700 font-bold">${formatVND(lead.income)}</span></div>
+    <div><b>Cần vay:</b> <span class="text-emerald-700 font-bold">${formatVND(lead.amount)}</span></div>
+    <div><b>Mạng SIM:</b> 📶 ${carrier}</div>
+    <div><b>CIC:</b> ${cicText}</div>
+    <div><b>Ngân hàng:</b> ${lead.bankName || 'Chưa rõ'}</div>
+    <div class="col-span-2 text-slate-600 truncate"><b>Đã/đang góp tại:</b> ${(lead.previousLenders || []).join(', ') || 'Chưa từng (Khách mới)'}</div>
+  `;
+
+  // Gọi thuật toán chuẩn 6 điều kiện từ js/loan-rules.js
+  const matchedList = typeof matchLoanPackages === 'function' ? matchLoanPackages(lead) : [];
+  document.getElementById('matchStatsBadge').innerText = `${matchedList.length} gói đạt chuẩn`;
+
+  const container = document.getElementById('matchedPackagesContainer');
+  if (matchedList.length === 0) {
+    container.innerHTML = `
+      <div class="p-6 text-center bg-white rounded-2xl border border-dashed text-slate-500 text-xs space-y-1">
+        <div class="text-xl">⚠️</div>
+        <p class="font-bold text-slate-700">Chưa có gói vay hoàn toàn khớp</p>
+        <p class="text-[10px]">Hãy kiểm tra lại độ tuổi hoặc bổ sung thêm chứng từ (BHYT, Bằng lái xe, Cà vẹt).</p>
+      </div>
+    `;
+  } else {
+    let html = '';
+    matchedList.forEach(pkg => {
+      const isAlreadyApplied = lead.applications?.some(a => a.lender === pkg.lender);
+      html += `
+        <div class="bg-white border-2 border-emerald-500/50 rounded-2xl p-3 shadow-sm space-y-2 relative overflow-hidden">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${pkg.badge}">🏛️ ${pkg.lender}</span>
+              <h4 class="font-bold text-xs text-slate-900 mt-1">${pkg.title}</h4>
+              <span class="text-[10px] text-indigo-700 font-semibold block">${pkg.priority}</span>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-md">Khả thi ${pkg.matchRate}</span>
+              <div class="text-[10px] font-bold text-slate-700 mt-1">${pkg.maxAmount}</div>
+            </div>
+          </div>
+          <p class="text-[10px] text-slate-600 leading-tight bg-slate-50 p-2 rounded-xl border border-slate-100">💡 <b>Điều kiện:</b> ${pkg.note}</p>
+          <div class="pt-1 flex justify-between items-center border-t border-slate-100">
+            <span class="text-[10px] text-slate-500">${isAlreadyApplied ? '✓ Đã có trong danh sách nộp' : 'Chưa nộp đơn vị này'}</span>
+            <button 
+              type="button" 
+              onclick="applyMatchedPackage(${lead.id}, '${pkg.lender}')" 
+              class="${isAlreadyApplied ? 'bg-slate-200 text-slate-600' : 'bg-blue-600 hover:bg-blue-700 text-white shadow active:scale-95'} font-extrabold text-[11px] px-3 py-1.5 rounded-xl transition">
+              ${isAlreadyApplied ? '✓ Đã Nộp' : '+ Nộp Gói Này'}
+            </button>
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  }
+
+  document.getElementById('loanMatchModal').classList.remove('hidden');
+}
+
+function closeLoanMatchModal() {
+  document.getElementById('loanMatchModal').classList.add('hidden');
+}
+
+function applyMatchedPackage(leadId, lender) {
+  const l = leads.find(x => x.id === leadId);
+  if (!l) return;
+  if (!l.applications) l.applications = [];
+
+  const exists = l.applications.some(a => a.lender === lender);
+  if (exists) {
+    showToast(`Hồ sơ đã có nộp tại ${lender}`);
+    return;
+  }
+
+  l.applications.push({ lender, result: 'Đang thẩm định', rejectReason: '', contract: null });
+  showToast(`Đã thêm ${lender} vào tiến độ nộp!`);
+  saveStorage();
+  openLoanMatchModal(leadId); // Cập nhật lại giao diện modal
+}
+
+// =================================================================
+// BƯỚC 1: LƯU HỒ SƠ -> BƯỚC 2: TỰ ĐỘNG CHUYỂN SANG BƯỚC LỌC GÓI VAY
+// =================================================================
+function saveLeadForm(e) {
+  e.preventDefault();
+  const dob = document.getElementById('formDob').value;
+  const docs = Array.from(document.querySelectorAll('.lead-doc-chk:checked')).map(el => el.value);
+  const prevLenders = Array.from(document.querySelectorAll('.lead-prev-lender-chk:checked')).map(el => el.value);
+  const apps = Array.from(document.querySelectorAll('.lead-app-chk:checked')).map(el => el.value);
+  const initialLender = document.getElementById('formInitialLender').value || 'TPBank';
+  const name = document.getElementById('formName').value;
+  const phone = document.getElementById('formPhone').value;
+  const autoCarrier = detectSimCarrier(phone);
+
+  const d = {
+    name: name,
+    phone: phone,
+    email: document.getElementById('formEmail').value,
+    simCarrier: autoCarrier,
+    dob: dob,
+    age: calcAge(dob),
+    cccd: document.getElementById('formCccd').value,
+    oldCmnd: document.getElementById('formOldCmnd').value,
+    gender: document.getElementById('formGender').value,
+    permAddress: document.getElementById('formPermAddress').value,
+    tempAddress: document.getElementById('formTempAddress').value,
+    job: document.getElementById('formJob').value,
+    workAddress: document.getElementById('formWorkAddress').value,
+    workTime: document.getElementById('formWorkTime').value,
+    income: parseNumeric(document.getElementById('formIncome').value),
+    amount: parseNumeric(document.getElementById('formAmount').value) || 30000000,
+    bankName: document.getElementById('formBankName').value,
+    bankAccount: document.getElementById('formBankAccount').value,
+    previousLenders: prevLenders,
+    installedApps: apps,
+    ref1Rel: document.getElementById('formRef1Rel').value,
+    ref1Name: document.getElementById('formRef1Name').value,
+    ref1Phone: document.getElementById('formRef1Phone').value,
+    ref2Rel: document.getElementById('formRef2Rel').value,
+    ref2Name: document.getElementById('formRef2Name').value,
+    ref2Phone: document.getElementById('formRef2Phone').value,
+    cicStatus: document.getElementById('formCicStatus').value,
+    documents: docs,
+    note: document.getElementById('formNote').value
+  };
+
+  let savedLeadId = null;
+
+  if (editingLeadId) {
+    const idx = leads.findIndex(x => x.id === editingLeadId);
+    if (idx > -1) leads[idx] = { ...leads[idx], ...d };
+    savedLeadId = editingLeadId;
+    showToast('Đã cập nhật hồ sơ');
+    if (typeof sendTelegramNotification === 'function') sendTelegramNotification('Cập nhật hồ sơ', name);
+  } else {
+    savedLeadId = Date.now();
+    leads.unshift({ 
+      id: savedLeadId, 
+      isCompleted: false, 
+      ...d, 
+      applications: [{ lender: initialLender, result: 'Đang thẩm định', rejectReason: '', contract: null }] 
+    });
+    showToast('Đã thêm khách hàng mới');
+    if (typeof sendTelegramNotification === 'function') sendTelegramNotification('Thêm khách hàng mới', name);
+  }
+
+  closeLeadModal();
+  saveStorage();
+
+  // TỰ ĐỘNG CHUYỂN TIẾP SANG BƯỚC LỌC GÓI VAY KHẢ THI (0.25s)
+  setTimeout(() => {
+    openLoanMatchModal(savedLeadId);
+  }, 250);
+}
+
+// =================================================================
+// RENDER DANH SÁCH THẺ KHÁCH HÀNG (HỖ TRỢ CẢ 3 TAB)
+// =================================================================
 function render() {
   const container = document.getElementById('leadsContainer');
   if (!container) return;
@@ -199,6 +318,8 @@ function render() {
   const filtered = leads.filter(l => {
     if (activeTab === 'active' && l.isCompleted) return false;
     if (activeTab === 'archived' && !l.isCompleted) return false;
+    if (activeTab === 'match' && l.isCompleted) return false;
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const m1 = l.name.toLowerCase().includes(q) || l.phone.includes(q) || (l.cccd && l.cccd.includes(q));
@@ -206,6 +327,7 @@ function render() {
       const m3 = l.previousLenders?.some(pl => pl.toLowerCase().includes(q));
       if (!m1 && !m2 && !m3) return false;
     }
+
     if (currentFilterStatus !== 'ALL') {
       const st = currentFilterStatus;
       const m = l.applications?.some(a => st === 'Duyệt' ? a.result === 'Duyệt' : st === 'Từ chối' ? a.result === 'Từ chối' : (a.result === 'Đang thẩm định' || a.result === 'Bổ sung hồ sơ'));
@@ -294,7 +416,6 @@ function render() {
       `;
     });
 
-    // Tự động nhận diện mạng nếu chưa có trường simCarrier
     const actualCarrier = lead.simCarrier || detectSimCarrier(lead.phone);
     const carrierColor = actualCarrier === 'Vinaphone' ? 'bg-sky-50 text-sky-700 border-sky-200' :
                          actualCarrier === 'Mobifone' ? 'bg-blue-50 text-blue-700 border-blue-200' :
@@ -302,8 +423,27 @@ function render() {
                          actualCarrier === 'Viettel' ? 'bg-red-50 text-red-700 border-red-200' :
                          'bg-slate-100 text-slate-700 border-slate-200';
 
+    // Đánh giá nhanh các gói vay khả thi nếu đang ở Tab Lọc Gói Vay
+    let matchSummaryHtml = '';
+    if (activeTab === 'match') {
+      const matchedPkgs = typeof matchLoanPackages === 'function' ? matchLoanPackages(lead) : [];
+      let pkgPills = '';
+      matchedPkgs.slice(0, 3).forEach(p => {
+        pkgPills += `<span class="inline-block bg-amber-50 text-amber-900 border border-amber-200 rounded px-1.5 py-0.5 text-[10px] font-bold">⭐ ${p.lender} (${p.matchRate})</span>`;
+      });
+      matchSummaryHtml = `
+        <div class="bg-amber-50/70 border border-amber-300 rounded-xl p-2 space-y-1">
+          <div class="flex justify-between items-center text-[10px] font-black text-amber-950">
+            <span>🎯 ${matchedPkgs.length} GÓI VAY ĐẠT CHUẨN:</span>
+            <button type="button" onclick="openLoanMatchModal(${lead.id})" class="text-blue-700 underline font-extrabold">Xem tất cả ➔</button>
+          </div>
+          <div class="flex flex-wrap gap-1">${pkgPills || '<span class="text-slate-500 text-[10px]">Chưa tìm thấy gói hoàn toàn khớp</span>'}</div>
+        </div>
+      `;
+    }
+
     html += `
-      <div class="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-sm space-y-3">
+      <div class="bg-white rounded-2xl p-3.5 border ${activeTab === 'match' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-slate-200'} shadow-sm space-y-3">
         <div class="flex justify-between items-start">
           <div>
             <div class="flex items-center gap-1.5 flex-wrap">
@@ -313,10 +453,17 @@ function render() {
             </div>
             <div class="text-xs text-slate-500 font-mono mt-0.5">${lead.phone} • CCCD: ${lead.cccd || 'Chưa có'}</div>
           </div>
-          <button type="button" onclick="toggleCompleteModal(${lead.id})" class="${lead.isCompleted ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-white'} text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
-            ${lead.isCompleted ? '↺ Mở lại' : '✓ Hoàn thành'}
-          </button>
+          <div class="flex gap-1">
+            <button type="button" onclick="openLoanMatchModal(${lead.id})" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] px-2.5 py-1 rounded-full font-extrabold shadow-sm active:scale-95 transition">
+              🎯 Lọc Gói
+            </button>
+            <button type="button" onclick="toggleCompleteModal(${lead.id})" class="${lead.isCompleted ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-white'} text-[10px] px-2 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
+              ${lead.isCompleted ? '↺ Mở' : '✓ Xong'}
+            </button>
+          </div>
         </div>
+
+        ${matchSummaryHtml}
 
         ${lead.isCompleted ? `
           <div class="bg-indigo-50 border border-indigo-200 p-2 rounded-xl text-[11px] text-indigo-950 space-y-0.5">
@@ -330,10 +477,7 @@ function render() {
           <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
           <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${formatVND(lead.income)}</div>
           ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Đ/c làm việc:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
-          ${lead.email ? `<div class="text-[10px] text-slate-600">📧 <b>Email:</b> ${escapeHtml(lead.email)}</div>` : ''}
           <div class="text-[10px] text-slate-600 bg-emerald-50/50 p-1.5 rounded-lg border border-emerald-100"><b>🔍 Đang/Từng vay ở Cty:</b> ${prevLendersHtml}</div>
-          <div class="text-[10px] text-slate-500">🏠 Thường trú: ${escapeHtml(lead.permAddress) || '---'}</div>
-          <div class="text-[10px] text-slate-500">👥 Tham chiếu: ${escapeHtml(lead.ref1Name) || '---'} (${lead.ref1Phone || '---'})</div>
           <div><b>Chứng từ:</b> ${docsHtml}</div>
         </div>
 
@@ -361,18 +505,27 @@ function render() {
   container.innerHTML = html;
 }
 
-function openBackupModal() {
-  const auto = localStorage.getItem('loan_crm_autotg') === 'true';
-  const chk = document.getElementById('autoNotifyTg');
-  if (chk) chk.checked = auto;
-  const cfg = getTelegramConfig();
-  if (document.getElementById('cfgTgToken')) document.getElementById('cfgTgToken').value = cfg.token;
-  if (document.getElementById('cfgTgChatId')) document.getElementById('cfgTgChatId').value = cfg.chatId;
-  document.getElementById('backupModal').classList.remove('hidden');
+// =================================================================
+// CÁC HÀM TIỆN ÍCH KHỞI ĐỘNG FORM
+// =================================================================
+function renderDocCheckboxes(selectedDocs = []) {
+  const c = document.getElementById('formDocsContainer');
+  if (!c) return;
+  c.innerHTML = '';
+  for (const [k, lbl] of Object.entries(DOC_MAP)) {
+    const checked = selectedDocs.includes(k) ? 'checked' : '';
+    c.innerHTML += `<label class="flex items-center gap-1"><input type="checkbox" value="${k}" ${checked} class="lead-doc-chk"> ${lbl}</label>`;
+  }
 }
 
-function closeBackupModal() { 
-  document.getElementById('backupModal').classList.add('hidden'); 
+function renderPrevLendersCheckboxes(selectedLenders = []) {
+  const c = document.getElementById('formPrevLendersContainer');
+  if (!c) return;
+  c.innerHTML = '';
+  ALL_PARTNERS.forEach(lender => {
+    const checked = selectedLenders.includes(lender) ? 'checked' : '';
+    c.innerHTML += `<label class="flex items-center gap-1"><input type="checkbox" value="${lender}" ${checked} class="lead-prev-lender-chk"> ${lender}</label>`;
+  });
 }
 
 function openCreateModal() {
@@ -418,74 +571,17 @@ function openEditModal(id) {
   updateCarrierBadge(l.simCarrier || detectSimCarrier(l.phone));
   renderDocCheckboxes(l.documents || []);
   renderPrevLendersCheckboxes(l.previousLenders || []);
+  
+  // Nạp lại các app đã tích
+  const userApps = l.installedApps || [];
+  document.querySelectorAll('.lead-app-chk').forEach(el => {
+    el.checked = userApps.includes(el.value);
+  });
+
   document.getElementById('leadModal').classList.remove('hidden');
 }
 
-function closeLeadModal() { 
-  document.getElementById('leadModal').classList.add('hidden'); 
-}
-
-function saveLeadForm(e) {
-  e.preventDefault();
-  const dob = document.getElementById('formDob').value;
-  const docs = Array.from(document.querySelectorAll('.lead-doc-chk:checked')).map(el => el.value);
-  const prevLenders = Array.from(document.querySelectorAll('.lead-prev-lender-chk:checked')).map(el => el.value);
-  const initialLender = document.getElementById('formInitialLender').value || 'TPBank';
-  const name = document.getElementById('formName').value;
-  const phone = document.getElementById('formPhone').value;
-  
-  // TỰ ĐỘNG NHẬN DIỆN MẠNG VIỄN THÔNG 100% TỪ SỐ ĐIỆN THOẠI
-  const autoCarrier = detectSimCarrier(phone);
-
-  const d = {
-    name: name,
-    phone: phone,
-    email: document.getElementById('formEmail').value,
-    simCarrier: autoCarrier,
-    dob: dob,
-    age: calcAge(dob),
-    cccd: document.getElementById('formCccd').value,
-    oldCmnd: document.getElementById('formOldCmnd').value,
-    gender: document.getElementById('formGender').value,
-    permAddress: document.getElementById('formPermAddress').value,
-    tempAddress: document.getElementById('formTempAddress').value,
-    job: document.getElementById('formJob').value,
-    workAddress: document.getElementById('formWorkAddress').value,
-    workTime: document.getElementById('formWorkTime').value,
-    income: parseNumeric(document.getElementById('formIncome').value),
-    amount: parseNumeric(document.getElementById('formAmount').value) || 30000000,
-    bankName: document.getElementById('formBankName').value,
-    bankAccount: document.getElementById('formBankAccount').value,
-    previousLenders: prevLenders,
-    ref1Rel: document.getElementById('formRef1Rel').value,
-    ref1Name: document.getElementById('formRef1Name').value,
-    ref1Phone: document.getElementById('formRef1Phone').value,
-    ref2Rel: document.getElementById('formRef2Rel').value,
-    ref2Name: document.getElementById('formRef2Name').value,
-    ref2Phone: document.getElementById('formRef2Phone').value,
-    cicStatus: document.getElementById('formCicStatus').value,
-    documents: docs,
-    note: document.getElementById('formNote').value
-  };
-
-  if (editingLeadId) {
-    const idx = leads.findIndex(x => x.id === editingLeadId);
-    if (idx > -1) leads[idx] = { ...leads[idx], ...d };
-    showToast('Đã cập nhật hồ sơ');
-    if (typeof sendTelegramNotification === 'function') sendTelegramNotification('Cập nhật hồ sơ', name);
-  } else {
-    leads.unshift({ 
-      id: Date.now(), 
-      isCompleted: false, 
-      ...d, 
-      applications: [{ lender: initialLender, result: 'Đang thẩm định', rejectReason: '', contract: null }] 
-    });
-    showToast('Đã thêm hồ sơ mới');
-    if (typeof sendTelegramNotification === 'function') sendTelegramNotification('Thêm khách hàng mới', name);
-  }
-  closeLeadModal();
-  saveStorage();
-}
+function closeLeadModal() { document.getElementById('leadModal').classList.add('hidden'); }
 
 function deleteLead(id) {
   if (confirm('Xóa hồ sơ này?')) {
@@ -548,9 +644,7 @@ function openContractModal(leadId, aIdx) {
   document.getElementById('contractModal').classList.remove('hidden');
 }
 
-function closeContractModal() { 
-  document.getElementById('contractModal').classList.add('hidden'); 
-}
+function closeContractModal() { document.getElementById('contractModal').classList.add('hidden'); }
 
 function saveContractForm(e) {
   e.preventDefault();
@@ -574,19 +668,19 @@ function saveContractForm(e) {
 }
 
 const LENDER_THEMES = {
-  'TPBank': { bg: 'bg-purple-700', emoji: '🟣', guide: 'Thanh toán qua app TPBank Mobile hoặc ví điện tử MoMo/Viettel Money chọn mục "Thanh toán khoản vay > TPBank" nhập số HĐ.' },
-  'FE Credit': { bg: 'bg-emerald-700', emoji: '🟢', guide: 'Thanh toán qua ví MoMo, ZaloPay, Viettel Money hoặc chuyển khoản qua STK định danh của FE Credit.' },
-  'Home Credit': { bg: 'bg-red-600', emoji: '🔴', guide: 'Đóng tiền qua app Home Credit, MoMo, Viettel Post hoặc hệ thống cửa hàng TGDĐ/FPT Shop.' },
-  'HD Saison': { bg: 'bg-amber-600', emoji: '🟡', guide: 'Thanh toán qua HD SAISON App, VNPay, Bưu điện VNPost hoặc các điểm giao dịch liên kết.' },
-  'Mirae Asset (MAFC)': { bg: 'bg-blue-900', emoji: '🏢', guide: 'Chuyển khoản qua tài khoản định danh của Mirae Asset hoặc qua ứng dụng My Finance / MoMo.' },
-  'MCredit': { bg: 'bg-purple-700', emoji: '🟣', guide: 'Thanh toán qua app MCredit, Viettel Money hoặc qua các điểm thu hộ Viettel Post trên toàn quốc.' },
-  'SHB Finance': { bg: 'bg-cyan-700', emoji: '🔷', guide: 'Đóng qua SHB Finance App, VNPay hoặc chuyển khoản trực tiếp STK ngân hàng thụ hưởng.' },
-  'VPBank': { bg: 'bg-green-700', emoji: '🏦', guide: 'Thanh toán qua VPBank NEO, MoMo, hoặc nộp tiền mặt tại các chi nhánh VPBank.' },
-  'Cathay Bank (CUB)': { bg: 'bg-emerald-800', emoji: '🌳', guide: 'Chuyển khoản theo số tài khoản hợp đồng định danh cấp bởi Cathay Bank (CUB).' },
-  'Tnex': { bg: 'bg-sky-600', emoji: '⚡', guide: 'Thanh toán trực tiếp tự động qua ứng dụng ngân hàng số TNEX.' },
-  'Cake by VPBank': { bg: 'bg-pink-600', emoji: '🍰', guide: 'Thanh toán nhanh chóng và tiện lợi trực tiếp trên ứng dụng Cake by VPBank.' },
-  'Viettel Money': { bg: 'bg-rose-700', emoji: '📶', guide: 'Thanh toán qua ứng dụng Viettel Money (mục Tài chính / Vay tiêu dùng).' },
-  'Tinvay': { bg: 'bg-indigo-700', emoji: '💳', guide: 'Thanh toán qua app Tinvay hoặc các cổng thanh toán điện tử hỗ trợ.' }
+  'TPBank': { bg: 'bg-purple-700', emoji: '🟣', guide: 'Thanh toán qua app TPBank Mobile hoặc ví MoMo/Viettel Money chọn "Thanh toán khoản vay > TPBank".' },
+  'FE Credit': { bg: 'bg-emerald-700', emoji: '🟢', guide: 'Thanh toán qua ví MoMo, ZaloPay, Viettel Money hoặc STK định danh FE Credit.' },
+  'Home Credit': { bg: 'bg-red-600', emoji: '🔴', guide: 'Đóng tiền qua app Home Credit, MoMo, Viettel Post hoặc cửa hàng TGDĐ/FPT Shop.' },
+  'HD Saison': { bg: 'bg-amber-600', emoji: '🟡', guide: 'Thanh toán qua HD SAISON App, VNPay, Bưu điện VNPost hoặc điểm thu hộ liên kết.' },
+  'Mirae Asset (MAFC)': { bg: 'bg-blue-900', emoji: '🏢', guide: 'Chuyển khoản qua STK định danh Mirae Asset hoặc qua My Finance / MoMo.' },
+  'MCredit': { bg: 'bg-purple-700', emoji: '🟣', guide: 'Thanh toán qua app MCredit, Viettel Money hoặc các điểm thu hộ Viettel Post.' },
+  'SHB Finance': { bg: 'bg-cyan-700', emoji: '🔷', guide: 'Đóng qua SHB Finance App, VNPay hoặc chuyển khoản trực tiếp STK ngân hàng.' },
+  'VPBank': { bg: 'bg-green-700', emoji: '🏦', guide: 'Thanh toán qua VPBank NEO, MoMo, hoặc nộp tiền mặt tại chi nhánh VPBank.' },
+  'Cathay Bank (CUB)': { bg: 'bg-emerald-800', emoji: '🌳', guide: 'Chuyển khoản theo STK hợp đồng định danh cấp bởi Cathay Bank (CUB).' },
+  'Tnex': { bg: 'bg-sky-600', emoji: '⚡', guide: 'Thanh toán trực tiếp tự động qua app ngân hàng số TNEX.' },
+  'Cake by VPBank': { bg: 'bg-pink-600', emoji: '🍰', guide: 'Thanh toán trực tiếp trên app Cake by VPBank.' },
+  'Viettel Money': { bg: 'bg-rose-700', emoji: '📶', guide: 'Thanh toán qua app Viettel Money (mục Vay tiêu dùng).' },
+  'Tinvay': { bg: 'bg-indigo-700', emoji: '💳', guide: 'Thanh toán qua app Tinvay hoặc các cổng thanh toán hỗ trợ.' }
 };
 
 function openReceipt(leadId, aIdx) {
@@ -615,9 +709,7 @@ function openReceipt(leadId, aIdx) {
   document.getElementById('receiptModal').classList.remove('hidden');
 }
 
-function closeReceiptModal() { 
-  document.getElementById('receiptModal').classList.add('hidden'); 
-}
+function closeReceiptModal() { document.getElementById('receiptModal').classList.add('hidden'); }
 
 function copyPaymentMsg() {
   const l = leads.find(x => x.id === receiptLeadId);
@@ -643,9 +735,7 @@ function toggleCompleteModal(leadId) {
   }
 }
 
-function closeCompleteModal() { 
-  document.getElementById('completeModal').classList.add('hidden'); 
-}
+function closeCompleteModal() { document.getElementById('completeModal').classList.add('hidden'); }
 
 function saveCompleteLead() {
   const l = leads.find(x => x.id === targetCompleteId);
@@ -682,6 +772,18 @@ function saveCompleteLead() {
     }
   }
 }
+
+function openBackupModal() {
+  const auto = localStorage.getItem('loan_crm_autotg') === 'true';
+  const chk = document.getElementById('autoNotifyTg');
+  if (chk) chk.checked = auto;
+  const cfg = getTelegramConfig();
+  if (document.getElementById('cfgTgToken')) document.getElementById('cfgTgToken').value = cfg.token;
+  if (document.getElementById('cfgTgChatId')) document.getElementById('cfgTgChatId').value = cfg.chatId;
+  document.getElementById('backupModal').classList.remove('hidden');
+}
+
+function closeBackupModal() { document.getElementById('backupModal').classList.add('hidden'); }
 
 function downloadBackupFile() {
   const blob = new Blob([JSON.stringify(leads, null, 2)], { type: 'application/json' });

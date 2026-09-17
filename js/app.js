@@ -1,6 +1,6 @@
-// js/app.js - Bộ điều phối CRM (Google Sheets Sync V3 - Chống đơ 100%)
+// js/app.js - Bộ điều phối CRM độc lập ĐẦY ĐỦ (API V2)
 
-const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbwXjW0Era0nt-1lsfPhdLJu6VOleriEayxhZJmwvg75ZrXokOUS-8nUvB3AwqyR1KV2/exec';
+const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzi_ck6A2akcCHlWC7q_lqm2qSVBNkl0Qq-_3k-wefR62kAxdMSPGm7-V1IuEK-s2Q7/exec';
 
 function escapeHtml(str) {
   if (!str) return '';
@@ -16,6 +16,7 @@ function cleanJsonString(str) {
   return String(str).replace(/^\uFEFF/, '').trim();
 }
 
+// Bọc an toàn tuyệt đối khi đọc localStorage
 let leads = [];
 try {
   leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
@@ -69,7 +70,7 @@ async function loadLeadsFromCloud() {
     if (json.ok && Array.isArray(json.data) && json.data.length > 0) {
       leads = json.data;
       localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
-      if (typeof showToast === 'function') showToast(`✓ Đã đồng bộ ${leads.length} hồ sơ từ Sheets!`);
+      if (typeof showToast === 'function') showToast(`✓ Đã đồng bộ ${leads.length} hồ sơ từ Google Sheets!`);
       render();
     }
   } catch (err) {
@@ -78,7 +79,7 @@ async function loadLeadsFromCloud() {
 }
 
 /**
- * Cập nhật giao diện và đồng bộ lên Google Sheets (Đã sửa lỗi CORS và PostData rỗng)
+ * Cập nhật giao diện và đồng bộ lên Google Sheets
  */
 function saveStorage() {
   try {
@@ -86,36 +87,28 @@ function saveStorage() {
   } catch (e) {}
   render();
 
-  // ĐẨY DỮ LIỆU LÊN GOOGLE SHEETS
-  // KHÔNG dùng mode: 'no-cors' nữa. Dùng Content-Type text/plain để vượt qua preflight.
+  // Đẩy dữ liệu lên Sheets với cấu hình chuẩn xác (vượt rào CORS)
   try {
     fetch(GOOGLE_SHEET_API_URL, {
       method: 'POST',
+      redirect: 'follow', // Bắt buộc để Google chuyển hướng an toàn
       headers: {
         'Content-Type': 'text/plain;charset=utf-8',
       },
       body: JSON.stringify({ action: 'SYNC_ALL', leads: leads })
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error("HTTP error " + response.status);
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
       if (data.ok) {
         console.log('✓ Đã đồng bộ Sheets thành công! Đã đẩy:', data.count, 'hồ sơ.');
       } else {
         console.error('❌ Lỗi từ Google Sheets:', data.error);
-        if (data.details) console.error('Chi tiết lỗi:', data.details);
       }
     })
     .catch(err => {
       console.warn('Lỗi gọi API đồng bộ:', err);
     });
-  } catch (e) {
-    console.error('Lỗi khi fetch:', e);
-  }
+  } catch (e) {}
 }
 
 function detectSimCarrier(phone) {
@@ -765,7 +758,8 @@ function render() {
           <div class="flex justify-between items-center">
             <span class="font-bold text-xs text-indigo-950">🏛️ Tiến độ nộp đa công ty:</span>
             <button type="button" onclick="addAppPrompt(${lead.id})" class="text-[11px] bg-indigo-600 text-white font-bold px-2.5 py-1 rounded-lg shadow active:scale-95 transition flex items-center gap-1">
-              <span>+ Nộp Cty</span>
+              <span>+</span>
+              <span>Nộp Cty</span>
             </button>
           </div>
           <div class="space-y-1.5">${appsHtml}</div>

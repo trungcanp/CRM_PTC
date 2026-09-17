@@ -1156,12 +1156,3 @@ function restoreFromFile(e) {
 // Khởi chạy render ngay khi nạp script
 render();
 loadLeadsFromCloud();
-```eof
-
-### Cách thao tác trên điện thoại của bạn:
-1. Mở GitHub trên Safari $\rightarrow$ vào file `js/app.js` $\rightarrow$ bấm ✏️.
-2. Xóa sạch mọi thứ $\rightarrow$ Dán trọn vẹn đoạn mã trên.
-3. Bấm **Commit changes**.
-4. Mở tab CRM đang bị đơ $\rightarrow$ **tải lại trang (F5/Refresh)**.
-
-Mọi thứ sẽ trở lại nguyên trạng bình thường ngay lập tức! Bạn thao tác xong hãy thử bấm chuyển tab hoặc lọc dữ liệu nhé.

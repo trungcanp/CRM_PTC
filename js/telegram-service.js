@@ -21,13 +21,13 @@ function saveCustomTgConfig() {
   const chatId = chatIdInput ? chatIdInput.value.trim() : '';
 
   if (!token || !chatId) {
-    showToast('⚠️ Vui lòng nhập đầy đủ Token và Chat ID');
+    if (typeof showToast === 'function') showToast('⚠️ Vui lòng nhập đầy đủ Token và Chat ID');
     return;
   }
 
   localStorage.setItem('crm_tg_token', token);
   localStorage.setItem('crm_tg_chatid', chatId);
-  showToast('✓ Đã lưu cấu hình kết nối Telegram!');
+  if (typeof showToast === 'function') showToast('✓ Đã lưu cấu hình kết nối Telegram!');
 }
 
 /**
@@ -35,19 +35,9 @@ function saveCustomTgConfig() {
  */
 function toggleAutoNotify(el) {
   localStorage.setItem('loan_crm_autotg', el.checked ? 'true' : 'false');
-  showToast(el.checked ? 'Đã BẬT tự động báo Telegram' : 'Đã TẮT tự động báo Telegram');
-}
-
-/**
- * Chống lỗi vỡ cấu trúc tin nhắn HTML khi gửi Telegram
- */
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  if (typeof showToast === 'function') {
+    showToast(el.checked ? 'Đã BẬT tự động báo Telegram' : 'Đã TẮT tự động báo Telegram');
+  }
 }
 
 /**
@@ -61,7 +51,9 @@ async function sendTelegramNotification(actionText, leadName) {
   if (!token || !chatId) return; // Chưa cấu hình thì bỏ qua, không gây lỗi web
 
   try {
-    const text = `🔔 <b>CRM_PTC THÔNG BÁO</b>\n• Thao tác: <b>${escapeHtml(actionText)}</b>\n• Khách hàng: <b>${escapeHtml(leadName)}</b>\n• Thời gian: ${new Date().toLocaleString('vi-VN')}`;
+    const safeAction = typeof escapeHtml === 'function' ? escapeHtml(actionText) : actionText;
+    const safeName = typeof escapeHtml === 'function' ? escapeHtml(leadName) : leadName;
+    const text = `🔔 <b>CRM_PTC THÔNG BÁO</b>\n• Thao tác: <b>${safeAction}</b>\n• Khách hàng: <b>${safeName}</b>\n• Thời gian: ${new Date().toLocaleString('vi-VN')}`;
     
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
@@ -80,11 +72,11 @@ async function backupToTelegram() {
   const { token, chatId } = getTelegramConfig();
 
   if (!token || !chatId) {
-    showToast('⚠️ Hãy nhập Token và Chat ID ở trên trước!');
+    if (typeof showToast === 'function') showToast('⚠️ Hãy nhập Token và Chat ID ở trên trước!');
     return;
   }
 
-  showToast('Đang tạo tệp sao lưu gửi lên Telegram...');
+  if (typeof showToast === 'function') showToast('Đang tạo tệp sao lưu gửi lên Telegram...');
 
   try {
     const currentLeads = typeof leads !== 'undefined' ? leads : [];
@@ -105,12 +97,12 @@ async function backupToTelegram() {
 
     const d = await res.json();
     if (d.ok) {
-      showToast('✓ Đã lưu dữ liệu lên Telegram thành công!');
+      if (typeof showToast === 'function') showToast('✓ Đã lưu dữ liệu lên Telegram thành công!');
     } else {
-      showToast('Telegram từ chối: ' + (d.description || 'Sai Token/Chat ID'));
+      if (typeof showToast === 'function') showToast('Telegram từ chối: ' + (d.description || 'Sai Token/Chat ID'));
     }
   } catch (err) {
-    showToast('Lỗi mạng khi tải tệp lên Telegram');
+    if (typeof showToast === 'function') showToast('Lỗi mạng khi tải tệp lên Telegram');
   }
 }
 
@@ -121,18 +113,18 @@ async function restoreFromTelegram() {
   const { token } = getTelegramConfig();
 
   if (!token) {
-    showToast('⚠️ Vui lòng lưu Token Telegram trước');
+    if (typeof showToast === 'function') showToast('⚠️ Vui lòng lưu Token Telegram trước');
     return;
   }
 
-  showToast('Đang tìm bản sao lưu gần nhất...');
+  if (typeof showToast === 'function') showToast('Đang tìm bản sao lưu gần nhất...');
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/getUpdates?allowed_updates=["channel_post","message"]`);
     const d = await res.json();
     
     if (!d.ok || !d.result || d.result.length === 0) {
-      showToast('Không tìm thấy tin nhắn tệp trên Telegram');
+      if (typeof showToast === 'function') showToast('Không tìm thấy tin nhắn tệp trên Telegram');
       return;
     }
 
@@ -147,14 +139,14 @@ async function restoreFromTelegram() {
     }
 
     if (!targetFileId) {
-      showToast('Chưa có tệp backup .json nào trên kênh!');
+      if (typeof showToast === 'function') showToast('Chưa có tệp backup .json nào trên kênh!');
       return;
     }
 
     const fileInfoRes = await fetch(`https://api.telegram.org/bot${token}/getFile?file_id=${targetFileId}`);
     const fileInfo = await fileInfoRes.json();
     if (!fileInfo.ok) {
-      showToast('Không lấy được link tải tệp');
+      if (typeof showToast === 'function') showToast('Không lấy được link tải tệp');
       return;
     }
 
@@ -166,18 +158,11 @@ async function restoreFromTelegram() {
       leads = parsedData;
       if (typeof saveStorage === 'function') saveStorage();
       if (typeof closeBackupModal === 'function') closeBackupModal();
-      showToast(`✓ Đã nạp lại ${leads.length} hồ sơ từ Telegram!`);
+      if (typeof showToast === 'function') showToast(`✓ Đã nạp lại ${leads.length} hồ sơ từ Telegram!`);
     } else {
-      showToast('Định dạng tệp không tương thích!');
+      if (typeof showToast === 'function') showToast('Định dạng tệp không tương thích!');
     }
   } catch (err) {
-    showToast('Không thể khôi phục từ Telegram');
+    if (typeof showToast === 'function') showToast('Không thể khôi phục từ Telegram');
   }
 }
-```
-
-Tôi đã chuẩn bị:
-1. **Tệp tài liệu hướng dẫn (`huong_dan_bao_mat_telegram.md`)**: Hướng dẫn bạn lấy Token mới từ BotFather trong 30 giây và cách cấu hình trên iPhone.
-2. **Tệp mã nguồn chuẩn (`js/telegram-service.js`)**: Đã xóa sạch chuỗi khóa bí mật, chuyển sang cơ chế lưu trữ an toàn trong máy người dùng.
-
-Bạn hãy mở file `js/telegram-service.js` trên GitHub, thay bằng đoạn mã sạch ở trên và tiến hành lấy token mới theo hướng dẫn nhé! Bạn làm thử xem có bước nào cần hỗ trợ không?

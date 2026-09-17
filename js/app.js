@@ -1035,7 +1035,6 @@ function openBackupModal() {
   if (document.getElementById('cfgTgToken')) document.getElementById('cfgTgToken').value = cfg.token;
   if (document.getElementById('cfgTgChatId')) document.getElementById('cfgTgChatId').value = cfg.chatId;
   
-  // Tự động kiểm tra và cập nhật huy hiệu trạng thái ngay khi mở Modal
   if (typeof updateTgStatusBadge === 'function') {
     updateTgStatusBadge();
   }
@@ -1058,6 +1057,42 @@ function copyBackupText() {
   navigator.clipboard.writeText(JSON.stringify(leads)).then(() => showToast('Đã copy mã! Dán vào Zalo.')).catch(() => showToast('Lỗi copy'));
 }
 
+/**
+ * Nạp trực tiếp mã JSON từ bộ nhớ tạm iPhone (Không cần dùng file)
+ */
+async function importJsonFromClipboard() {
+  try {
+    let text = '';
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      text = await navigator.clipboard.readText();
+    }
+    if (!text) {
+      text = prompt('Dán chuỗi mã JSON khách hàng vào đây:');
+    }
+    if (!text || !text.trim()) {
+      showToast('Bộ nhớ tạm đang rỗng!');
+      return;
+    }
+
+    const parsed = JSON.parse(text.trim());
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      leads = parsed;
+      saveStorage();
+      closeBackupModal();
+      alert(`✅ NẠP THÀNH CÔNG!\n\nĐã nhập đầy đủ ${leads.length} khách hàng vào hệ thống.`);
+      showToast(`✓ Đã nạp thành công ${leads.length} hồ sơ!`);
+    } else {
+      alert('❌ Dữ liệu sao chép không đúng định dạng danh sách khách hàng JSON!');
+    }
+  } catch (err) {
+    console.error('Lỗi dán JSON:', err);
+    alert('❌ Không thể phân tích mã JSON. Hãy kiểm tra lại bạn đã copy trọn vẹn tệp hay chưa nhé!');
+  }
+}
+
+/**
+ * Khôi phục từ tệp máy: hỗ trợ cả tệp đuôi .json và .json.txt
+ */
 function restoreFromFile(e) {
   const f = e.target.files[0];
   if (!f) return;
@@ -1067,15 +1102,28 @@ function restoreFromFile(e) {
       const p = JSON.parse(evt.target.result);
       if (Array.isArray(p)) { 
         leads = p; 
-        showToast('Khôi phục từ file thành công!'); 
+        saveStorage();
         closeBackupModal(); 
-        saveStorage(); 
+        alert(`✅ NẠP THÀNH CÔNG!\n\nĐã khôi phục ${leads.length} hồ sơ từ tệp của bạn.`);
+        showToast('Khôi phục từ tệp thành công!'); 
       }
     } catch (err) { 
-      showToast('File không hợp lệ'); 
+      alert('❌ Tệp bạn chọn không chứa mã JSON hợp lệ!');
+      showToast('Tệp không hợp lệ'); 
     }
   };
   r.readAsText(f);
 }
 
 render();
+```eof
+
+---
+
+### Hướng dẫn thao tác Tệp 2:
+1. Bấm nút **Copy** ở góc trên bên phải khung mã `js/app.js` ở trên.
+2. Mở GitHub $\rightarrow$ vào thư mục **`js/`** $\rightarrow$ chọn file **`app.js`** $\rightarrow$ bấm biểu tượng cây bút chì ✏️.
+3. Chọn tất cả nội dung cũ $\rightarrow$ Xóa $\rightarrow$ Dán mã vừa copy vào $\rightarrow$ Bấm nút xanh **Commit changes**.
+
+Sau khi lưu tệp này:
+* Bạn vào CRM $\rightarrow$ Bấm **💾 Lưu** $\rightarrow$ bấm nút **Chọn tệp**: Tệp `leads.json.txt` đang có trên iPhone của bạn sẽ được nạp ngay mà không cần đổi tên!

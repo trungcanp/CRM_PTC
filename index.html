@@ -7,119 +7,53 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/html5-qrcode"></script>
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; user-select: none; }
     input, textarea, select { user-select: text; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    #reader video { border-radius: 1rem; object-fit: cover; width: 100% !important; height: 100% !important; }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-800 antialiased min-h-screen">
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen">
 
-  <div id="loginScreen" class="fixed inset-0 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 z-[100] flex flex-col items-center justify-center p-6">
-    <div class="w-full max-w-sm bg-white/10 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/20 text-center animate-in zoom-in-95 fade-in duration-300">
-      <div class="w-20 h-20 bg-gradient-to-tr from-blue-500 to-indigo-500 rounded-2xl mx-auto flex items-center justify-center text-4xl shadow-lg mb-6">
-        🔐
-      </div>
-      <h1 class="text-2xl font-black text-white mb-2 tracking-tight">Hệ Thống CRM_PTC</h1>
-      <p class="text-xs text-blue-200 mb-8 font-medium">Bảo mật dữ liệu tín dụng nội bộ</p>
-
-      <form onsubmit="handleLogin(event)" class="space-y-4">
-        <div class="relative">
-          <input 
-            type="password" 
-            id="pinInput" 
-            placeholder="Nhập mật khẩu truy cập..." 
-            class="w-full bg-slate-900/50 border-2 border-slate-700 focus:border-blue-500 text-white placeholder-slate-500 rounded-2xl p-4 text-center text-lg font-black tracking-widest outline-none transition-all"
-            autocomplete="off"
-          >
-        </div>
-        <p id="loginError" class="text-rose-400 text-[11px] font-bold hidden">❌ Mật khẩu không chính xác!</p>
-        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-600/30 active:scale-95 transition-all text-sm tracking-wide">
-          MỞ KHÓA HỆ THỐNG
-        </button>
-      </form>
-    </div>
-    <div class="mt-8 text-slate-500 text-[10px] font-medium">© 2026 Quản lý Tín dụng Cá nhân</div>
-  </div>
-
-  <div id="app" class="hidden max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-2xl relative pb-20">
+  <div id="app" class="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col shadow-2xl relative pb-20">
     <div id="comp-header"></div>
     <div id="comp-filter-bar"></div>
     
     <main id="leadsContainer" class="flex-1 p-3 space-y-3 overflow-y-auto">
+      <!-- Hồ sơ hiển thị tại đây -->
     </main>
   </div>
 
+  <!-- Các Modal -->
   <div id="comp-modal-lead"></div>
-  <div id="comp-modal-scan"></div>
+  <div id="comp-modal-loan-match"></div>
   <div id="comp-modal-receipt"></div>
   <div id="comp-modal-contract"></div>
   <div id="comp-modal-complete"></div>
   <div id="comp-modal-backup"></div>
+
+  <!-- Toast -->
   <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-slate-900 text-white text-xs px-4 py-2.5 rounded-full shadow-2xl font-medium hidden transition-all"></div>
 
   <script>
-    const SECRET_PIN = "6868"; 
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const isLogged = localStorage.getItem('crm_auth_token') === 'verified';
-      if (isLogged) {
-        unlockSystem();
-      }
-    });
-
-    function handleLogin(e) {
-      e.preventDefault();
-      const input = document.getElementById('pinInput').value;
-      const errorMsg = document.getElementById('loginError');
-
-      if (input === SECRET_PIN) {
-        errorMsg.classList.add('hidden');
-        localStorage.setItem('crm_auth_token', 'verified');
-        unlockSystem();
-      } else {
-        errorMsg.classList.remove('hidden');
-        document.getElementById('pinInput').value = '';
-      }
-    }
-
-    function unlockSystem() {
-      document.getElementById('loginScreen').classList.add('hidden');
-      document.getElementById('app').classList.remove('hidden');
-      document.body.classList.remove('bg-slate-900');
-      document.body.classList.add('bg-slate-100');
-      initSystem();
-    }
-
-    function lockSystem() {
-      localStorage.removeItem('crm_auth_token');
-      window.location.reload();
-    }
-
     async function loadComponent(targetId, filePath) {
       try {
-        const el = document.getElementById(targetId);
-        if (!el) return;
         const res = await fetch(filePath + '?v=' + Date.now());
-        if (res.ok) {
-          el.innerHTML = await res.text();
-        }
+        if (!res.ok) throw new Error(`Không tìm thấy: ${filePath}`);
+        document.getElementById(targetId).innerHTML = await res.text();
       } catch (err) {
-        console.warn('Bỏ qua component:', filePath);
+        console.error('Lỗi nạp component:', err);
       }
     }
 
     async function initSystem() {
-      await Promise.allSettled([
+      await Promise.all([
         loadComponent('comp-header', 'components/header.html'),
         loadComponent('comp-filter-bar', 'components/filter-bar.html'),
         loadComponent('comp-modal-lead', 'components/modal-lead.html'),
-        loadComponent('comp-modal-scan', 'components/modal-scan.html'),
+        loadComponent('comp-modal-loan-match', 'components/modal-loan-match.html'),
         loadComponent('comp-modal-receipt', 'components/modal-receipt.html'),
         loadComponent('comp-modal-contract', 'components/modal-contract.html'),
         loadComponent('comp-modal-complete', 'components/modal-complete.html'),
@@ -131,6 +65,7 @@
         'js/loan-calc.js',
         'js/qr-service.js',
         'js/telegram-service.js',
+        'js/loan-rules.js',
         'js/app.js'
       ];
 
@@ -139,12 +74,12 @@
           const s = document.createElement('script');
           s.src = src + '?v=' + Date.now();
           s.onload = resolve;
-          s.onerror = resolve;
-          setTimeout(resolve, 1500);
           document.body.appendChild(s);
         });
       }
     }
+
+    window.addEventListener('DOMContentLoaded', initSystem);
   </script>
 </body>
 </html>

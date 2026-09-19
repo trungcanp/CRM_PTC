@@ -1,3 +1,4 @@
+<!-- components/header.html -->
 <header class="sticky top-0 z-30 shadow-md bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white">
   <div class="p-3.5 space-y-2.5">
     <div class="flex items-center justify-between">
@@ -11,22 +12,17 @@
       </div>
 
       <div class="flex items-center gap-1.5">
+        <!-- Nút Dán QR từ iPhone Shortcut -->
         <button 
           type="button"
-          onclick="lockSystem()" 
-          title="Khóa hệ thống"
-          class="bg-rose-500 hover:bg-rose-600 text-white w-8 h-8 rounded-xl text-sm font-bold shadow flex items-center justify-center active:scale-95 transition-all">
-          🔒
-        </button>
-        
-        <button 
-          type="button"
-          onclick="pasteCccdData()" 
-          class="bg-purple-600 hover:bg-purple-700 text-white px-2.5 py-1.5 rounded-xl text-[11px] font-bold shadow border border-purple-400/40 flex items-center gap-1 active:scale-95 transition-all">
+          onclick="pasteFromClipboard()" 
+          title="Dán chuỗi QR từ iPhone"
+          class="bg-indigo-500 hover:bg-indigo-600 text-white px-2.5 py-1.5 rounded-xl text-xs font-bold shadow flex items-center gap-1 active:scale-95 transition-all">
           <span>📋</span>
-          <span>Dán QR</span>
+          <span class="text-[11px]">Dán QR</span>
         </button>
 
+        <!-- Nút Sao Lưu Telegram -->
         <button 
           type="button"
           onclick="openBackupModal()" 
@@ -35,6 +31,7 @@
           <span class="text-[11px]">Lưu</span>
         </button>
 
+        <!-- Nút Thêm Mới -->
         <button 
           type="button"
           onclick="openCreateModal()" 
@@ -44,6 +41,7 @@
       </div>
     </div>
 
+    <!-- HỆ THỐNG 3 TAB CHỨC NĂNG CHÍNH -->
     <div class="bg-blue-900/50 p-1 rounded-2xl grid grid-cols-3 gap-1 text-[11px] font-bold border border-blue-400/30">
       <button 
         type="button"
@@ -73,6 +71,7 @@
       </button>
     </div>
 
+    <!-- THANH TÌM KIẾM -->
     <div class="relative">
       <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">🔍</span>
       <input 
@@ -91,6 +90,7 @@
       </button>
     </div>
 
+    <!-- THỐNG KÊ NHANH -->
     <div class="grid grid-cols-4 gap-1.5 pt-2 border-t border-blue-500/40 text-center">
       <div class="bg-blue-800/40 backdrop-blur rounded-lg py-1 px-0.5">
         <div class="text-[10px] text-blue-200">Tổng lọc</div>

@@ -1,18 +1,23 @@
 <!-- components/modal-receipt.html -->
 <div id="receiptModal" class="fixed inset-0 bg-slate-950/70 z-50 flex items-center justify-center p-3 backdrop-blur-md hidden">
   <div class="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border border-slate-200 text-xs">
-    <div id="receiptHeader" class="p-4 text-white bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-800 flex justify-between items-center">
+    
+    <div id="receiptHeader" class="p-4 text-white bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-800 flex justify-between items-center relative">
       <div class="flex items-center gap-2">
-        <div id="receiptLogoEmoji" class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-base">🏦</div>
+        <div id="receiptLogoEmoji" class="w-9 h-9 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center text-lg">🏦</div>
         <div>
-          <span class="text-[9px] uppercase tracking-wider opacity-80 block">Lịch Trình Thanh Toán Khoản Vay</span>
-          <h3 id="receiptLenderTitle" class="font-extrabold text-sm">---</h3>
+          <div class="flex gap-1 mb-0.5">
+            <span id="receiptTypeBadge" class="text-[8px] bg-white text-blue-900 font-extrabold px-1.5 py-0.5 rounded-sm">VAY</span>
+            <span id="receiptPlatformBadge" class="text-[8px] bg-blue-900/50 border border-blue-400/30 font-bold px-1.5 py-0.5 rounded-sm">TRỰC TIẾP</span>
+          </div>
+          <h3 id="receiptLenderTitle" class="font-extrabold text-[13px]">---</h3>
         </div>
       </div>
       <button type="button" onclick="closeReceiptModal()" class="w-7 h-7 bg-white/20 rounded-full font-bold flex items-center justify-center">✕</button>
     </div>
 
     <div class="p-4 space-y-3">
+      <!-- Info Khách Hàng -->
       <div class="bg-slate-50 p-2.5 rounded-xl border flex justify-between items-center">
         <div>
           <span class="text-[10px] text-slate-400 block font-medium">Khách hàng</span>
@@ -24,36 +29,60 @@
         </div>
       </div>
 
-      <div class="bg-emerald-50 border border-emerald-300 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
-        <div class="text-[10px] uppercase font-bold text-emerald-800 tracking-wide">💰 Số Tiền Góp Định Kỳ Mỗi Tháng</div>
-        <div id="receiptMonthlyPay" class="text-2xl font-black text-emerald-700">0 đ</div>
-        <div class="text-[10px] text-slate-600">
-          Kỳ hạn: <b id="receiptTenor">12 tháng</b> • Mã HĐ: <b id="receiptCode" class="font-mono text-slate-800 font-bold">---</b>
+      <div class="text-[10px] text-center text-slate-500 font-medium">
+        Mã số HĐ / Thẻ: <b id="receiptCode" class="font-mono text-slate-800 font-bold">---</b>
+      </div>
+
+      <!-- GIAO DIỆN VAY TRẢ GÓP -->
+      <div id="viewLoanInfo" class="space-y-3">
+        <div class="bg-emerald-50 border border-emerald-300 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
+          <div class="text-[10px] uppercase font-bold text-emerald-800 tracking-wide">💰 Số Tiền Góp Mỗi Tháng</div>
+          <div id="receiptMonthlyPay" class="text-2xl font-black text-emerald-700">0 đ</div>
+          <div class="text-[10px] text-slate-600 font-bold">Tổng khoản vay: <span id="receiptLoanAmount">0 đ</span> • Kỳ hạn: <span id="receiptTenor">12</span> tháng</div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-center">
+            <span class="text-[10px] text-blue-700 font-bold block">📅 Ngày Đóng Kỳ 1</span>
+            <div id="receiptFirstDate" class="text-xs font-mono font-extrabold text-blue-900 mt-0.5">---</div>
+          </div>
+          <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-2.5 text-center">
+            <span class="text-[10px] text-indigo-700 font-bold block">🏁 Ngày Tất Toán Cuối</span>
+            <div id="receiptLastDate" class="text-xs font-mono font-extrabold text-indigo-900 mt-0.5">---</div>
+          </div>
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-2">
-        <div class="bg-blue-50 border border-blue-200 rounded-xl p-2.5 text-center">
-          <span class="text-[10px] text-blue-700 font-bold block">📅 Ngày Đóng Kỳ 1</span>
-          <div id="receiptFirstDate" class="text-xs font-mono font-extrabold text-blue-900 mt-0.5">---</div>
+      <!-- GIAO DIỆN THẺ TÍN DỤNG / VÍ TRẢ SAU -->
+      <div id="viewCardInfo" class="hidden space-y-3">
+        <div class="bg-amber-50 border border-amber-300 p-3.5 rounded-2xl text-center space-y-1 shadow-sm">
+          <div class="text-[10px] uppercase font-bold text-amber-800 tracking-wide">💳 Hạn Mức Cấp Khả Dụng</div>
+          <div id="receiptLimit" class="text-2xl font-black text-amber-700">0 đ</div>
+          <div class="text-[10px] text-slate-600 font-bold">Sử dụng thanh toán tiêu dùng, quẹt thẻ</div>
         </div>
-        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-2.5 text-center">
-          <span class="text-[10px] text-indigo-700 font-bold block">🏁 Ngày Tất Toán Cuối</span>
-          <div id="receiptLastDate" class="text-xs font-mono font-extrabold text-indigo-900 mt-0.5">---</div>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-center">
+            <span class="text-[10px] text-slate-500 font-bold block">📄 Ngày Chốt Sao Kê</span>
+            <div id="receiptStatementDate" class="text-[11px] font-extrabold text-slate-800 mt-0.5">Ngày -- hàng tháng</div>
+          </div>
+          <div class="bg-rose-50 border border-rose-200 rounded-xl p-2.5 text-center">
+            <span class="text-[10px] text-rose-700 font-bold block">⏰ Hạn Thanh Toán</span>
+            <div id="receiptDueDate" class="text-[11px] font-extrabold text-rose-900 mt-0.5">Ngày -- hàng tháng</div>
+          </div>
         </div>
       </div>
 
-      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-2.5 text-[11px] space-y-1 text-slate-700">
-        <div class="font-bold text-slate-900 flex items-center gap-1">
-          <span>🏦</span> Hướng dẫn đóng tiền theo đơn vị:
+      <!-- HƯỚNG DẪN & CẢNH BÁO CHI TIẾT -->
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-[11px] space-y-1.5 text-slate-700">
+        <div class="font-bold text-slate-900 flex items-center gap-1 border-b border-slate-200 pb-1">
+          <span>ℹ️</span> Hướng dẫn thanh toán chuyên sâu:
         </div>
-        <p id="receiptGuideText" class="text-[10px] text-slate-600 leading-tight">
+        <div id="receiptGuideText" class="text-[10.5px] text-slate-700 leading-relaxed whitespace-pre-wrap">
           ---
-        </p>
+        </div>
       </div>
 
-      <button type="button" onclick="copyPaymentMsg()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl shadow flex items-center justify-center gap-1.5">
-        <span>📋</span> Copy Lịch Trả Nợ Cho Khách
+      <button type="button" onclick="copyPaymentMsg()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow flex items-center justify-center gap-1.5 active:scale-95 transition">
+        <span>📋</span> Copy Kịch Bản Gửi Khách
       </button>
     </div>
   </div>

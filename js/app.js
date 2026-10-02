@@ -245,23 +245,19 @@ function ensureAddAppModalExists() {
   if (document.getElementById('addAppModal')) return;
   const modalDiv = document.createElement('div');
   modalDiv.id = 'addAppModal';
-  modalDiv.className = 'fixed inset-0 bg-slate-900/70 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm hidden';
+  modalDiv.className = 'fixed inset-0 bg-slate-900/80 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm hidden';
   modalDiv.innerHTML = `
-    <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl p-4 max-h-[88vh] overflow-y-auto space-y-3 shadow-2xl animate-in fade-in">
-      <div class="flex justify-between items-center border-b pb-2">
+    <div class="bg-slate-50 w-full max-w-md rounded-t-3xl sm:rounded-2xl p-4 max-h-[90vh] overflow-y-auto space-y-3 shadow-2xl animate-in fade-in">
+      <div class="flex justify-between items-center border-b border-slate-200 pb-2 bg-slate-50 sticky top-0 z-10">
         <div>
           <h3 class="font-black text-sm text-slate-900 flex items-center gap-1.5">
-            <span>🏛️</span> Chọn Đơn Vị Nộp Hồ Sơ
+            <span>🚀</span> Chọn Đơn Vị Nộp Hồ Sơ
           </h3>
           <p id="addAppTargetName" class="text-[10px] text-slate-500 mt-0.5">Khách hàng: ---</p>
         </div>
-        <button type="button" onclick="closeAddAppModal()" class="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-full flex items-center justify-center text-slate-500 font-bold">✕</button>
+        <button type="button" onclick="closeAddAppModal()" class="w-7 h-7 bg-white border border-slate-200 rounded-full flex items-center justify-center text-slate-500 font-bold shadow-sm">✕</button>
       </div>
-      <p class="text-[11px] text-slate-600 bg-blue-50/70 border border-blue-100 p-2 rounded-xl">👉 <b>Chạm 1 chạm</b> vào ngân hàng hoặc công ty tài chính bạn muốn nộp:</p>
-      <div id="addAppPartnersList" class="grid grid-cols-2 gap-2 text-xs"></div>
-      <div class="pt-1">
-        <button type="button" onclick="closeAddAppModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition">Hủy & Đóng</button>
-      </div>
+      <div id="addAppPartnersList" class="pb-2"></div>
     </div>
   `;
   document.body.appendChild(modalDiv);
@@ -277,34 +273,59 @@ function addAppPrompt(leadId) {
   const container = document.getElementById('addAppPartnersList');
   const appliedLenders = (l.applications || []).map(a => a.lender);
 
-  const partners = typeof ALL_PARTNERS !== 'undefined' ? ALL_PARTNERS : [
-    'TPBank', 'FE Credit', 'Home Credit', 'HD Saison', 
-    'Mirae Asset (MAFC)', 'MCredit', 'SHB Finance', 'VPBank', 
-    'Cathay Bank (CUB)', 'Tnex', 'Cake by VPBank', 'Viettel Money', 'Tinvay'
-  ];
-
-  let html = '';
-  partners.forEach(lender => {
-    const isApplied = appliedLenders.includes(lender);
-    const icon = PARTNER_ICONS[lender] || '🏛️';
-
+  const renderBtn = (lenderName) => {
+    const isApplied = appliedLenders.includes(lenderName);
     if (isApplied) {
-      html += `
-        <button type="button" disabled class="p-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-400 text-left flex items-center justify-between opacity-70 cursor-not-allowed">
-          <div class="truncate font-semibold">${icon} ${lender}</div>
-          <span class="text-[9px] font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">Đã có</span>
-        </button>
-      `;
-    } else {
-      html += `
-        <button type="button" onclick="selectPartnerLender('${escapeHtml(lender)}')" class="p-2.5 rounded-xl border-2 border-indigo-100 hover:border-indigo-500 bg-white hover:bg-indigo-50 text-slate-800 text-left flex items-center justify-between shadow-sm active:scale-95 transition">
-          <div class="truncate font-bold text-[11px]">${icon} ${lender}</div>
-          <span class="text-[10px] text-indigo-600 font-extrabold">+ Nộp</span>
-        </button>
-      `;
+      return `<button type="button" disabled class="p-2 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 text-left flex items-center justify-between opacity-60 cursor-not-allowed">
+                <div class="truncate font-semibold text-[10px]">🏢 ${lenderName}</div>
+                <span class="text-[9px] font-bold bg-slate-200 text-slate-600 px-1 py-0.5 rounded">Đã nộp</span>
+              </button>`;
     }
-  });
+    return `<button type="button" onclick="selectPartnerLender('${escapeHtml(lenderName)}')" class="p-2 rounded-xl border border-indigo-100 hover:border-indigo-500 bg-white hover:bg-indigo-50 text-slate-800 text-left flex items-center justify-between shadow-sm active:scale-95 transition">
+              <div class="truncate font-bold text-[10px]">🏢 ${lenderName}</div>
+              <span class="text-[9px] text-indigo-600 font-black">+ Chọn</span>
+            </button>`;
+  };
 
+  const html = `
+    <div class="space-y-4">
+      <!-- 1. VAY QUA ĐỐI TÁC (APP) -->
+      <div class="bg-blue-50/70 p-2.5 rounded-xl border border-blue-200 space-y-2">
+        <h4 class="font-black text-blue-900 text-[11px] uppercase flex items-center gap-1"><span>📱</span> 1. Vay Qua Đối Tác (Zalo/MoMo...)</h4>
+        <div class="space-y-2.5 pl-1">
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Zalo:</div><div class="grid grid-cols-2 gap-1.5">${['TiN VAY (VietCredit)', 'MCredit', 'Tnex (MSB)', 'TPBank'].map(renderBtn).join('')}</div></div>
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua MoMo:</div><div class="grid grid-cols-2 gap-1.5">${['Home Credit', 'FE Credit', 'VPBank', 'SHB Finance', 'VAY NHANH (MBV)'].map(renderBtn).join('')}</div></div>
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️️ Qua ZaloPay:</div><div class="grid grid-cols-2 gap-1.5">${['Tnex (ZaloPay)', 'Cake by VPBank'].map(renderBtn).join('')}</div></div>
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Viettel Money:</div><div class="grid grid-cols-2 gap-1.5">${['Cake (Viettel)', 'FE Credit (Viettel)', 'TiN VAY (Viettel)', 'MCredit (Viettel)', 'FAST MONEY (EVN)'].map(renderBtn).join('')}</div></div>
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Quà Tặng VIP:</div><div class="grid grid-cols-2 gap-1.5">${['Cake (VIP)', 'EVO', 'Thẻ VietCredit', 'Thẻ MWG (VPBank)'].map(renderBtn).join('')}</div></div>
+        </div>
+      </div>
+
+      <!-- 2. VAY TRỰC TIẾP QUA SALE -->
+      <div class="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200 space-y-2">
+        <h4 class="font-black text-emerald-900 text-[11px] uppercase flex items-center gap-1"><span>👔</span> 2. Vay Trực Tiếp Qua Sale</h4>
+        <div class="grid grid-cols-2 gap-1.5">
+          ${['TiN VAY (Sale)', 'MCredit (Sale)', 'Home Credit (Sale)', 'FE Credit (Sale)', 'HD Saison', 'VPBank (Sale)', 'Tnex (Sale)', 'Cake (Sale)', 'TPBank (Sale)', 'CUB (Cathay Bank)', 'SHB Finance (Sale)', 'Mirae Asset'].map(renderBtn).join('')}
+        </div>
+      </div>
+
+      <!-- 3. THẺ TÍN DỤNG -->
+      <div class="bg-amber-50/70 p-2.5 rounded-xl border border-amber-200 space-y-2">
+        <h4 class="font-black text-amber-900 text-[11px] uppercase flex items-center gap-1"><span>💳</span> 3. Thẻ Tín Dụng</h4>
+        <div class="grid grid-cols-2 gap-1.5">
+          ${['Thẻ VPBank', 'Thẻ OCB', 'Thẻ VIB', 'Thẻ VietCredit (App)', 'Thẻ TPBank', 'Thẻ LeoBank', 'Thẻ HDBank'].map(renderBtn).join('')}
+        </div>
+      </div>
+
+      <!-- 4. VÍ TRẢ SAU -->
+      <div class="bg-purple-50/70 p-2.5 rounded-xl border border-purple-200 space-y-2">
+        <h4 class="font-black text-purple-900 text-[11px] uppercase flex items-center gap-1"><span>🛍️</span> 4. Ví Trả Sau</h4>
+        <div class="grid grid-cols-2 gap-1.5">
+          ${['Ví Trả Sau MoMo', 'TK Trả Sau ZaloPay', 'Paynow (Viettel)', 'SPayLater (Shopee)', 'Kredivo'].map(renderBtn).join('')}
+        </div>
+      </div>
+    </div>
+  `;
   container.innerHTML = html;
   document.getElementById('addAppModal').classList.remove('hidden');
 }
@@ -583,7 +604,7 @@ function render() {
             <span class="font-bold text-slate-800 truncate">🏛️ ${app.lender}</span>
             <div class="flex items-center gap-1.5">
               <span class="text-[10px] font-bold px-2 py-0.5 rounded ${app.result === 'Duyệt' ? 'bg-emerald-100 text-emerald-800' : app.result === 'Từ chối' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}">${app.result}</span>
-              ${app.contract ? `<button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="text-[10px] bg-teal-600 text-white font-bold px-2 py-0.5 rounded active:scale-95 transition">🧾 Phiếu</button>` : ''}
+              ${app.contract ? `<button type="button" onclick="openReceipt(${lead.id},${aIdx})" class="text-[10px] bg-teal-600 text-white font-bold px-2 py-0.5 rounded active:scale-95 transition">🧾 Phiếu</button>` : ''}
             </div>
           </div>
         `;
@@ -615,7 +636,7 @@ function render() {
               <span class="font-bold ${isDisbursed ? 'text-emerald-700' : 'text-indigo-950'}">
                 ${isDisbursed ? '🎉' : '📁'} ${escapeHtml(lead.completeReason || 'Hoàn tất')}
               </span>
-              ${approvedApp?.contract ? `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}: ${fmtVND(approvedApp.contract.approvedAmount)})</span>` : ''}
+              ${approvedApp?.contract ? `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}:${fmtVND(approvedApp.contract.approvedAmount)})</span>` : ''}
             </div>
             <span class="text-[10px] text-slate-500 shrink-0 ml-1 font-medium">${lead.completedDate || ''}</span>
           </div>
@@ -625,12 +646,10 @@ function render() {
               <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
                 <div class="flex justify-between"><span>Khoản vay:</span> <span class="font-bold text-blue-700">${fmtVND(lead.amount)}</span></div>
                 <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
-                <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${fmtVND(lead.income)}</div>
-                ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Nơi làm:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
+                <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${fmtVND(lead.income)}</div>${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Nơi làm:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
                 <div class="text-[10px] text-slate-500">🏠 <b>Thường trú:</b> ${escapeHtml(lead.permAddress) || '---'}</div>
-                <div class="text-[10px] text-slate-500">👥 <b>Tham chiếu:</b> ${escapeHtml(lead.ref1Name) || '---'} (${lead.ref1Phone || '---'})</div>
-                <div><b>Chứng từ:</b> ${docsHtml}</div>
-                ${lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : ''}
+                <div class="text-[10px] text-slate-500">👥 <b>Tham chiếu:</b> ${escapeHtml(lead.ref1Name) \vert{}\vert{} '---'} (${lead.ref1Phone || '---'})</div>
+                <div><b>Chứng từ:</b> ${docsHtml}</div>${lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : ''}
               </div>
 
               <div class="bg-slate-100/60 rounded-xl p-2 space-y-1.5 border border-slate-200">
@@ -686,7 +705,7 @@ function render() {
               <div>Số HĐ: <b class="font-mono text-emerald-800">${escapeHtml(app.contract.code)}</b></div>
               <div>Duyệt: <b class="text-emerald-800">${fmtVND(app.contract.approvedAmount)}</b></div>
               <div class="col-span-2 flex justify-between items-center pt-1">
-                <span>Kỳ: ${app.contract.tenor} tháng • Góp: ${fmtVND(app.contract.monthlyPay)}/tháng</span>
+                <span>Kỳ: ${app.contract.tenor || 12} tháng • Góp: ${fmtVND(app.contract.monthlyPay)}/tháng</span>
                 <button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="bg-teal-600 text-white px-2.5 py-1 rounded-lg font-bold shadow hover:bg-teal-700 active:scale-95 transition">🧾 Xuất Phiếu</button>
               </div>
             </div>
@@ -915,6 +934,24 @@ function updateRejectReason(leadId, aIdx, val) {
   saveStorage();
 }
 
+// =================================================================
+// LOGIC XỬ LÝ ẨN HIỆN FORM HỢP ĐỒNG (VAY / THẺ) - MỚI ĐƯỢC THÊM
+// =================================================================
+function toggleContractFields() {
+  const type = document.getElementById('contractType').value;
+  if (type === 'THE_TD' || type === 'VI_TRA_SAU') {
+    document.getElementById('loanFields').classList.add('hidden');
+    document.getElementById('cardFields').classList.remove('hidden');
+    document.getElementById('lblAmount').innerText = 'Hạn mức thẻ / Ví khả dụng';
+    document.getElementById('lblDate').innerText = 'Ngày kích hoạt thẻ/ví';
+  } else {
+    document.getElementById('loanFields').classList.remove('hidden');
+    document.getElementById('cardFields').classList.add('hidden');
+    document.getElementById('lblAmount').innerText = 'Số tiền duyệt';
+    document.getElementById('lblDate').innerText = 'Ngày giải ngân (Bắt đầu tính lãi)';
+  }
+}
+
 function openContractModal(leadId, aIdx) {
   contractLeadId = leadId;
   contractAppIdx = aIdx;
@@ -923,18 +960,25 @@ function openContractModal(leadId, aIdx) {
   const c = app.contract;
   
   const defaultAmount = c ? c.approvedAmount : (l.amount || 30000000);
-  const defaultMonthly = c ? c.monthlyPay : Math.round((l.amount || 30000000) * 1.15 / 12);
+  const defaultMonthly = c ? (c.monthlyPay || 0) : Math.round((l.amount || 30000000) * 1.15 / 12);
 
-  document.getElementById('contractCode').value = c ? c.code : ('HĐ-' + Date.now().toString().slice(-5));
+  document.getElementById('contractType').value = c ? (c.type || 'VAY') : 'VAY';
+  document.getElementById('contractPlatform').value = c ? (c.platform || 'TRUC_TIEP') : 'TRUC_TIEP';
   
-  // Hiển thị đẹp mắt lúc vừa mở lên
+  document.getElementById('contractCode').value = c ? c.code : ('HĐ-' + Date.now().toString().slice(-5));
   document.getElementById('contractAmount').value = new Intl.NumberFormat('vi-VN').format(defaultAmount);
+  
+  // Vay
+  document.getElementById('contractTenor').value = c ? (c.tenor || 12) : 12;
   document.getElementById('contractMonthly').value = new Intl.NumberFormat('vi-VN').format(defaultMonthly);
   
-  const tenorEl = document.getElementById('contractTenor');
-  if (tenorEl) tenorEl.value = c ? c.tenor : 12;
-
+  // Thẻ TD
+  document.getElementById('contractStatementDate').value = c ? (c.statementDate || '') : '';
+  document.getElementById('contractPaymentDueDate').value = c ? (c.paymentDueDate || '') : '';
+  
   document.getElementById('contractDate').value = c ? c.disburseDate : new Date().toISOString().substring(0, 10);
+  
+  toggleContractFields(); // Render đúng giao diện dựa theo dropdown
   document.getElementById('contractModal').classList.remove('hidden');
 }
 
@@ -956,10 +1000,14 @@ function saveContractForm(e) {
   };
 
   l.applications[contractAppIdx].contract = {
+    type: document.getElementById('contractType').value,
+    platform: document.getElementById('contractPlatform').value,
     code: document.getElementById('contractCode').value,
     approvedAmount: parseNumSmart(document.getElementById('contractAmount').value),
     tenor: Number(document.getElementById('contractTenor').value),
     monthlyPay: parseNumSmart(document.getElementById('contractMonthly').value),
+    statementDate: document.getElementById('contractStatementDate').value,
+    paymentDueDate: document.getElementById('contractPaymentDueDate').value,
     disburseDate: document.getElementById('contractDate').value || new Date().toISOString().substring(0, 10)
   };
   
@@ -973,22 +1021,9 @@ function saveContractForm(e) {
   }, 200);
 }
 
-const LENDER_THEMES = {
-  'TPBank': { bg: 'bg-purple-700', emoji: '🟣', guide: 'Thanh toán qua app TPBank Mobile hoặc ví MoMo/Viettel Money chọn "Thanh toán khoản vay > TPBank".' },
-  'FE Credit': { bg: 'bg-emerald-700', emoji: '🟢', guide: 'Thanh toán qua ví MoMo, ZaloPay, Viettel Money hoặc STK định danh FE Credit.' },
-  'Home Credit': { bg: 'bg-red-600', emoji: '🔴', guide: 'Đóng tiền qua app Home Credit, MoMo, Viettel Post hoặc cửa hàng TGDĐ/FPT Shop.' },
-  'HD Saison': { bg: 'bg-amber-600', emoji: '🟡', guide: 'Thanh toán qua HD SAISON App, VNPay, Bưu điện VNPost hoặc điểm thu hộ liên kết.' },
-  'Mirae Asset (MAFC)': { bg: 'bg-blue-900', emoji: '🏢', guide: 'Chuyển khoản qua STK định danh Mirae Asset hoặc qua My Finance / MoMo.' },
-  'MCredit': { bg: 'bg-purple-700', emoji: '🟣', guide: 'Thanh toán qua app MCredit, Viettel Money hoặc các điểm thu hộ Viettel Post.' },
-  'SHB Finance': { bg: 'bg-cyan-700', emoji: '🔷', guide: 'Đóng qua SHB Finance App, VNPay hoặc chuyển khoản trực tiếp STK ngân hàng.' },
-  'VPBank': { bg: 'bg-green-700', emoji: '🏦', guide: 'Thanh toán qua VPBank NEO, MoMo, hoặc nộp tiền mặt tại chi nhánh VPBank.' },
-  'Cathay Bank (CUB)': { bg: 'bg-emerald-800', emoji: '🌳', guide: 'Chuyển khoản theo STK hợp đồng định danh cấp bởi Cathay Bank (CUB).' },
-  'Tnex': { bg: 'bg-sky-600', emoji: '⚡', guide: 'Thanh toán trực tiếp tự động qua app ngân hàng số TNEX.' },
-  'Cake by VPBank': { bg: 'bg-pink-600', emoji: '🍰', guide: 'Thanh toán trực tiếp trên app Cake by VPBank.' },
-  'Viettel Money': { bg: 'bg-rose-700', emoji: '📶', guide: 'Thanh toán qua app Viettel Money (mục Vay tiêu dùng).' },
-  'Tinvay': { bg: 'bg-indigo-700', emoji: '💳', guide: 'Thanh toán qua app Tinvay hoặc các cổng thanh toán hỗ trợ.' }
-};
-
+// ==========================================
+// TẠO PHIẾU THANH TOÁN (HỖ TRỢ VAY + THẺ)
+// ==========================================
 function openReceipt(leadId, aIdx) {
   const l = leads.find(x => x.id === leadId);
   if (!l || !l.applications || !l.applications[aIdx]) return;
@@ -998,21 +1033,66 @@ function openReceipt(leadId, aIdx) {
 
   const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => `${(v || 0).toLocaleString('vi-VN')} đ`;
   const c = app.contract || {};
-  const dates = typeof calcPayDates === 'function' ? calcPayDates(c.disburseDate, c.tenor) : { first: '---', last: '---' };
-  const theme = LENDER_THEMES[app.lender] || { bg: 'bg-slate-800', emoji: '💳', guide: 'Thanh toán qua ví điện tử hoặc điểm thu hộ liên kết.' };
-
-  document.getElementById('receiptHeader').className = `p-4 text-white ${theme.bg} flex justify-between items-center`;
-  document.getElementById('receiptLogoEmoji').innerText = theme.emoji;
+  
   document.getElementById('receiptLenderTitle').innerText = app.lender;
   document.getElementById('receiptName').innerText = l.name;
   document.getElementById('receiptPhone').innerText = l.phone;
-  document.getElementById('receiptMonthlyPay').innerText = fmtVND(c.monthlyPay);
-  document.getElementById('receiptTenor').innerText = `${c.tenor || 12} tháng`;
   document.getElementById('receiptCode').innerText = c.code || '---';
-  document.getElementById('receiptFirstDate').innerText = dates.first;
-  document.getElementById('receiptLastDate').innerText = dates.last;
-  document.getElementById('receiptGuideText').innerText = theme.guide;
 
+  // Label Nền tảng
+  const platforms = {
+    TRUC_TIEP: 'TRỰC TIẾP APP/SALE', ZALO: 'ZALO', MOMO: 'VÍ MOMO', ZALOPAY: 'VÍ ZALOPAY',
+    VIETTEL_MONEY: 'VIETTEL MONEY', QUA_TANG_VIP: 'APP QUÀ TẶNG VIP', KHAC: 'ỨNG DỤNG KHÁC'
+  };
+  document.getElementById('receiptPlatformBadge').innerText = platforms[c.platform] || 'TRỰC TIẾP';
+
+  // Xử lý Giao diện VAY vs THẺ
+  let typeGuideText = '';
+  let platformGuideText = '';
+
+  // Chuyên sâu về nền tảng thanh toán
+  switch (c.platform) {
+    case 'ZALO': platformGuideText = 'Mở ứng dụng Zalo > Mục Khám phá > Chọn Mini App tương ứng (VD: VietCredit, Tnex) hoặc tìm trong phần Dịch vụ Tài Chính.'; break;
+    case 'MOMO': platformGuideText = 'Mở ứng dụng MoMo > Vào mục "Thanh toán khoản vay" hoặc "Ví trả sau" > Nhập mã số hoặc CCCD để thanh toán.'; break;
+    case 'ZALOPAY': platformGuideText = 'Mở ứng dụng ZaloPay > Tài khoản trả sau / Thanh toán khoản vay.'; break;
+    case 'VIETTEL_MONEY': platformGuideText = 'Mở ứng dụng Viettel Money > Mục Tài chính, Bảo hiểm > Thanh toán khoản vay.'; break;
+    case 'QUA_TANG_VIP': platformGuideText = 'Mở app Quà Tặng VIP > Mục Tiện ích / Trả góp để kiểm tra dư nợ và thanh toán.'; break;
+    default: platformGuideText = 'Thanh toán qua ứng dụng chính thức của nhà cung cấp hoặc chuyển khoản trực tiếp vào số tài khoản Hợp đồng/Thẻ.'; break;
+  }
+
+  if (c.type === 'THE_TD' || c.type === 'VI_TRA_SAU') {
+    document.getElementById('receiptTypeBadge').innerText = c.type === 'THE_TD' ? 'THẺ TÍN DỤNG' : 'VÍ TRẢ SAU';
+    document.getElementById('viewLoanInfo').classList.add('hidden');
+    document.getElementById('viewCardInfo').classList.remove('hidden');
+    
+    document.getElementById('receiptLimit').innerText = fmtVND(c.approvedAmount);
+    document.getElementById('receiptStatementDate').innerText = c.statementDate ? `Ngày ${c.statementDate} hàng tháng` : 'Chưa rõ';
+    document.getElementById('receiptDueDate').innerText = c.paymentDueDate ? `Ngày ${c.paymentDueDate} hàng tháng` : 'Chưa rõ';
+
+    if (c.type === 'THE_TD') {
+      typeGuideText = '⚠️ <b>RỦI RO THANH TOÁN THẺ TÍN DỤNG:</b>\n1. Để được <b>MIỄN LÃI hoàn toàn</b>, bạn bắt buộc phải thanh toán TOÀN BỘ "Tổng dư nợ kỳ trước" vào trước hoặc đúng Ngày Hạn Thanh Toán.\n2. Nếu bạn chỉ thanh toán số tiền <b>TỐI THIỂU</b> (thường 5% dư nợ), bạn sẽ không bị nợ xấu, NHƯNG toàn bộ giao dịch trong kỳ sẽ bị tính <b>lãi suất dư nợ (khoảng 3-4%/tháng)</b>.\n3. Nếu đóng trễ hạn thanh toán dù chỉ 1 ngày, bạn sẽ bị phạt phí trễ hạn (tối thiểu 4-5% số tiền chậm trả) và có nguy cơ bị ghi nhận NỢ XẤU CIC.';
+    } else {
+      typeGuideText = '⚠️ <b>LƯU Ý VÍ TRẢ SAU:</b> Vui lòng thanh toán toàn bộ dư nợ đã tiêu dùng trước hạn để tránh bị phạt phí trễ hạn khá cao và bị khóa ví. Hầu hết ví trả sau không hỗ trợ thanh toán tối thiểu kéo dài như thẻ tín dụng.';
+    }
+
+  } else {
+    // Vay trả góp
+    document.getElementById('receiptTypeBadge').innerText = 'VAY TRẢ GÓP';
+    document.getElementById('viewLoanInfo').classList.remove('hidden');
+    document.getElementById('viewCardInfo').classList.add('hidden');
+    
+    document.getElementById('receiptMonthlyPay').innerText = fmtVND(c.monthlyPay);
+    document.getElementById('receiptLoanAmount').innerText = fmtVND(c.approvedAmount);
+    document.getElementById('receiptTenor').innerText = c.tenor || 12;
+    
+    const dates = (typeof calcPayDates === 'function') ? calcPayDates(c.disburseDate, c.tenor) : { first: '---', last: '---' };
+    document.getElementById('receiptFirstDate').innerText = dates.first;
+    document.getElementById('receiptLastDate').innerText = dates.last;
+    
+    typeGuideText = '💡 <b>LƯU Ý:</b> Bạn vui lòng thanh toán khoản vay hàng tháng TRƯỚC HẠN 1-2 NGÀY để phòng ngừa rủi ro kẹt mạng đường truyền, ngân hàng treo lệnh dẫn đến trễ hạn phát sinh phí phạt/nợ xấu oan uổng.';
+  }
+
+  document.getElementById('receiptGuideText').innerHTML = `<b>🔗 Kênh Thanh Toán:</b> ${platformGuideText}<br><br>${typeGuideText}`;
   document.getElementById('receiptModal').classList.remove('hidden');
 }
 
@@ -1026,12 +1106,17 @@ function copyPaymentMsg() {
   const app = l.applications[receiptAppIdx];
   const c = app.contract || {};
   const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => `${(v || 0).toLocaleString('vi-VN')} đ`;
-  const dates = typeof calcPayDates === 'function' ? calcPayDates(c.disburseDate, c.tenor) : { first: '---', last: '---' };
-  const theme = LENDER_THEMES[app.lender] || { guide: 'Thanh toán qua ví điện tử hoặc điểm thu hộ.' };
 
-  const msg = `📢 THÔNG BÁO LỊCH THANH TOÁN KHOẢN VAY\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nĐơn vị: ${app.lender}\nSố HĐ: ${c.code || '---'}\nTiền góp: ${fmtVND(c.monthlyPay)}/tháng (Kỳ hạn: ${c.tenor || 12} tháng)\n📅 Ngày đóng đầu tiên: ${dates.first}\n🏁 Ngày đóng cuối (Tất toán): ${dates.last}\n\n🏦 HƯỚNG DẪN ĐÓNG TIỀN:\n${theme.guide}`;
+  let msg = `📢 THÔNG BÁO TÌNH TRẠNG SẢN PHẨM TÀI CHÍNH\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nSản phẩm: ${app.lender} (${c.type === 'THE_TD' ? 'Thẻ Tín Dụng' : c.type === 'VI_TRA_SAU' ? 'Ví Trả Sau' : 'Vay Trả Góp'})\nMã số HĐ/Thẻ: ${c.code || '---'}\n\n`;
+
+  if (c.type === 'THE_TD' || c.type === 'VI_TRA_SAU') {
+    msg += `💳 Hạn mức cấp: ${fmtVND(c.approvedAmount)}\n📄 Ngày chốt sao kê: Ngày ${c.statementDate || '--'} hàng tháng\n⏰ Hạn thanh toán: Ngày ${c.paymentDueDate || '--'} hàng tháng\n\n⚠️ LƯU Ý QUAN TRỌNG: Hãy thanh toán TOÀN BỘ Tổng dư nợ đúng hạn để được miễn lãi 100%. Nếu chỉ thanh toán TỐI THIỂU, bạn sẽ bị tính lãi suất dư nợ. Đóng trễ sẽ bị phạt và nợ xấu.`;
+  } else {
+    const dates = (typeof calcPayDates === 'function') ? calcPayDates(c.disburseDate, c.tenor) : { first: '---', last: '---' };
+    msg += `💰 Tiền góp định kỳ: ${fmtVND(c.monthlyPay)}/tháng\n(Kỳ hạn: ${c.tenor || 12} tháng)\n📅 Ngày đóng kỳ 1: ${dates.first}\n🏁 Ngày đóng kỳ cuối: ${dates.last}\n\n💡 LƯU Ý: Vui lòng đóng trước hạn 1-2 ngày để tránh kẹt mạng dẫn đến nợ xấu.`;
+  }
   
-  navigator.clipboard.writeText(msg).then(() => showToast('Đã copy tin nhắn gửi Zalo!')).catch(() => showToast('Lỗi copy'));
+  navigator.clipboard.writeText(msg).then(() => showToast('Đã copy kịch bản gửi Zalo!')).catch(() => showToast('Lỗi copy'));
 }
 
 function toggleCompleteModal(leadId) {

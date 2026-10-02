@@ -4,11 +4,7 @@ const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzi_ck6A2a
 
 function escapeHtml(str) {
   if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function cleanJsonString(str) {
@@ -16,25 +12,18 @@ function cleanJsonString(str) {
   return String(str).replace(/^\uFEFF/, '').trim();
 }
 
-/**
- * THUẬT TOÁN ĐỊNH DẠNG TIỀN THÔNG MINH
- * Nếu nhập số nhỏ hơn 100,000 (VD: 2500, 30000), tự động hiểu là nhập tắt và nhân với 1,000
- */
 function smartFormatMoney(el) {
   let val = parseInt(String(el.value).replace(/[^0-9]/g, ''), 10);
   if (!val) {
     el.value = '';
     return;
   }
-  // Nếu nhập tắt (nhỏ hơn 100k), tự nhân 1000
   if (val < 100000) {
     val = val * 1000;
   }
-  // Hiển thị đẹp mắt với dấu chấm
   el.value = new Intl.NumberFormat('vi-VN').format(val);
 }
 
-// Bọc an toàn tuyệt đối khi đọc localStorage
 let leads = [];
 try {
   leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
@@ -78,9 +67,6 @@ function showToast(m) {
   setTimeout(() => t.classList.add('hidden'), 2800);
 }
 
-/**
- * Tải danh sách khách hàng từ Google Sheets Cloud Database
- */
 async function loadLeadsFromCloud() {
   try {
     const res = await fetch(GOOGLE_SHEET_API_URL);
@@ -96,20 +82,16 @@ async function loadLeadsFromCloud() {
   }
 }
 
-/**
- * Cập nhật giao diện và đồng bộ lên Google Sheets
- */
 function saveStorage() {
   try {
     localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
   } catch (e) {}
   render();
 
-  // Đẩy dữ liệu lên Sheets với cấu hình chuẩn xác (vượt rào CORS)
   try {
     fetch(GOOGLE_SHEET_API_URL, {
       method: 'POST',
-      redirect: 'follow', // Bắt buộc để Google chuyển hướng an toàn
+      redirect: 'follow',
       headers: {
         'Content-Type': 'text/plain;charset=utf-8',
       },
@@ -136,17 +118,10 @@ function detectSimCarrier(phone) {
   if (p.length < 3) return 'Khác';
 
   const prefix = p.substring(0, 3);
-  const viettelPrefixes = ['086', '096', '097', '098', '032', '033', '034', '035', '036', '037', '038', '039'];
-  const vinaPrefixes = ['088', '091', '094', '081', '082', '083', '084', '085', '087', '055'];
-  const mobiPrefixes = ['089', '090', '093', '070', '079', '077', '076', '078'];
-  const vnMobilePrefixes = ['092', '056', '058', '052'];
-  const gMobilePrefixes = ['099', '059'];
-
-  if (viettelPrefixes.includes(prefix)) return 'Viettel';
-  if (vinaPrefixes.includes(prefix)) return 'Vinaphone';
-  if (mobiPrefixes.includes(prefix)) return 'Mobifone';
-  if (vnMobilePrefixes.includes(prefix)) return 'Vietnamobile';
-  if (gMobilePrefixes.includes(prefix)) return 'Gmobile';
+  if (['086', '096', '097', '098', '032', '033', '034', '035', '036', '037', '038', '039'].includes(prefix)) return 'Viettel';
+  if (['088', '091', '094', '081', '082', '083', '084', '085', '087', '055'].includes(prefix)) return 'Vinaphone';
+  if (['089', '090', '093', '070', '079', '077', '076', '078'].includes(prefix)) return 'Mobifone';
+  if (['092', '056', '058', '052'].includes(prefix)) return 'Vietnamobile';
   return 'Khác';
 }
 
@@ -225,22 +200,6 @@ function clearSearch() {
   render();
 }
 
-const PARTNER_ICONS = {
-  'TPBank': '🟣',
-  'FE Credit': '🟢',
-  'Home Credit': '🔴',
-  'HD Saison': '🟡',
-  'Mirae Asset (MAFC)': '🏢',
-  'MCredit': '🟣',
-  'SHB Finance': '🔷',
-  'VPBank': '🏦',
-  'Cathay Bank (CUB)': '🌳',
-  'Tnex': '⚡',
-  'Cake by VPBank': '🍰',
-  'Viettel Money': '📶',
-  'Tinvay': '💳'
-};
-
 function ensureAddAppModalExists() {
   if (document.getElementById('addAppModal')) return;
   const modalDiv = document.createElement('div');
@@ -295,7 +254,7 @@ function addAppPrompt(leadId) {
         <div class="space-y-2.5 pl-1">
           <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Zalo:</div><div class="grid grid-cols-2 gap-1.5">${['TiN VAY (VietCredit)', 'MCredit', 'Tnex (MSB)', 'TPBank'].map(renderBtn).join('')}</div></div>
           <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua MoMo:</div><div class="grid grid-cols-2 gap-1.5">${['Home Credit', 'FE Credit', 'VPBank', 'SHB Finance', 'VAY NHANH (MBV)'].map(renderBtn).join('')}</div></div>
-          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️️ Qua ZaloPay:</div><div class="grid grid-cols-2 gap-1.5">${['Tnex (ZaloPay)', 'Cake by VPBank'].map(renderBtn).join('')}</div></div>
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪ Qua ZaloPay:</div><div class="grid grid-cols-2 gap-1.5">${['Tnex (ZaloPay)', 'Cake by VPBank'].map(renderBtn).join('')}</div></div>
           <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Viettel Money:</div><div class="grid grid-cols-2 gap-1.5">${['Cake (Viettel)', 'FE Credit (Viettel)', 'TiN VAY (Viettel)', 'MCredit (Viettel)', 'FAST MONEY (EVN)'].map(renderBtn).join('')}</div></div>
           <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Quà Tặng VIP:</div><div class="grid grid-cols-2 gap-1.5">${['Cake (VIP)', 'EVO', 'Thẻ VietCredit', 'Thẻ MWG (VPBank)'].map(renderBtn).join('')}</div></div>
         </div>
@@ -398,7 +357,7 @@ function openLoanMatchModal(leadId) {
     } else {
       let html = '';
       matchedList.forEach(pkg => {
-        const isAlreadyApplied = lead.applications?.some(a => a.lender === pkg.lender);
+        const isAlreadyApplied = (lead.applications || []).some(a => a.lender === pkg.lender);
         html += `
           <div class="bg-white border-2 border-emerald-500/50 rounded-2xl p-3 shadow-sm space-y-2 relative overflow-hidden">
             <div class="flex justify-between items-start">
@@ -461,7 +420,7 @@ function saveLeadForm(e) {
   const docs = Array.from(document.querySelectorAll('.lead-doc-chk:checked')).map(el => el.value);
   const prevLenders = Array.from(document.querySelectorAll('.lead-prev-lender-chk:checked')).map(el => el.value);
   const apps = Array.from(document.querySelectorAll('.lead-app-chk:checked')).map(el => el.value);
-  const initialLender = document.getElementById('formInitialLender')?.value || 'TPBank';
+  const initialLender = document.getElementById('formInitialLender') ? document.getElementById('formInitialLender').value : 'TPBank';
   const name = document.getElementById('formName').value;
   const phone = document.getElementById('formPhone').value;
   const autoCarrier = detectSimCarrier(phone);
@@ -471,33 +430,33 @@ function saveLeadForm(e) {
   const d = {
     name: name,
     phone: phone,
-    email: document.getElementById('formEmail')?.value || '',
+    email: document.getElementById('formEmail') ? document.getElementById('formEmail').value : '',
     simCarrier: autoCarrier,
     dob: dob,
     age: typeof calcAge === 'function' ? calcAge(dob) : 25,
-    cccd: document.getElementById('formCccd')?.value || '',
-    oldCmnd: document.getElementById('formOldCmnd')?.value || '',
-    gender: document.getElementById('formGender')?.value || 'Nam',
-    permAddress: document.getElementById('formPermAddress')?.value || '',
-    tempAddress: document.getElementById('formTempAddress')?.value || '',
-    job: document.getElementById('formJob')?.value || '',
-    workAddress: document.getElementById('formWorkAddress')?.value || '',
-    workTime: document.getElementById('formWorkTime')?.value || '',
-    income: parseNum(document.getElementById('formIncome')?.value),
-    amount: parseNum(document.getElementById('formAmount')?.value) || 30000000,
-    bankName: document.getElementById('formBankName')?.value || '',
-    bankAccount: document.getElementById('formBankAccount')?.value || '',
+    cccd: document.getElementById('formCccd') ? document.getElementById('formCccd').value : '',
+    oldCmnd: document.getElementById('formOldCmnd') ? document.getElementById('formOldCmnd').value : '',
+    gender: document.getElementById('formGender') ? document.getElementById('formGender').value : 'Nam',
+    permAddress: document.getElementById('formPermAddress') ? document.getElementById('formPermAddress').value : '',
+    tempAddress: document.getElementById('formTempAddress') ? document.getElementById('formTempAddress').value : '',
+    job: document.getElementById('formJob') ? document.getElementById('formJob').value : '',
+    workAddress: document.getElementById('formWorkAddress') ? document.getElementById('formWorkAddress').value : '',
+    workTime: document.getElementById('formWorkTime') ? document.getElementById('formWorkTime').value : '',
+    income: parseNum(document.getElementById('formIncome') ? document.getElementById('formIncome').value : 0),
+    amount: parseNum(document.getElementById('formAmount') ? document.getElementById('formAmount').value : 0) || 30000000,
+    bankName: document.getElementById('formBankName') ? document.getElementById('formBankName').value : '',
+    bankAccount: document.getElementById('formBankAccount') ? document.getElementById('formBankAccount').value : '',
     previousLenders: prevLenders,
     installedApps: apps,
-    ref1Rel: document.getElementById('formRef1Rel')?.value || '',
-    ref1Name: document.getElementById('formRef1Name')?.value || '',
-    ref1Phone: document.getElementById('formRef1Phone')?.value || '',
-    ref2Rel: document.getElementById('formRef2Rel')?.value || '',
-    ref2Name: document.getElementById('formRef2Name')?.value || '',
-    ref2Phone: document.getElementById('formRef2Phone')?.value || '',
-    cicStatus: document.getElementById('formCicStatus')?.value || 'SACH',
+    ref1Rel: document.getElementById('formRef1Rel') ? document.getElementById('formRef1Rel').value : '',
+    ref1Name: document.getElementById('formRef1Name') ? document.getElementById('formRef1Name').value : '',
+    ref1Phone: document.getElementById('formRef1Phone') ? document.getElementById('formRef1Phone').value : '',
+    ref2Rel: document.getElementById('formRef2Rel') ? document.getElementById('formRef2Rel').value : '',
+    ref2Name: document.getElementById('formRef2Name') ? document.getElementById('formRef2Name').value : '',
+    ref2Phone: document.getElementById('formRef2Phone') ? document.getElementById('formRef2Phone').value : '',
+    cicStatus: document.getElementById('formCicStatus') ? document.getElementById('formCicStatus').value : 'SACH',
     documents: docs,
-    note: document.getElementById('formNote')?.value || ''
+    note: document.getElementById('formNote') ? document.getElementById('formNote').value : ''
   };
 
   let savedLeadId = null;
@@ -540,8 +499,8 @@ function render() {
   if (document.getElementById('archivedCountBadge')) document.getElementById('archivedCountBadge').innerText = archivedCount;
 
   if (document.getElementById('statCic')) document.getElementById('statCic').innerText = leads.filter(l => l.cicStatus === 'SACH').length;
-  if (document.getElementById('statApproved')) document.getElementById('statApproved').innerText = leads.filter(l => l.applications?.some(a => a.result === 'Duyệt')).length;
-  if (document.getElementById('statDisbursed')) document.getElementById('statDisbursed').innerText = leads.filter(l => l.applications?.some(a => a.contract?.code)).length;
+  if (document.getElementById('statApproved')) document.getElementById('statApproved').innerText = leads.filter(l => (l.applications || []).some(a => a.result === 'Duyệt')).length;
+  if (document.getElementById('statDisbursed')) document.getElementById('statDisbursed').innerText = leads.filter(l => (l.applications || []).some(a => (a.contract && a.contract.code))).length;
 
   const filtered = leads.filter(l => {
     if (activeTab === 'active' && l.isCompleted) return false;
@@ -551,14 +510,14 @@ function render() {
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const m1 = (l.name || '').toLowerCase().includes(q) || (l.phone || '').includes(q) || (l.cccd && l.cccd.includes(q));
-      const m2 = l.applications?.some(a => (a.lender || '').toLowerCase().includes(q) || (a.contract?.code && a.contract.code.toLowerCase().includes(q)));
-      const m3 = l.previousLenders?.some(pl => pl.toLowerCase().includes(q));
+      const m2 = (l.applications || []).some(a => (a.lender || '').toLowerCase().includes(q) || (a.contract && a.contract.code && a.contract.code.toLowerCase().includes(q)));
+      const m3 = (l.previousLenders || []).some(pl => pl.toLowerCase().includes(q));
       if (!m1 && !m2 && !m3) return false;
     }
 
     if (currentFilterStatus !== 'ALL') {
       const st = currentFilterStatus;
-      const m = l.applications?.some(a => st === 'Duyệt' ? a.result === 'Duyệt' : st === 'Từ chối' ? a.result === 'Từ chối' : (a.result === 'Đang thẩm định' || a.result === 'Bổ sung hồ sơ'));
+      const m = (l.applications || []).some(a => st === 'Duyệt' ? a.result === 'Duyệt' : st === 'Từ chối' ? a.result === 'Từ chối' : (a.result === 'Đang thẩm định' || a.result === 'Bổ sung hồ sơ'));
       if (!m) return false;
     }
     return true;
@@ -636,7 +595,7 @@ function render() {
               <span class="font-bold ${isDisbursed ? 'text-emerald-700' : 'text-indigo-950'}">
                 ${isDisbursed ? '🎉' : '📁'} ${escapeHtml(lead.completeReason || 'Hoàn tất')}
               </span>
-              ${approvedApp?.contract ? `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}:${fmtVND(approvedApp.contract.approvedAmount)})</span>` : ''}
+              ${(approvedApp && approvedApp.contract) ? `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}:${fmtVND(approvedApp.contract.approvedAmount)})</span>` : ''}
             </div>
             <span class="text-[10px] text-slate-500 shrink-0 ml-1 font-medium">${lead.completedDate || ''}</span>
           </div>
@@ -817,9 +776,6 @@ function render() {
   container.innerHTML = html;
 }
 
-// =================================================================
-// CÁC HÀM KHỞI ĐỘNG VÀ XỬ LÝ FORM
-// =================================================================
 function renderDocCheckboxes(selectedDocs = []) {
   const c = document.getElementById('formDocsContainer');
   if (!c) return;
@@ -934,11 +890,10 @@ function updateRejectReason(leadId, aIdx, val) {
   saveStorage();
 }
 
-// =================================================================
-// LOGIC XỬ LÝ ẨN HIỆN FORM HỢP ĐỒNG (VAY / THẺ) - MỚI ĐƯỢC THÊM
-// =================================================================
 function toggleContractFields() {
-  const type = document.getElementById('contractType').value;
+  const typeEl = document.getElementById('contractType');
+  if (!typeEl) return;
+  const type = typeEl.value;
   if (type === 'THE_TD' || type === 'VI_TRA_SAU') {
     document.getElementById('loanFields').classList.add('hidden');
     document.getElementById('cardFields').classList.remove('hidden');
@@ -962,24 +917,23 @@ function openContractModal(leadId, aIdx) {
   const defaultAmount = c ? c.approvedAmount : (l.amount || 30000000);
   const defaultMonthly = c ? (c.monthlyPay || 0) : Math.round((l.amount || 30000000) * 1.15 / 12);
 
-  document.getElementById('contractType').value = c ? (c.type || 'VAY') : 'VAY';
-  document.getElementById('contractPlatform').value = c ? (c.platform || 'TRUC_TIEP') : 'TRUC_TIEP';
+  if (document.getElementById('contractType')) document.getElementById('contractType').value = c ? (c.type || 'VAY') : 'VAY';
+  if (document.getElementById('contractPlatform')) document.getElementById('contractPlatform').value = c ? (c.platform || 'TRUC_TIEP') : 'TRUC_TIEP';
   
-  document.getElementById('contractCode').value = c ? c.code : ('HĐ-' + Date.now().toString().slice(-5));
-  document.getElementById('contractAmount').value = new Intl.NumberFormat('vi-VN').format(defaultAmount);
+  if (document.getElementById('contractCode')) document.getElementById('contractCode').value = c ? c.code : ('HĐ-' + Date.now().toString().slice(-5));
+  if (document.getElementById('contractAmount')) document.getElementById('contractAmount').value = new Intl.NumberFormat('vi-VN').format(defaultAmount);
   
-  // Vay
-  document.getElementById('contractTenor').value = c ? (c.tenor || 12) : 12;
-  document.getElementById('contractMonthly').value = new Intl.NumberFormat('vi-VN').format(defaultMonthly);
+  if (document.getElementById('contractTenor')) document.getElementById('contractTenor').value = c ? (c.tenor || 12) : 12;
+  if (document.getElementById('contractMonthly')) document.getElementById('contractMonthly').value = new Intl.NumberFormat('vi-VN').format(defaultMonthly);
   
-  // Thẻ TD
-  document.getElementById('contractStatementDate').value = c ? (c.statementDate || '') : '';
-  document.getElementById('contractPaymentDueDate').value = c ? (c.paymentDueDate || '') : '';
+  if (document.getElementById('contractStatementDate')) document.getElementById('contractStatementDate').value = c ? (c.statementDate || '') : '';
+  if (document.getElementById('contractPaymentDueDate')) document.getElementById('contractPaymentDueDate').value = c ? (c.paymentDueDate || '') : '';
   
-  document.getElementById('contractDate').value = c ? c.disburseDate : new Date().toISOString().substring(0, 10);
+  if (document.getElementById('contractDate')) document.getElementById('contractDate').value = c ? c.disburseDate : new Date().toISOString().substring(0, 10);
   
-  toggleContractFields(); // Render đúng giao diện dựa theo dropdown
-  document.getElementById('contractModal').classList.remove('hidden');
+  toggleContractFields();
+  const m = document.getElementById('contractModal');
+  if (m) m.classList.remove('hidden');
 }
 
 function closeContractModal() { 
@@ -994,21 +948,20 @@ function saveContractForm(e) {
 
   const parseNumSmart = (v) => {
     let n = parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
-    // Phòng hờ user gõ "2500" rồi bấm Lưu luôn mà ko chạm ra ngoài để format
     if (n > 0 && n < 100000) n = n * 1000;
     return n;
   };
 
   l.applications[contractAppIdx].contract = {
-    type: document.getElementById('contractType').value,
-    platform: document.getElementById('contractPlatform').value,
-    code: document.getElementById('contractCode').value,
-    approvedAmount: parseNumSmart(document.getElementById('contractAmount').value),
-    tenor: Number(document.getElementById('contractTenor').value),
-    monthlyPay: parseNumSmart(document.getElementById('contractMonthly').value),
-    statementDate: document.getElementById('contractStatementDate').value,
-    paymentDueDate: document.getElementById('contractPaymentDueDate').value,
-    disburseDate: document.getElementById('contractDate').value || new Date().toISOString().substring(0, 10)
+    type: document.getElementById('contractType') ? document.getElementById('contractType').value : 'VAY',
+    platform: document.getElementById('contractPlatform') ? document.getElementById('contractPlatform').value : 'TRUC_TIEP',
+    code: document.getElementById('contractCode') ? document.getElementById('contractCode').value : '',
+    approvedAmount: parseNumSmart(document.getElementById('contractAmount') ? document.getElementById('contractAmount').value : 0),
+    tenor: Number(document.getElementById('contractTenor') ? document.getElementById('contractTenor').value : 12),
+    monthlyPay: parseNumSmart(document.getElementById('contractMonthly') ? document.getElementById('contractMonthly').value : 0),
+    statementDate: document.getElementById('contractStatementDate') ? document.getElementById('contractStatementDate').value : '',
+    paymentDueDate: document.getElementById('contractPaymentDueDate') ? document.getElementById('contractPaymentDueDate').value : '',
+    disburseDate: document.getElementById('contractDate') ? document.getElementById('contractDate').value : new Date().toISOString().substring(0, 10)
   };
   
   showToast('Đã lưu hợp đồng');
@@ -1021,9 +974,6 @@ function saveContractForm(e) {
   }, 200);
 }
 
-// ==========================================
-// TẠO PHIẾU THANH TOÁN (HỖ TRỢ VAY + THẺ)
-// ==========================================
 function openReceipt(leadId, aIdx) {
   const l = leads.find(x => x.id === leadId);
   if (!l || !l.applications || !l.applications[aIdx]) return;
@@ -1034,23 +984,20 @@ function openReceipt(leadId, aIdx) {
   const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => `${(v || 0).toLocaleString('vi-VN')} đ`;
   const c = app.contract || {};
   
-  document.getElementById('receiptLenderTitle').innerText = app.lender;
-  document.getElementById('receiptName').innerText = l.name;
-  document.getElementById('receiptPhone').innerText = l.phone;
-  document.getElementById('receiptCode').innerText = c.code || '---';
+  if (document.getElementById('receiptLenderTitle')) document.getElementById('receiptLenderTitle').innerText = app.lender;
+  if (document.getElementById('receiptName')) document.getElementById('receiptName').innerText = l.name;
+  if (document.getElementById('receiptPhone')) document.getElementById('receiptPhone').innerText = l.phone;
+  if (document.getElementById('receiptCode')) document.getElementById('receiptCode').innerText = c.code || '---';
 
-  // Label Nền tảng
   const platforms = {
     TRUC_TIEP: 'TRỰC TIẾP APP/SALE', ZALO: 'ZALO', MOMO: 'VÍ MOMO', ZALOPAY: 'VÍ ZALOPAY',
     VIETTEL_MONEY: 'VIETTEL MONEY', QUA_TANG_VIP: 'APP QUÀ TẶNG VIP', KHAC: 'ỨNG DỤNG KHÁC'
   };
-  document.getElementById('receiptPlatformBadge').innerText = platforms[c.platform] || 'TRỰC TIẾP';
+  if (document.getElementById('receiptPlatformBadge')) document.getElementById('receiptPlatformBadge').innerText = platforms[c.platform] || 'TRỰC TIẾP';
 
-  // Xử lý Giao diện VAY vs THẺ
   let typeGuideText = '';
   let platformGuideText = '';
 
-  // Chuyên sâu về nền tảng thanh toán
   switch (c.platform) {
     case 'ZALO': platformGuideText = 'Mở ứng dụng Zalo > Mục Khám phá > Chọn Mini App tương ứng (VD: VietCredit, Tnex) hoặc tìm trong phần Dịch vụ Tài Chính.'; break;
     case 'MOMO': platformGuideText = 'Mở ứng dụng MoMo > Vào mục "Thanh toán khoản vay" hoặc "Ví trả sau" > Nhập mã số hoặc CCCD để thanh toán.'; break;
@@ -1061,13 +1008,13 @@ function openReceipt(leadId, aIdx) {
   }
 
   if (c.type === 'THE_TD' || c.type === 'VI_TRA_SAU') {
-    document.getElementById('receiptTypeBadge').innerText = c.type === 'THE_TD' ? 'THẺ TÍN DỤNG' : 'VÍ TRẢ SAU';
-    document.getElementById('viewLoanInfo').classList.add('hidden');
-    document.getElementById('viewCardInfo').classList.remove('hidden');
+    if (document.getElementById('receiptTypeBadge')) document.getElementById('receiptTypeBadge').innerText = c.type === 'THE_TD' ? 'THẺ TÍN DỤNG' : 'VÍ TRẢ SAU';
+    if (document.getElementById('viewLoanInfo')) document.getElementById('viewLoanInfo').classList.add('hidden');
+    if (document.getElementById('viewCardInfo')) document.getElementById('viewCardInfo').classList.remove('hidden');
     
-    document.getElementById('receiptLimit').innerText = fmtVND(c.approvedAmount);
-    document.getElementById('receiptStatementDate').innerText = c.statementDate ? `Ngày ${c.statementDate} hàng tháng` : 'Chưa rõ';
-    document.getElementById('receiptDueDate').innerText = c.paymentDueDate ? `Ngày ${c.paymentDueDate} hàng tháng` : 'Chưa rõ';
+    if (document.getElementById('receiptLimit')) document.getElementById('receiptLimit').innerText = fmtVND(c.approvedAmount);
+    if (document.getElementById('receiptStatementDate')) document.getElementById('receiptStatementDate').innerText = c.statementDate ? `Ngày ${c.statementDate} hàng tháng` : 'Chưa rõ';
+    if (document.getElementById('receiptDueDate')) document.getElementById('receiptDueDate').innerText = c.paymentDueDate ? `Ngày ${c.paymentDueDate} hàng tháng` : 'Chưa rõ';
 
     if (c.type === 'THE_TD') {
       typeGuideText = '⚠️ <b>RỦI RO THANH TOÁN THẺ TÍN DỤNG:</b>\n1. Để được <b>MIỄN LÃI hoàn toàn</b>, bạn bắt buộc phải thanh toán TOÀN BỘ "Tổng dư nợ kỳ trước" vào trước hoặc đúng Ngày Hạn Thanh Toán.\n2. Nếu bạn chỉ thanh toán số tiền <b>TỐI THIỂU</b> (thường 5% dư nợ), bạn sẽ không bị nợ xấu, NHƯNG toàn bộ giao dịch trong kỳ sẽ bị tính <b>lãi suất dư nợ (khoảng 3-4%/tháng)</b>.\n3. Nếu đóng trễ hạn thanh toán dù chỉ 1 ngày, bạn sẽ bị phạt phí trễ hạn (tối thiểu 4-5% số tiền chậm trả) và có nguy cơ bị ghi nhận NỢ XẤU CIC.';
@@ -1076,24 +1023,24 @@ function openReceipt(leadId, aIdx) {
     }
 
   } else {
-    // Vay trả góp
-    document.getElementById('receiptTypeBadge').innerText = 'VAY TRẢ GÓP';
-    document.getElementById('viewLoanInfo').classList.remove('hidden');
-    document.getElementById('viewCardInfo').classList.add('hidden');
+    if (document.getElementById('receiptTypeBadge')) document.getElementById('receiptTypeBadge').innerText = 'VAY TRẢ GÓP';
+    if (document.getElementById('viewLoanInfo')) document.getElementById('viewLoanInfo').classList.remove('hidden');
+    if (document.getElementById('viewCardInfo')) document.getElementById('viewCardInfo').classList.add('hidden');
     
-    document.getElementById('receiptMonthlyPay').innerText = fmtVND(c.monthlyPay);
-    document.getElementById('receiptLoanAmount').innerText = fmtVND(c.approvedAmount);
-    document.getElementById('receiptTenor').innerText = c.tenor || 12;
+    if (document.getElementById('receiptMonthlyPay')) document.getElementById('receiptMonthlyPay').innerText = fmtVND(c.monthlyPay);
+    if (document.getElementById('receiptLoanAmount')) document.getElementById('receiptLoanAmount').innerText = fmtVND(c.approvedAmount);
+    if (document.getElementById('receiptTenor')) document.getElementById('receiptTenor').innerText = c.tenor || 12;
     
     const dates = (typeof calcPayDates === 'function') ? calcPayDates(c.disburseDate, c.tenor) : { first: '---', last: '---' };
-    document.getElementById('receiptFirstDate').innerText = dates.first;
-    document.getElementById('receiptLastDate').innerText = dates.last;
+    if (document.getElementById('receiptFirstDate')) document.getElementById('receiptFirstDate').innerText = dates.first;
+    if (document.getElementById('receiptLastDate')) document.getElementById('receiptLastDate').innerText = dates.last;
     
     typeGuideText = '💡 <b>LƯU Ý:</b> Bạn vui lòng thanh toán khoản vay hàng tháng TRƯỚC HẠN 1-2 NGÀY để phòng ngừa rủi ro kẹt mạng đường truyền, ngân hàng treo lệnh dẫn đến trễ hạn phát sinh phí phạt/nợ xấu oan uổng.';
   }
 
-  document.getElementById('receiptGuideText').innerHTML = `<b>🔗 Kênh Thanh Toán:</b> ${platformGuideText}<br><br>${typeGuideText}`;
-  document.getElementById('receiptModal').classList.remove('hidden');
+  if (document.getElementById('receiptGuideText')) document.getElementById('receiptGuideText').innerHTML = `<b>🔗 Kênh Thanh Toán:</b> ${platformGuideText}<br><br>${typeGuideText}`;
+  const m = document.getElementById('receiptModal');
+  if (m) m.classList.remove('hidden');
 }
 
 function closeReceiptModal() { 
@@ -1128,7 +1075,8 @@ function toggleCompleteModal(leadId) {
     saveStorage();
   } else {
     targetCompleteId = leadId;
-    document.getElementById('completeModal').classList.remove('hidden');
+    const m = document.getElementById('completeModal');
+    if (m) m.classList.remove('hidden');
   }
 }
 
@@ -1141,7 +1089,7 @@ function saveCompleteLead() {
   const l = leads.find(x => x.id === targetCompleteId);
   if (!l) return;
 
-  const reason = document.getElementById('completeReason').value;
+  const reason = document.getElementById('completeReason') ? document.getElementById('completeReason').value : 'Hoàn tất';
   l.isCompleted = true;
   l.completeReason = reason;
   const now = new Date();

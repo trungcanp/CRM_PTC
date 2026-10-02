@@ -1,17 +1,13 @@
 // js/app.js - Bộ điều phối CRM độc lập ĐẦY ĐỦ (API V2 - Khắc phục lỗi Syntax)
-
 const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzi_ck6A2akcCHlWC7q_lqm2qSVBNkl0Qq-_3k-wefR62kAxdMSPGm7-V1IuEK-s2Q7/exec';
-
 function escapeHtml(str) {
   if (!str) return '';
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
-
 function cleanJsonString(str) {
   if (!str) return '';
   return String(str).replace(/^\uFEFF/, '').trim();
 }
-
 function smartFormatMoney(el) {
   let val = parseInt(String(el.value).replace(/[^0-9]/g, ''), 10);
   if (!val) {
@@ -23,7 +19,6 @@ function smartFormatMoney(el) {
   }
   el.value = new Intl.NumberFormat('vi-VN').format(val);
 }
-
 let leads = [];
 try {
   const localData = localStorage.getItem('loan_crm_v22');
@@ -31,16 +26,13 @@ try {
 } catch (e) {
   leads = [];
 }
-
 if ((!Array.isArray(leads) || leads.length === 0) && typeof DEFAULT_SAMPLE_LEADS !== 'undefined') {
   leads = DEFAULT_SAMPLE_LEADS;
 }
-
 let activeTab = 'active'; 
 let currentFilterStatus = 'ALL';
 let searchQuery = '';
 let currentMatchingLeadId = null;
-
 let editingLeadId = null;
 let targetCompleteId = null;
 let receiptLeadId = null;
@@ -48,9 +40,7 @@ let receiptAppIdx = null;
 let contractLeadId = null;
 let contractAppIdx = null;
 let targetAddAppLeadId = null;
-
 let expandedArchiveIds = new Set();
-
 function toggleLeadDetail(id) {
   if (expandedArchiveIds.has(id)) {
     expandedArchiveIds.delete(id);
@@ -59,7 +49,6 @@ function toggleLeadDetail(id) {
   }
   render();
 }
-
 function showToast(m) {
   const t = document.getElementById('toast');
   if (!t) return;
@@ -67,7 +56,6 @@ function showToast(m) {
   t.classList.remove('hidden');
   setTimeout(() => t.classList.add('hidden'), 2800);
 }
-
 async function loadLeadsFromCloud() {
   try {
     const res = await fetch(GOOGLE_SHEET_API_URL);
@@ -82,13 +70,11 @@ async function loadLeadsFromCloud() {
     console.warn('Dùng dữ liệu cục bộ do mạng/Cloud bận:', err);
   }
 }
-
 function saveStorage() {
   try {
     localStorage.setItem('loan_crm_v22', JSON.stringify(leads));
   } catch (e) {}
   render();
-
   try {
     fetch(GOOGLE_SHEET_API_URL, {
       method: 'POST',
@@ -111,20 +97,17 @@ function saveStorage() {
     });
   } catch (e) {}
 }
-
 function detectSimCarrier(phone) {
   if (!phone) return 'Khác';
   let p = phone.replace(/[^0-9]/g, '');
   if (p.startsWith('84')) p = '0' + p.slice(2);
   if (p.length < 3) return 'Khác';
-
   const prefix = p.substring(0, 3);
   const viettelPrefixes = ['086', '096', '097', '098', '032', '033', '034', '035', '036', '037', '038', '039'];
   const vinaPrefixes = ['088', '091', '094', '081', '082', '083', '084', '085', '087', '055'];
   const mobiPrefixes = ['089', '090', '093', '070', '079', '077', '076', '078'];
   const vnMobilePrefixes = ['092', '056', '058', '052'];
   const gMobilePrefixes = ['099', '059'];
-
   if (viettelPrefixes.includes(prefix)) return 'Viettel';
   if (vinaPrefixes.includes(prefix)) return 'Vinaphone';
   if (mobiPrefixes.includes(prefix)) return 'Mobifone';
@@ -132,7 +115,6 @@ function detectSimCarrier(phone) {
   if (gMobilePrefixes.includes(prefix)) return 'Gmobile';
   return 'Khác';
 }
-
 function updateCarrierBadge(carrier) {
   const badge = document.getElementById('carrierPreviewBadge');
   if (!badge) return;
@@ -146,11 +128,9 @@ function updateCarrierBadge(carrier) {
   else if (carrier === 'Vinaphone') colorStyle = 'bg-sky-50 text-sky-700 border-sky-200';
   else if (carrier === 'Mobifone') colorStyle = 'bg-blue-50 text-blue-700 border-blue-200';
   else if (carrier === 'Vietnamobile') colorStyle = 'bg-amber-50 text-amber-700 border-amber-200';
-
   badge.className = `text-[10px] px-2 py-0.5 rounded-full font-bold transition-all border ${colorStyle}`;
   badge.innerText = `📶 ${carrier}`;
 }
-
 function handlePhoneInput(val) {
   const clean = val.replace(/[^0-9]/g, '');
   if (clean.length >= 3) {
@@ -159,23 +139,18 @@ function handlePhoneInput(val) {
     updateCarrierBadge('Khác');
   }
 }
-
 function switchTab(tab) {
   activeTab = tab;
   const activeBtn = document.getElementById('tabActiveBtn');
   const matchBtn = document.getElementById('tabMatchBtn');
   const archivedBtn = document.getElementById('tabArchivedBtn');
-
   const defaultBtnClass = 'py-1.5 rounded-xl text-center flex items-center justify-center gap-1 transition-all text-blue-200 hover:text-white';
   const activeBtnClass = 'py-1.5 rounded-xl text-center flex items-center justify-center gap-1 transition-all bg-white shadow-md font-extrabold';
-
   if (activeBtn) activeBtn.className = tab === 'active' ? `${activeBtnClass} text-blue-800` : defaultBtnClass;
   if (matchBtn) matchBtn.className = tab === 'match' ? `${activeBtnClass} text-amber-900` : defaultBtnClass;
   if (archivedBtn) archivedBtn.className = tab === 'archived' ? `${activeBtnClass} text-indigo-900` : defaultBtnClass;
-
   render();
 }
-
 function setFilterStatus(st) {
   currentFilterStatus = st;
   const buttons = document.querySelectorAll('#statusFilterBar button');
@@ -188,7 +163,6 @@ function setFilterStatus(st) {
   });
   render();
 }
-
 function handleSearchInput(e) {
   searchQuery = e.target.value;
   const clearBtn = document.getElementById('clearSearchBtn');
@@ -198,7 +172,6 @@ function handleSearchInput(e) {
   }
   render();
 }
-
 function clearSearch() {
   const input = document.getElementById('searchInput');
   if (input) input.value = '';
@@ -207,7 +180,6 @@ function clearSearch() {
   if (clearBtn) clearBtn.classList.add('hidden');
   render();
 }
-
 function ensureAddAppModalExists() {
   if (document.getElementById('addAppModal')) return;
   const modalDiv = document.createElement('div');
@@ -229,17 +201,14 @@ function ensureAddAppModalExists() {
   `;
   document.body.appendChild(modalDiv);
 }
-
 function addAppPrompt(leadId) {
   ensureAddAppModalExists();
   const l = leads.find(x => x.id === leadId);
   if (!l) return;
   targetAddAppLeadId = leadId;
-
   document.getElementById('addAppTargetName').innerText = `Khách hàng: ${l.name} (${l.phone})`;
   const container = document.getElementById('addAppPartnersList');
   const appliedLenders = (l.applications || []).map(a => a.lender);
-
   const renderBtn = (lenderName) => {
     const isApplied = appliedLenders.includes(lenderName);
     if (isApplied) {
@@ -253,14 +222,13 @@ function addAppPrompt(leadId) {
               <span class="text-[9px] text-indigo-600 font-black">+ Chọn</span>
             </button>`;
   };
-
   const html = `
     <div class="space-y-4">
       <div class="bg-blue-50/70 p-2.5 rounded-xl border border-blue-200 space-y-2">
         <h4 class="font-black text-blue-900 text-[11px] uppercase flex items-center gap-1"><span>📱</span> 1. Vay Qua Đối Tác (Zalo/MoMo...)</h4>
         <div class="space-y-2.5 pl-1">
           <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Zalo:</div><div class="grid grid-cols-2 gap-1.5">${['TiN VAY (VietCredit)', 'MCredit', 'Tnex (MSB)', 'TPBank'].map(renderBtn).join('')}</div></div>
-          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️️ Qua MoMo:</div><div class="grid grid-cols-2 gap-1.5">${['Home Credit', 'FE Credit', 'VPBank', 'SHB Finance', 'VAY NHANH (MBV)'].map(renderBtn).join('')}</div></div>
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪ Qua MoMo:</div><div class="grid grid-cols-2 gap-1.5">${['Home Credit', 'FE Credit', 'VPBank', 'SHB Finance', 'VAY NHANH (MBV)'].map(renderBtn).join('')}</div></div>
           <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪ Qua ZaloPay:</div><div class="grid grid-cols-2 gap-1.5">${['Tnex (ZaloPay)', 'Cake by VPBank'].map(renderBtn).join('')}</div></div>
           <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Viettel Money:</div><div class="grid grid-cols-2 gap-1.5">${['Cake (Viettel)', 'FE Credit (Viettel)', 'TiN VAY (Viettel)', 'MCredit (Viettel)', 'FAST MONEY (EVN)'].map(renderBtn).join('')}</div></div>
           <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Quà Tặng VIP:</div><div class="grid grid-cols-2 gap-1.5">${['Cake (VIP)', 'EVO', 'Thẻ VietCredit', 'Thẻ MWG (VPBank)'].map(renderBtn).join('')}</div></div>
@@ -289,44 +257,36 @@ function addAppPrompt(leadId) {
   container.innerHTML = html;
   document.getElementById('addAppModal').classList.remove('hidden');
 }
-
 function selectPartnerLender(lender) {
   if (!targetAddAppLeadId) return;
   const l = leads.find(x => x.id === targetAddAppLeadId);
   if (!l) return;
   if (!l.applications) l.applications = [];
-
   const exists = l.applications.some(a => a.lender === lender);
   if (exists) {
     showToast(`Hồ sơ đã có nộp tại ${lender}`);
     return;
   }
-
   l.applications.push({ lender, result: 'Đang thẩm định', rejectReason: '', contract: null });
   showToast(`✓ Đã thêm ${lender} vào tiến độ!`);
   closeAddAppModal();
   saveStorage();
   if (typeof sendTelegramNotification === 'function') sendTelegramNotification(`Thêm nộp đơn vị ${lender}`, l.name);
 }
-
 function closeAddAppModal() {
   const modal = document.getElementById('addAppModal');
   if (modal) modal.classList.add('hidden');
   targetAddAppLeadId = null;
 }
-
 function openLoanMatchModal(leadId) {
   const lead = leads.find(l => l.id === leadId);
   if (!lead) return;
   currentMatchingLeadId = leadId;
-
   const age = lead.age ? lead.age : (typeof calcAge === 'function' ? calcAge(lead.dob) : 25);
   const carrier = lead.simCarrier ? lead.simCarrier : detectSimCarrier(lead.phone);
   const cicText = lead.cicStatus === 'SACH' ? '✅ Chuẩn nhóm 1 (Sạch)' : '⚠️ Có nợ chú ý/nợ xấu';
-
   const nameEl = document.getElementById('matchTargetLeadName');
   if (nameEl) nameEl.innerText = `Khách hàng: ${lead.name} (${age} tuổi) • SĐT: ${lead.phone}`;
-
   const sumEl = document.getElementById('matchLeadSummary');
   if (sumEl) {
     const formattedIncome = typeof formatVND === 'function' ? formatVND(lead.income) : (lead.income ? lead.income : 0);
@@ -343,11 +303,9 @@ function openLoanMatchModal(leadId) {
       <div class="col-span-2 text-slate-600 truncate"><b>Đã/đang góp tại:</b> ${prevList}</div>
     `;
   }
-
   const matchedList = typeof matchLoanPackages === 'function' ? matchLoanPackages(lead) : [];
   const badgeEl = document.getElementById('matchStatsBadge');
   if (badgeEl) badgeEl.innerText = `${matchedList.length} gói đạt chuẩn`;
-
   const container = document.getElementById('matchedPackagesContainer');
   if (container) {
     if (matchedList.length === 0) {
@@ -392,33 +350,27 @@ function openLoanMatchModal(leadId) {
       container.innerHTML = html;
     }
   }
-
   const modalEl = document.getElementById('loanMatchModal');
   if (modalEl) modalEl.classList.remove('hidden');
 }
-
 function closeLoanMatchModal() {
   const modalEl = document.getElementById('loanMatchModal');
   if (modalEl) modalEl.classList.add('hidden');
 }
-
 function applyMatchedPackage(leadId, lender) {
   const l = leads.find(x => x.id === leadId);
   if (!l) return;
   if (!l.applications) l.applications = [];
-
   const exists = l.applications.some(a => a.lender === lender);
   if (exists) {
     showToast(`Hồ sơ đã có nộp tại ${lender}`);
     return;
   }
-
   l.applications.push({ lender, result: 'Đang thẩm định', rejectReason: '', contract: null });
   showToast(`Đã thêm ${lender} vào tiến độ nộp!`);
   saveStorage();
   openLoanMatchModal(leadId);
 }
-
 function saveLeadForm(e) {
   e.preventDefault();
   const dob = document.getElementById('formDob').value;
@@ -433,13 +385,11 @@ function saveLeadForm(e) {
   const name = document.getElementById('formName').value;
   const phone = document.getElementById('formPhone').value;
   const autoCarrier = detectSimCarrier(phone);
-
   const parseNum = typeof parseNumeric === 'function' ? parseNumeric : (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
   
   let amountVal = 30000000;
   const amtEl = document.getElementById('formAmount');
   if (amtEl && parseNum(amtEl.value) > 0) amountVal = parseNum(amtEl.value);
-
   const d = {
     name: name,
     phone: phone,
@@ -471,9 +421,7 @@ function saveLeadForm(e) {
     documents: docs,
     note: document.getElementById('formNote') ? document.getElementById('formNote').value : ''
   };
-
   let savedLeadId = null;
-
   if (editingLeadId) {
     const idx = leads.findIndex(x => x.id === editingLeadId);
     if (idx > -1) leads[idx] = { ...leads[idx], ...d };
@@ -491,35 +439,27 @@ function saveLeadForm(e) {
     showToast('Đã thêm khách hàng mới');
     if (typeof sendTelegramNotification === 'function') sendTelegramNotification('Thêm khách hàng mới', name);
   }
-
   closeLeadModal();
   saveStorage();
-
   setTimeout(() => {
     openLoanMatchModal(savedLeadId);
   }, 250);
 }
-
 function render() {
   const container = document.getElementById('leadsContainer');
   if (!container) return;
-
   const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => { const num = v ? v : 0; return num.toLocaleString('vi-VN') + ' đ'; };
-
   const activeCount = leads.filter(l => !l.isCompleted).length;
   const archivedCount = leads.filter(l => l.isCompleted).length;
   if (document.getElementById('activeCountBadge')) document.getElementById('activeCountBadge').innerText = activeCount;
   if (document.getElementById('archivedCountBadge')) document.getElementById('archivedCountBadge').innerText = archivedCount;
-
   if (document.getElementById('statCic')) document.getElementById('statCic').innerText = leads.filter(l => l.cicStatus === 'SACH').length;
   if (document.getElementById('statApproved')) document.getElementById('statApproved').innerText = leads.filter(l => (l.applications || []).some(a => a.result === 'Duyệt')).length;
   if (document.getElementById('statDisbursed')) document.getElementById('statDisbursed').innerText = leads.filter(l => (l.applications || []).some(a => (a.contract && a.contract.code))).length;
-
   const filtered = leads.filter(l => {
     if (activeTab === 'active' && l.isCompleted) return false;
     if (activeTab === 'archived' && !l.isCompleted) return false;
     if (activeTab === 'match' && l.isCompleted) return false;
-
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       const safeName = l.name ? l.name.toLowerCase() : '';
@@ -534,7 +474,6 @@ function render() {
       const m3 = (l.previousLenders || []).some(pl => pl.toLowerCase().includes(q));
       if (!m1 && !m2 && !m3) return false;
     }
-
     if (currentFilterStatus !== 'ALL') {
       const st = currentFilterStatus;
       const m = (l.applications || []).some(a => st === 'Duyệt' ? a.result === 'Duyệt' : st === 'Từ chối' ? a.result === 'Từ chối' : (a.result === 'Đang thẩm định' || a.result === 'Bổ sung hồ sơ'));
@@ -542,9 +481,7 @@ function render() {
     }
     return true;
   });
-
   if (document.getElementById('statFiltered')) document.getElementById('statFiltered').innerText = `${filtered.length}/${leads.length}`;
-
   if (filtered.length === 0) {
     container.innerHTML = `
       <div class="bg-white rounded-2xl p-8 text-center border border-dashed border-slate-300 mt-4 space-y-2">
@@ -554,7 +491,6 @@ function render() {
     `;
     return;
   }
-
   let html = '';
   filtered.forEach(lead => {
     const actualCarrier = lead.simCarrier ? lead.simCarrier : detectSimCarrier(lead.phone);
@@ -563,17 +499,14 @@ function render() {
                          actualCarrier === 'Vietnamobile' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                          actualCarrier === 'Viettel' ? 'bg-red-50 text-red-700 border-red-200' :
                          'bg-slate-100 text-slate-700 border-slate-200';
-
     const safeName = escapeHtml(lead.name);
     const ageText = lead.age ? lead.age : 25;
     const phoneText = lead.phone ? lead.phone : '---';
     const cccdText = lead.cccd ? lead.cccd : 'Chưa có';
-
     if (activeTab === 'archived') {
       const isExpanded = expandedArchiveIds.has(lead.id);
       const approvedApp = (lead.applications || []).find(a => a.result === 'Duyệt' && a.contract);
       const isDisbursed = lead.completeReason === 'Đã giải ngân thành công' || !!approvedApp;
-
       let docsHtml = '';
       const docMap = typeof DOC_MAP !== 'undefined' ? DOC_MAP : {};
       (lead.documents || []).forEach(d => {
@@ -581,14 +514,12 @@ function render() {
         docsHtml += `<span class="inline-block bg-white text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 ml-1">✓ ${dLabel}</span>`;
       });
       if (!docsHtml) docsHtml = '<span class="text-slate-400 italic text-[10px]"> Chưa có</span>';
-
       let appsHtml = '';
       (lead.applications || []).forEach((app, aIdx) => {
         const appLender = app.lender ? app.lender : '---';
         const appResult = app.result ? app.result : '---';
         const statusColor = appResult === 'Duyệt' ? 'bg-emerald-100 text-emerald-800' : appResult === 'Từ chối' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700';
         const receiptBtn = app.contract ? `<button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="text-[10px] bg-teal-600 text-white font-bold px-2 py-0.5 rounded active:scale-95 transition">🧾 Phiếu</button>` : '';
-
         appsHtml += `
           <div class="bg-white rounded-lg p-2 border border-slate-200 text-xs flex justify-between items-center">
             <span class="font-bold text-slate-800 truncate">🏛️ ${appLender}</span>
@@ -599,7 +530,6 @@ function render() {
           </div>
         `;
       });
-
       const expandBtnText = isExpanded ? '▲ Thu gọn' : '▼ Chi tiết';
       const expandBtnClass = isExpanded ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700';
       const iconStatus = isDisbursed ? '🎉' : '📁';
@@ -612,7 +542,6 @@ function render() {
         approvedAmountBadge = `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}: ${fmtVND(approvedApp.contract.approvedAmount)})</span>`;
       }
       const completedDateText = lead.completedDate ? lead.completedDate : '';
-
       let expandedHtml = '';
       if (isExpanded) {
         const amountVND = fmtVND(lead.amount);
@@ -625,7 +554,6 @@ function render() {
         const refNameText = escapeHtml(lead.ref1Name) ? escapeHtml(lead.ref1Name) : '---';
         const refPhoneText = lead.ref1Phone ? lead.ref1Phone : '---';
         const noteHtml = lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : '';
-
         expandedHtml = `
           <div class="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-150">
             <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
@@ -655,7 +583,6 @@ function render() {
           </div>
         `;
       }
-
       html += `
         <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm space-y-2 transition-all">
           <div class="flex justify-between items-center">
@@ -690,7 +617,6 @@ function render() {
       `;
       return;
     }
-
     // Logic tab "active" & "match"
     let docsHtml = '';
     const docMap = typeof DOC_MAP !== 'undefined' ? DOC_MAP : {};
@@ -699,19 +625,16 @@ function render() {
       docsHtml += `<span class="inline-block bg-white text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 ml-1">✓ ${dLabel}</span>`;
     });
     if (!docsHtml) docsHtml = '<span class="text-slate-400 italic text-[10px]"> Chưa có</span>';
-
     let prevLendersHtml = '';
     (lead.previousLenders || []).forEach(pl => {
-      prevLendersHtml += `<span class="inline-block bg-emerald-50 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded border border-emerald-200 font-semibold ml-1">🏛️ ${pl}</span>`;
+      prevLendersHtml += `<span class="inline-block bg-emerald-50 text-emerald-800 text-[10px] px-1.5 py-0.5 rounded border border-emerald-200 font-semibold ml-1">🏛️️ ${pl}</span>`;
     });
     if (!prevLendersHtml) prevLendersHtml = '<span class="text-slate-400 italic text-[10px]"> Chưa có (Khách mới)</span>';
-
     let appsHtml = '';
     (lead.applications || []).forEach((app, aIdx) => {
       const appLender = app.lender ? app.lender : '---';
       const appResult = app.result ? app.result : '---';
       let extraHtml = '';
-
       if (appResult === 'Từ chối') {
         const rejectText = escapeHtml(app.rejectReason ? app.rejectReason : '');
         extraHtml = `
@@ -750,7 +673,6 @@ function render() {
           </div>
         `;
       }
-
       appsHtml += `
         <div class="bg-white rounded-lg p-2 border border-indigo-200/70 text-xs space-y-1.5 shadow-sm">
           <div class="grid grid-cols-12 gap-1 items-center">
@@ -769,7 +691,6 @@ function render() {
         </div>
       `;
     });
-
     let matchSummaryHtml = '';
     if (activeTab === 'match') {
       const matchedPkgs = typeof matchLoanPackages === 'function' ? matchLoanPackages(lead) : [];
@@ -789,7 +710,6 @@ function render() {
         </div>
       `;
     }
-
     const borderClass = activeTab === 'match' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-slate-200';
     const amountVND = fmtVND(lead.amount);
     const cicText = lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu';
@@ -798,7 +718,6 @@ function render() {
     const workTimeText = escapeHtml(lead.workTime) ? escapeHtml(lead.workTime) : 'Chưa rõ TG';
     const workAddressHtml = lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Đ/c làm việc:</b> ${escapeHtml(lead.workAddress)} (${workTimeText})</div>` : '';
     const noteHtml = lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : '';
-
     html += `
       <div class="bg-white rounded-2xl p-3.5 border ${borderClass} shadow-sm space-y-3">
         <div class="flex justify-between items-start">
@@ -819,9 +738,7 @@ function render() {
             </button>
           </div>
         </div>
-
         ${matchSummaryHtml}
-
         <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
           <div class="flex justify-between"><span>Cần vay:</span> <span class="font-bold text-blue-700">${amountVND}</span></div>
           <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${cicText}</span></div>
@@ -831,7 +748,6 @@ function render() {
           <div><b>Chứng từ:</b> ${docsHtml}</div>
           ${noteHtml}
         </div>
-
         <div class="bg-indigo-50/50 rounded-xl p-2.5 border border-indigo-100 space-y-2">
           <div class="flex justify-between items-center">
             <span class="font-bold text-xs text-indigo-950">🏛️ Tiến độ hồ sơ:</span>
@@ -841,7 +757,6 @@ function render() {
           </div>
           <div class="space-y-1.5">${appsHtml}</div>
         </div>
-
         <div class="flex justify-between items-center pt-1 border-t border-slate-100 text-xs">
           <div class="flex gap-1.5">
             <a href="tel:${phoneText}" class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">📞 Gọi</a>
@@ -857,7 +772,6 @@ function render() {
   });
   container.innerHTML = html;
 }
-
 function renderDocCheckboxes(selectedDocs = []) {
   const c = document.getElementById('formDocsContainer');
   if (!c) return;
@@ -868,7 +782,6 @@ function renderDocCheckboxes(selectedDocs = []) {
     c.innerHTML += `<label class="flex items-center gap-1"><input type="checkbox" value="${k}" ${checked} class="lead-doc-chk"> ${lbl}</label>`;
   }
 }
-
 function renderPrevLendersCheckboxes(selectedLenders = []) {
   const c = document.getElementById('formPrevLendersContainer');
   if (!c) return;
@@ -879,7 +792,6 @@ function renderPrevLendersCheckboxes(selectedLenders = []) {
     c.innerHTML += `<label class="flex items-center gap-1"><input type="checkbox" value="${lender}" ${checked} class="lead-prev-lender-chk"> ${lender}</label>`;
   });
 }
-
 function openCreateModal() {
   editingLeadId = null;
   const t = document.getElementById('leadModalTitle');
@@ -895,7 +807,6 @@ function openCreateModal() {
   const m = document.getElementById('leadModal');
   if (m) m.classList.remove('hidden');
 }
-
 function openEditModal(id) {
   const l = leads.find(x => x.id === id);
   if (!l) return;
@@ -938,16 +849,13 @@ function openEditModal(id) {
   document.querySelectorAll('.lead-app-chk').forEach(el => {
     el.checked = userApps.includes(el.value);
   });
-
   const m = document.getElementById('leadModal');
   if (m) m.classList.remove('hidden');
 }
-
 function closeLeadModal() { 
   const m = document.getElementById('leadModal');
   if (m) m.classList.add('hidden'); 
 }
-
 function deleteLead(id) {
   if (confirm('Xóa hồ sơ này?')) {
     leads = leads.filter(x => x.id !== id);
@@ -955,7 +863,6 @@ function deleteLead(id) {
     saveStorage();
   }
 }
-
 function removeApp(leadId, aIdx) {
   const l = leads.find(x => x.id === leadId);
   if (!l) return;
@@ -963,7 +870,6 @@ function removeApp(leadId, aIdx) {
   showToast('Đã xóa cty');
   saveStorage();
 }
-
 function handleAppChange(leadId, aIdx, val) {
   const l = leads.find(x => x.id === leadId);
   if (!l) return;
@@ -975,14 +881,12 @@ function handleAppChange(leadId, aIdx, val) {
     if (typeof sendTelegramNotification === 'function') sendTelegramNotification(`Đổi kết quả sang [${val}]`, l.name);
   }
 }
-
 function updateRejectReason(leadId, aIdx, val) {
   const l = leads.find(x => x.id === leadId);
   if (!l) return;
   l.applications[aIdx].rejectReason = val;
   saveStorage();
 }
-
 function toggleContractFields() {
   const typeEl = document.getElementById('contractType');
   if (!typeEl) return;
@@ -1007,7 +911,6 @@ function toggleContractFields() {
     if (lblD) lblD.innerText = 'Ngày giải ngân (Bắt đầu tính lãi)';
   }
 }
-
 function openContractModal(leadId, aIdx) {
   contractLeadId = leadId;
   contractAppIdx = aIdx;
@@ -1017,7 +920,6 @@ function openContractModal(leadId, aIdx) {
   
   const defaultAmount = c ? c.approvedAmount : (l.amount ? l.amount : 30000000);
   const defaultMonthly = c ? (c.monthlyPay ? c.monthlyPay : 0) : Math.round((l.amount ? l.amount : 30000000) * 1.15 / 12);
-
   if (document.getElementById('contractType')) document.getElementById('contractType').value = c ? (c.type ? c.type : 'VAY') : 'VAY';
   if (document.getElementById('contractPlatform')) document.getElementById('contractPlatform').value = c ? (c.platform ? c.platform : 'TRUC_TIEP') : 'TRUC_TIEP';
   
@@ -1036,24 +938,20 @@ function openContractModal(leadId, aIdx) {
   const m = document.getElementById('contractModal');
   if (m) m.classList.remove('hidden');
 }
-
 function closeContractModal() { 
   const m = document.getElementById('contractModal');
   if (m) m.classList.add('hidden'); 
 }
-
 function saveContractForm(e) {
   e.preventDefault();
   const l = leads.find(x => x.id === contractLeadId);
   if (!l) return;
-
   const parseNumSmart = (v) => {
     let n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);
     if (!n) n = 0;
     if (n > 0 && n < 100000) n = n * 1000;
     return n;
   };
-
   l.applications[contractAppIdx].contract = {
     type: document.getElementById('contractType') ? document.getElementById('contractType').value : 'VAY',
     platform: document.getElementById('contractPlatform') ? document.getElementById('contractPlatform').value : 'TRUC_TIEP',
@@ -1075,14 +973,12 @@ function saveContractForm(e) {
     openReceipt(contractLeadId, contractAppIdx);
   }, 200);
 }
-
 function openReceipt(leadId, aIdx) {
   const l = leads.find(x => x.id === leadId);
   if (!l || !l.applications || !l.applications[aIdx]) return;
   const app = l.applications[aIdx];
   receiptLeadId = leadId;
   receiptAppIdx = aIdx;
-
   const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => { const num = v ? v : 0; return num.toLocaleString('vi-VN') + ' đ'; };
   const c = app.contract ? app.contract : {};
   
@@ -1090,25 +986,12 @@ function openReceipt(leadId, aIdx) {
   if (document.getElementById('receiptName')) document.getElementById('receiptName').innerText = l.name;
   if (document.getElementById('receiptPhone')) document.getElementById('receiptPhone').innerText = l.phone;
   if (document.getElementById('receiptCode')) document.getElementById('receiptCode').innerText = c.code ? c.code : '---';
-
   const platforms = {
     TRUC_TIEP: 'TRỰC TIẾP APP/SALE', ZALO: 'ZALO', MOMO: 'VÍ MOMO', ZALOPAY: 'VÍ ZALOPAY',
     VIETTEL_MONEY: 'VIETTEL MONEY', QUA_TANG_VIP: 'APP QUÀ TẶNG VIP', KHAC: 'ỨNG DỤNG KHÁC'
   };
   if (document.getElementById('receiptPlatformBadge')) document.getElementById('receiptPlatformBadge').innerText = platforms[c.platform] ? platforms[c.platform] : 'TRỰC TIẾP';
-
   let typeGuideText = '';
-  let platformGuideText = '';
-
-  switch (c.platform) {
-    case 'ZALO': platformGuideText = 'Mở ứng dụng Zalo > Mục Khám phá > Chọn Mini App tương ứng (VD: VietCredit, Tnex) hoặc tìm trong phần Dịch vụ Tài Chính.'; break;
-    case 'MOMO': platformGuideText = 'Mở ứng dụng MoMo > Vào mục "Thanh toán khoản vay" hoặc "Ví trả sau" > Nhập mã số hoặc CCCD để thanh toán.'; break;
-    case 'ZALOPAY': platformGuideText = 'Mở ứng dụng ZaloPay > Tài khoản trả sau / Thanh toán khoản vay.'; break;
-    case 'VIETTEL_MONEY': platformGuideText = 'Mở ứng dụng Viettel Money > Mục Tài chính, Bảo hiểm > Thanh toán khoản vay.'; break;
-    case 'QUA_TANG_VIP': platformGuideText = 'Mở app Quà Tặng VIP > Mục Tiện ích / Trả góp để kiểm tra dư nợ và thanh toán.'; break;
-    default: platformGuideText = 'Thanh toán qua ứng dụng chính thức của nhà cung cấp hoặc chuyển khoản trực tiếp vào số tài khoản Hợp đồng/Thẻ.'; break;
-  }
-
   if (c.type === 'THE_TD' || c.type === 'VI_TRA_SAU') {
     if (document.getElementById('receiptTypeBadge')) document.getElementById('receiptTypeBadge').innerText = c.type === 'THE_TD' ? 'THẺ TÍN DỤNG' : 'VÍ TRẢ SAU';
     if (document.getElementById('viewLoanInfo')) document.getElementById('viewLoanInfo').classList.add('hidden');
@@ -1117,13 +1000,11 @@ function openReceipt(leadId, aIdx) {
     if (document.getElementById('receiptLimit')) document.getElementById('receiptLimit').innerText = fmtVND(c.approvedAmount);
     if (document.getElementById('receiptStatementDate')) document.getElementById('receiptStatementDate').innerText = c.statementDate ? `Ngày ${c.statementDate} hàng tháng` : 'Chưa rõ';
     if (document.getElementById('receiptDueDate')) document.getElementById('receiptDueDate').innerText = c.paymentDueDate ? `Ngày ${c.paymentDueDate} hàng tháng` : 'Chưa rõ';
-
     if (c.type === 'THE_TD') {
       typeGuideText = '⚠️ <b>RỦI RO THANH TOÁN THẺ TÍN DỤNG:</b>\n1. Để được <b>MIỄN LÃI hoàn toàn</b>, bạn bắt buộc phải thanh toán TOÀN BỘ "Tổng dư nợ kỳ trước" vào trước hoặc đúng Ngày Hạn Thanh Toán.\n2. Nếu bạn chỉ thanh toán số tiền <b>TỐI THIỂU</b> (thường 5% dư nợ), bạn sẽ không bị nợ xấu, NHƯNG toàn bộ giao dịch trong kỳ sẽ bị tính <b>lãi suất dư nợ (khoảng 3-4%/tháng)</b>.\n3. Nếu đóng trễ hạn thanh toán dù chỉ 1 ngày, bạn sẽ bị phạt phí trễ hạn (tối thiểu 4-5% số tiền chậm trả) và có nguy cơ bị ghi nhận NỢ XẤU CIC.';
     } else {
       typeGuideText = '⚠️ <b>LƯU Ý VÍ TRẢ SAU:</b> Vui lòng thanh toán toàn bộ dư nợ đã tiêu dùng trước hạn để tránh bị phạt phí trễ hạn khá cao và bị khóa ví. Hầu hết ví trả sau không hỗ trợ thanh toán tối thiểu kéo dài như thẻ tín dụng.';
     }
-
   } else {
     if (document.getElementById('receiptTypeBadge')) document.getElementById('receiptTypeBadge').innerText = 'VAY TRẢ GÓP';
     if (document.getElementById('viewLoanInfo')) document.getElementById('viewLoanInfo').classList.remove('hidden');
@@ -1140,27 +1021,27 @@ function openReceipt(leadId, aIdx) {
     typeGuideText = '💡 <b>LƯU Ý:</b> Bạn vui lòng thanh toán khoản vay hàng tháng TRƯỚC HẠN 1-2 NGÀY để phòng ngừa rủi ro kẹt mạng đường truyền, ngân hàng treo lệnh dẫn đến trễ hạn phát sinh phí phạt/nợ xấu oan uổng.';
   }
 
-  if (document.getElementById('receiptGuideText')) document.getElementById('receiptGuideText').innerHTML = `<b>🔗 Kênh Thanh Toán:</b> ${platformGuideText}<br><br>${typeGuideText}`;
+  // Tích hợp Hướng dẫn thanh toán tối ưu vào Modal Phiếu
+  const paymentInstruction = getPaymentInstruction(app.lender, c.code);
+  if (document.getElementById('receiptGuideText')) {
+      document.getElementById('receiptGuideText').innerHTML = paymentInstruction.replace(/\n/g, '<br>') + (typeGuideText ? '<br><br>' + typeGuideText : '');
+  }
+
   const m = document.getElementById('receiptModal');
   if (m) m.classList.remove('hidden');
 }
-
 function closeReceiptModal() { 
   const m = document.getElementById('receiptModal');
   if (m) m.classList.add('hidden'); 
 }
-
 function copyPaymentMsg() {
   const l = leads.find(x => x.id === receiptLeadId);
   const app = l.applications[receiptAppIdx];
   const c = app.contract ? app.contract : {};
   const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => { const num = v ? v : 0; return num.toLocaleString('vi-VN') + ' đ'; };
-
   const typeName = c.type === 'THE_TD' ? 'Thẻ Tín Dụng' : c.type === 'VI_TRA_SAU' ? 'Ví Trả Sau' : 'Vay Trả Góp';
   const codeText = c.code ? c.code : '---';
-
   let msg = `📢 THÔNG BÁO TÌNH TRẠNG SẢN PHẨM TÀI CHÍNH\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nSản phẩm: ${app.lender} (${typeName})\nMã số HĐ/Thẻ: ${codeText}\n\n`;
-
   if (c.type === 'THE_TD' || c.type === 'VI_TRA_SAU') {
     const stDateText = c.statementDate ? c.statementDate : '--';
     const ddText = c.paymentDueDate ? c.paymentDueDate : '--';
@@ -1171,9 +1052,12 @@ function copyPaymentMsg() {
     msg += `💰 Tiền góp định kỳ: ${fmtVND(c.monthlyPay)}/tháng\n(Kỳ hạn: ${tText} tháng)\n📅 Ngày đóng kỳ 1: ${dates.first}\n🏁 Ngày đóng kỳ cuối: ${dates.last}\n\n💡 LƯU Ý: Vui lòng đóng trước hạn 1-2 ngày để tránh kẹt mạng dẫn đến nợ xấu.`;
   }
   
+  // Tích hợp Hướng dẫn thanh toán tối ưu vào Kịch bản Zalo
+  const paymentInstruction = getPaymentInstruction(app.lender, c.code);
+  msg += `\n\n${paymentInstruction}`;
+  
   navigator.clipboard.writeText(msg).then(() => showToast('Đã copy kịch bản gửi Zalo!')).catch(() => showToast('Lỗi copy'));
 }
-
 function toggleCompleteModal(leadId) {
   const l = leads.find(x => x.id === leadId);
   if (!l) return;
@@ -1187,16 +1071,13 @@ function toggleCompleteModal(leadId) {
     if (m) m.classList.remove('hidden');
   }
 }
-
 function closeCompleteModal() { 
   const m = document.getElementById('completeModal');
   if (m) m.classList.add('hidden'); 
 }
-
 function saveCompleteLead() {
   const l = leads.find(x => x.id === targetCompleteId);
   if (!l) return;
-
   const reason = document.getElementById('completeReason') ? document.getElementById('completeReason').value : 'Hoàn tất';
   l.isCompleted = true;
   l.completeReason = reason;
@@ -1205,21 +1086,17 @@ function saveCompleteLead() {
   l.completedDate = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()}`;
   showToast('Đã lưu kho CRM');
   if (typeof sendTelegramNotification === 'function') sendTelegramNotification(`Lưu kho [${l.completeReason}]`, l.name);
-
   closeCompleteModal();
   saveStorage();
-
   if (reason === 'Đã giải ngân thành công') {
     if (!l.applications || l.applications.length === 0) {
       l.applications = [{ lender: 'TPBank', result: 'Duyệt', rejectReason: '', contract: null }];
     }
-
     let appIdx = l.applications.findIndex(a => a.result === 'Duyệt');
     if (appIdx === -1) {
       appIdx = 0;
       l.applications[0].result = 'Duyệt';
     }
-
     const app = l.applications[appIdx];
     if (app.contract && app.contract.code) {
       setTimeout(() => { openReceipt(l.id, appIdx); }, 300);
@@ -1228,7 +1105,6 @@ function saveCompleteLead() {
     }
   }
 }
-
 function openBackupModal() {
   const modal = document.getElementById('backupModal');
   if (!modal) return;
@@ -1251,12 +1127,10 @@ function openBackupModal() {
   
   modal.classList.remove('hidden');
 }
-
 function closeBackupModal() { 
   const modal = document.getElementById('backupModal');
   if (modal) modal.classList.add('hidden'); 
 }
-
 function downloadBackupFile() {
   const blob = new Blob([JSON.stringify(leads, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -1265,11 +1139,9 @@ function downloadBackupFile() {
   a.click();
   showToast('Đã tải file máy!');
 }
-
 function copyBackupText() {
   navigator.clipboard.writeText(JSON.stringify(leads)).then(() => showToast('Đã copy mã! Dán vào Zalo.')).catch(() => showToast('Lỗi copy'));
 }
-
 async function importJsonFromClipboard() {
   try {
     let text = '';
@@ -1287,7 +1159,6 @@ async function importJsonFromClipboard() {
       showToast('Chưa có nội dung sao chép!');
       return;
     }
-
     const cleanRaw = cleanJsonString(text);
     const parsed = JSON.parse(cleanRaw);
     if (Array.isArray(parsed) && parsed.length > 0) {
@@ -1304,7 +1175,6 @@ async function importJsonFromClipboard() {
     alert('❌ Không thể phân tích mã JSON. Hãy kiểm tra lại bạn đã sao chép trọn vẹn tệp hay chưa nhé!');
   }
 }
-
 function restoreFromFile(e) {
   const f = e.target.files && e.target.files[0];
   if (!f) return;
@@ -1331,6 +1201,46 @@ function restoreFromFile(e) {
     }
   };
   r.readAsText(f, 'UTF-8');
+}
+
+// Hàm hiển thị Hướng dẫn thanh toán tối ưu cho các sản phẩm tài chính
+function getPaymentInstruction(productType, contractNumber = '') {
+    const cleanProduct = (productType || '').toUpperCase().trim();
+    const code = contractNumber ? contractNumber : '[Số hợp đồng/ID]';
+    
+    if (cleanProduct.includes('FE') || cleanProduct.includes('FECREDIT')) {
+        return `🧾 HƯỚNG DẪN THANH TOÁN\n• App: Dùng ứng dụng FE Online 2.0.\n• Định danh: Khoản vay nhập Số hợp đồng | Thẻ tín dụng nhập Số tài khoản thẻ (16 số in nổi).\n• Thu hộ: ATM CDM VPBank, Thế Giới Di Động, Điện Máy Xanh, Bách Hóa Xanh, VNPost, cửa hàng tiện lợi.\n⚠️ Lưu ý: Một số kênh thu hộ mất 2 ngày làm việc để gạch nợ, cần đóng trước hạn.`;
+    }
+    if (cleanProduct.includes('HOME')) {
+        return `🧾 HƯỚNG DẪN THANH TOÁN\n• App: Dùng App Home Credit (Miễn phí, gạch nợ sau vài phút).\n• Chuyển khoản BIDV: Chuyển tới STK 96291 + ${code}.\n• Thu hộ: Thế Giới Di Động, Điện Máy Xanh, FPT Shop, cửa hàng tiện lợi, bưu điện.`;
+    }
+    if (cleanProduct.includes('HD') || cleanProduct.includes('SAISON')) {
+        return `🧾 HƯỚNG DẪN THANH TOÁN\n• App đối tác: Payoo, MoMo, ZaloPay.\n• Chuyển khoản / Nộp tại HDBank: STK 002704070014601 (HD Saison - CN Phú Nhuận).\n• Cú pháp bắt buộc:\n  - Khoản nợ: ${code} [Họ tên]\n  - Dư nợ thẻ: [Số thẻ] [Họ tên] thanh toan the`;
+    }
+    if (cleanProduct.includes('TIN VAY') || cleanProduct.includes('VIETCREDIT')) {
+        return `🧾 HƯỚNG DẪN THANH TOÁN\n• Cổng trực tuyến: https://paymentgate.tinvay.com.vn/\n• App: Mở App VietCredit (Tab Khoản vay) hoặc dùng Mini App đối tác (MoMo, Zalo, Viettel Money, Grab, TOPI...).`;
+    }
+    if (cleanProduct.includes('MCREDIT')) {
+        return `🧾 HƯỚNG DẪN THANH TOÁN\n• App: Mở App Mcredit để thanh toán trực tiếp.\n• Chuyển khoản (Bắt buộc): Ngân hàng MB | STK: MBMCR${code} (Kiểm tra đúng tên chủ tài khoản).\n• Ví điện tử & Thu hộ: MoMo, ZaloPay, Viettel Money, ShopeePay, quầy MB, TGDĐ, ĐMX, VNPost, Payoo.\n⚠️ Lưu ý: Tuyệt đối không thanh toán qua kênh ngoài danh sách chính thức của Mcredit.`;
+    }
+    if (cleanProduct.includes('TNEX')) {
+        return `🧾 HƯỚNG DẪN THANH TOÁN\n• App: Mở App TNEX (Chọn "Vay tiêu dùng" hoặc "Vay hạn mức" để trả nợ/tất toán) hoặc cài trích nợ tự động.\n• Đối tác: Ví ZaloPay hoặc cổng Payoo.\n• Chuyển khoản/Thu hộ: Chuyển khoản MSB hoặc nộp tiền mặt tại quầy giao dịch MSB.`;
+    }
+    if (cleanProduct.includes('SHB') || cleanProduct.includes('SHBFINANCE')) {
+        return `🧾 HƯỚNG DẪN THANH TOÁN\n• App/Web: Dùng App SHBFinance hoặc truy cập website tra cứu bằng Số hợp đồng + CCCD để quét QR.\n• Thu hộ: VNPost, Payoo, Viettel Post, ShopeePay, ngân hàng SHB và VietinBank.\n⚠️ Lưu ý: Giao dịch trực tuyến qua đối tác bắt buộc lớn hơn 12.000 VNĐ.`;
+    }
+    if (cleanProduct.includes('VPBANK')) {
+        return `🧾 HƯỚNG DẪN THANH TOÁN\n• App: Dùng App VPBank NEO (Chọn Khoản vay hoặc đăng ký trích nợ tự động).\n• Thu hộ: Payoo (Circle K, FamilyMart, 7-Eleven...) dùng mã hợp đồng hoặc số tài khoản.\n• Chuyển khoản / Trực tiếp: Chuyển khoản từ ngân hàng khác vào STK khoản vay hoặc nộp tiền mặt tại quầy VPBank.`;
+    }
+    if (cleanProduct.includes('CAKE')) {
+        return `🧾 HƯỚNG DẪN THANH TOÁN\n• App: Mở App Cake Bank (Vào mục "Khoản vay" để thanh toán chủ động, tất toán) hoặc sử dụng trích nợ tự động từ Tài khoản thanh toán Cake.`;
+    }
+    if (cleanProduct.includes('TPBANK') || cleanProduct.includes('TPFICO')) {
+        return `🧾 HƯỚNG DẪN THANH TOÁN\n• App & Ví: Dùng App TPBank Mobile, ví MoMo hoặc Viettel Money.\n• Nộp tiền mặt tự động 24/7: Dùng hệ thống cây TPBank LiveBank (Chọn nộp tiền vào tài khoản hoặc thanh toán gốc/lãi).`;
+    }
+    
+    // PHƯƠNG THỨC CHUNG
+    return `🧾 HƯỚNG DẪN THANH TOÁN\n• App/Ví: Mở ứng dụng ngân hàng hoặc ví (MoMo, ZaloPay...), chọn "Thanh toán khoản vay", tìm tên tổ chức và nhập Mã hợp đồng.\n• Chuyển khoản: Chuyển vào STK định danh của hợp đồng. Nội dung: ${code} - [Họ tên].\n• Thu hộ: Ra TGDĐ, Điện Máy Xanh, VNPost, Payoo đọc số hợp đồng/CCCD và giữ lại biên lai.`;
 }
 
 // Khởi chạy render ngay khi nạp script

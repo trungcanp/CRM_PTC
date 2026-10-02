@@ -1,52 +1,94 @@
 <!-- components/modal-contract.html -->
 <div id="contractModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm hidden">
-  <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl relative animate-in fade-in zoom-in-95">
+  <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl relative animate-in fade-in zoom-in-95 max-h-[95vh] overflow-y-auto">
     <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
-      <h3 class="font-black text-slate-800 flex items-center gap-2"><span class="text-emerald-500 text-xl">🎉</span> Hợp Đồng Giải Ngân</h3>
+      <h3 class="font-black text-slate-800 flex items-center gap-2"><span class="text-emerald-500 text-xl">🎉</span> Hợp Đồng & Giải Ngân</h3>
       <button type="button" onclick="closeContractModal()" class="text-slate-400 hover:text-slate-600 font-bold bg-slate-100 w-8 h-8 rounded-full flex items-center justify-center transition">✕</button>
     </div>
 
     <form id="contractForm" onsubmit="saveContractForm(event)" class="space-y-4 text-xs">
-      <div>
-        <label class="block font-bold text-slate-700 mb-1.5">Mã hợp đồng (Nếu có)</label>
-        <input id="contractCode" type="text" placeholder="HĐ-12345" class="w-full border border-slate-200 rounded-xl p-2.5 uppercase font-mono font-bold focus:outline-blue-500 text-indigo-700 bg-slate-50 transition">
-      </div>
-      
-      <div class="grid grid-cols-2 gap-3">
+      <!-- PHÂN LOẠI SẢN PHẨM & NỀN TẢNG -->
+      <div class="grid grid-cols-2 gap-3 bg-blue-50/50 p-2.5 rounded-xl border border-blue-100">
         <div>
-          <label class="block font-bold text-slate-700 mb-1.5">Số tiền duyệt</label>
-          <input id="contractAmount" required type="text" onblur="if(typeof smartFormatMoney === 'function') smartFormatMoney(this)" placeholder="Nhập 30000..." class="w-full border border-emerald-200 rounded-xl p-2.5 font-bold text-emerald-700 bg-emerald-50 focus:outline-emerald-500 transition">
+          <label class="block font-bold text-slate-700 mb-1.5">Loại Sản Phẩm</label>
+          <select id="contractType" onchange="toggleContractFields()" class="w-full border border-slate-200 rounded-xl p-2.5 font-bold text-slate-800 bg-white focus:outline-blue-500 transition cursor-pointer">
+            <option value="VAY">Vay Trả Góp</option>
+            <option value="THE_TD">Thẻ Tín Dụng</option>
+            <option value="VI_TRA_SAU">Ví Trả Sau</option>
+          </select>
         </div>
         <div>
-          <label class="block font-bold text-slate-700 mb-1.5">Kỳ hạn góp</label>
-          <select id="contractTenor" class="w-full border border-slate-200 rounded-xl p-2.5 font-bold text-slate-800 bg-slate-50 focus:outline-blue-500 transition cursor-pointer">
-            <option value="3">3 tháng</option>
-            <option value="6">6 tháng</option>
-            <option value="9">9 tháng</option>
-            <option value="12" selected>12 tháng</option>
-            <option value="15">15 tháng</option>
-            <option value="18">18 tháng</option>
-            <option value="24">24 tháng</option>
-            <option value="36">36 tháng</option>
-            <option value="48">48 tháng</option>
+          <label class="block font-bold text-slate-700 mb-1.5">Nền Tảng</label>
+          <select id="contractPlatform" class="w-full border border-slate-200 rounded-xl p-2.5 font-bold text-slate-800 bg-white focus:outline-blue-500 transition cursor-pointer">
+            <option value="TRUC_TIEP">Trực tiếp Sale</option>
+            <option value="ZALO">Zalo</option>
+            <option value="MOMO">MoMo</option>
+            <option value="ZALOPAY">ZaloPay</option>
+            <option value="VIETTEL_MONEY">Viettel Money</option>
+            <option value="QUA_TANG_VIP">Quà Tặng VIP</option>
+            <option value="KHAC">Ứng dụng Khác</option>
           </select>
         </div>
       </div>
 
       <div>
-        <label class="block font-bold text-slate-700 mb-1.5">Số tiền đóng mỗi tháng</label>
-        <div class="relative">
-          <input id="contractMonthly" required type="text" onblur="if(typeof smartFormatMoney === 'function') smartFormatMoney(this)" placeholder="Nhập 2500 ➔ 2.500.000" class="w-full border border-rose-200 rounded-xl p-2.5 font-bold text-rose-700 bg-rose-50 focus:outline-rose-500 pr-12 transition">
-          <span class="absolute right-3 top-1/2 -translate-y-1/2 text-rose-400 font-black text-[10px]">VNĐ</span>
+        <label class="block font-bold text-slate-700 mb-1.5">Mã hợp đồng / Số thẻ (Nếu có)</label>
+        <input id="contractCode" type="text" placeholder="HĐ-12345" class="w-full border border-slate-200 rounded-xl p-2.5 uppercase font-mono font-bold focus:outline-blue-500 text-indigo-700 bg-slate-50 transition">
+      </div>
+      
+      <div>
+        <label id="lblAmount" class="block font-bold text-slate-700 mb-1.5">Số tiền duyệt / Hạn mức</label>
+        <input id="contractAmount" required type="text" onblur="if(typeof smartFormatMoney === 'function') smartFormatMoney(this)" placeholder="Nhập 30000..." class="w-full border border-emerald-200 rounded-xl p-2.5 font-bold text-emerald-700 bg-emerald-50 focus:outline-emerald-500 transition text-lg">
+      </div>
+
+      <!-- FIELDS DÀNH CHO VAY TRẢ GÓP -->
+      <div id="loanFields" class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1.5">Kỳ hạn góp</label>
+            <select id="contractTenor" class="w-full border border-slate-200 rounded-xl p-2.5 font-bold text-slate-800 bg-slate-50 focus:outline-blue-500 transition cursor-pointer">
+              <option value="3">3 tháng</option>
+              <option value="6">6 tháng</option>
+              <option value="9">9 tháng</option>
+              <option value="12" selected>12 tháng</option>
+              <option value="15">15 tháng</option>
+              <option value="18">18 tháng</option>
+              <option value="21">21 tháng</option>
+              <option value="24">24 tháng</option>
+              <option value="36">36 tháng</option>
+              <option value="48">48 tháng</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1.5">Đóng mỗi tháng</label>
+            <div class="relative">
+              <input id="contractMonthly" type="text" onblur="if(typeof smartFormatMoney === 'function') smartFormatMoney(this)" placeholder="VD: 2500" class="w-full border border-rose-200 rounded-xl p-2.5 font-bold text-rose-700 bg-rose-50 focus:outline-rose-500 pr-10 transition">
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-rose-400 font-black text-[10px]">VNĐ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FIELDS DÀNH CHO THẺ TÍN DỤNG / VÍ TRẢ SAU -->
+      <div id="cardFields" class="hidden bg-amber-50 p-3 rounded-xl border border-amber-200 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-amber-900 mb-1.5">Ngày sao kê (1-31)</label>
+            <input id="contractStatementDate" type="number" min="1" max="31" placeholder="VD: 20" class="w-full border border-amber-300 rounded-xl p-2.5 font-bold focus:outline-amber-600 bg-white">
+          </div>
+          <div>
+            <label class="block font-bold text-amber-900 mb-1.5">Ngày đến hạn (1-31)</label>
+            <input id="contractPaymentDueDate" type="number" min="1" max="31" placeholder="VD: 5" class="w-full border border-amber-300 rounded-xl p-2.5 font-bold focus:outline-amber-600 bg-white">
+          </div>
         </div>
       </div>
 
       <div>
-        <label class="block font-bold text-slate-700 mb-1.5">Ngày giải ngân (Bắt đầu tính lãi)</label>
+        <label id="lblDate" class="block font-bold text-slate-700 mb-1.5">Ngày giải ngân (Bắt đầu tính lãi)</label>
         <input id="contractDate" required type="date" class="w-full border border-slate-200 rounded-xl p-2.5 text-slate-700 font-semibold focus:outline-blue-500 bg-slate-50 transition">
       </div>
 
-      <div class="pt-3 flex gap-2">
+      <div class="pt-3 flex gap-2 border-t border-slate-100">
         <button type="button" onclick="closeContractModal()" class="w-1/3 py-3 rounded-xl bg-slate-100 text-slate-600 font-bold hover:bg-slate-200 transition">Hủy</button>
         <button type="submit" class="w-2/3 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-md shadow-emerald-500/30 active:scale-95 transition">💾 Lưu Hợp Đồng</button>
       </div>

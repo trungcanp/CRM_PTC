@@ -1,14 +1,10 @@
-// js/app.js - Bộ điều phối CRM độc lập ĐẦY ĐỦ (API V2)
+// js/app.js - Bộ điều phối CRM độc lập ĐẦY ĐỦ (API V2 - Khắc phục lỗi Syntax)
 
 const GOOGLE_SHEET_API_URL = 'https://script.google.com/macros/s/AKfycbzi_ck6A2akcCHlWC7q_lqm2qSVBNkl0Qq-_3k-wefR62kAxdMSPGm7-V1IuEK-s2Q7/exec';
 
 function escapeHtml(str) {
   if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function cleanJsonString(str) {
@@ -28,10 +24,10 @@ function smartFormatMoney(el) {
   el.value = new Intl.NumberFormat('vi-VN').format(val);
 }
 
-// Bọc an toàn tuyệt đối khi đọc localStorage
 let leads = [];
 try {
-  leads = JSON.parse(localStorage.getItem('loan_crm_v22') || '[]');
+  const localData = localStorage.getItem('loan_crm_v22');
+  leads = localData ? JSON.parse(localData) : [];
 } catch (e) {
   leads = [];
 }
@@ -212,22 +208,6 @@ function clearSearch() {
   render();
 }
 
-const PARTNER_ICONS = {
-  'TPBank': '🟣',
-  'FE Credit': '🟢',
-  'Home Credit': '🔴',
-  'HD Saison': '🟡',
-  'Mirae Asset (MAFC)': '🏢',
-  'MCredit': '🟣',
-  'SHB Finance': '🔷',
-  'VPBank': '🏦',
-  'Cathay Bank (CUB)': '🌳',
-  'Tnex': '⚡',
-  'Cake by VPBank': '🍰',
-  'Viettel Money': '📶',
-  'Tinvay': '💳'
-};
-
 function ensureAddAppModalExists() {
   if (document.getElementById('addAppModal')) return;
   const modalDiv = document.createElement('div');
@@ -276,37 +256,30 @@ function addAppPrompt(leadId) {
 
   const html = `
     <div class="space-y-4">
-      <!-- 1. VAY QUA ĐỐI TÁC (APP) -->
       <div class="bg-blue-50/70 p-2.5 rounded-xl border border-blue-200 space-y-2">
-        <h4 class="font-black text-blue-900 text-[11px] uppercase flex items-center gap-1"><span>📱</span> 1. Vay Qua Mạng Lưới Đối Tác</h4>
+        <h4 class="font-black text-blue-900 text-[11px] uppercase flex items-center gap-1"><span>📱</span> 1. Vay Qua Đối Tác (Zalo/MoMo...)</h4>
         <div class="space-y-2.5 pl-1">
-          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Zalo:</div><div class="grid grid-cols-2 gap-1.5">${['TiN VAY (VietCredit)', 'MCredit (Zalo)', 'Tnex (MSB)', 'TPBank (Zalo)'].map(renderBtn).join('')}</div></div>
-          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua MoMo:</div><div class="grid grid-cols-2 gap-1.5">${['Home Credit (MoMo)', 'FE Credit (MoMo)', 'VPBank (MoMo)', 'SHB Finance (MoMo)', 'VAY NHANH (MBV)'].map(renderBtn).join('')}</div></div>
-          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua ZaloPay:</div><div class="grid grid-cols-2 gap-1.5">${['Tnex (ZaloPay)', 'Cake (ZaloPay)'].map(renderBtn).join('')}</div></div>
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Zalo:</div><div class="grid grid-cols-2 gap-1.5">${['TiN VAY (VietCredit)', 'MCredit', 'Tnex (MSB)', 'TPBank'].map(renderBtn).join('')}</div></div>
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️️ Qua MoMo:</div><div class="grid grid-cols-2 gap-1.5">${['Home Credit', 'FE Credit', 'VPBank', 'SHB Finance', 'VAY NHANH (MBV)'].map(renderBtn).join('')}</div></div>
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪ Qua ZaloPay:</div><div class="grid grid-cols-2 gap-1.5">${['Tnex (ZaloPay)', 'Cake by VPBank'].map(renderBtn).join('')}</div></div>
           <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Viettel Money:</div><div class="grid grid-cols-2 gap-1.5">${['Cake (Viettel)', 'FE Credit (Viettel)', 'TiN VAY (Viettel)', 'MCredit (Viettel)', 'FAST MONEY (EVN)'].map(renderBtn).join('')}</div></div>
-          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Quà Tặng VIP:</div><div class="grid grid-cols-2 gap-1.5">${['Cake (VIP)', 'EVO', 'Thẻ VietCredit (VIP)', 'Thẻ MWG VPBank'].map(renderBtn).join('')}</div></div>
+          <div><div class="text-[10px] font-bold text-slate-600 mb-1">▪️ Qua Quà Tặng VIP:</div><div class="grid grid-cols-2 gap-1.5">${['Cake (VIP)', 'EVO', 'Thẻ VietCredit', 'Thẻ MWG (VPBank)'].map(renderBtn).join('')}</div></div>
         </div>
       </div>
-
-      <!-- 2. VAY TRỰC TIẾP QUA SALE -->
       <div class="bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200 space-y-2">
-        <h4 class="font-black text-emerald-900 text-[11px] uppercase flex items-center gap-1"><span>👔</span> 2. Vay Trực Tiếp (Qua Sale)</h4>
+        <h4 class="font-black text-emerald-900 text-[11px] uppercase flex items-center gap-1"><span>👔</span> 2. Vay Trực Tiếp Qua Sale</h4>
         <div class="grid grid-cols-2 gap-1.5">
-          ${['TiN VAY (Sale)', 'MCredit', 'Home Credit', 'FE Credit', 'HD Saison', 'VPBank', 'Tnex (MSB)', 'Cake by VPBank', 'TPBank', 'CUB (Cathay)', 'SHB Finance', 'Mirae Asset'].map(renderBtn).join('')}
+          ${['TiN VAY (Sale)', 'MCredit (Sale)', 'Home Credit (Sale)', 'FE Credit (Sale)', 'HD Saison', 'VPBank (Sale)', 'Tnex (Sale)', 'Cake (Sale)', 'TPBank (Sale)', 'CUB (Cathay Bank)', 'SHB Finance (Sale)', 'Mirae Asset'].map(renderBtn).join('')}
         </div>
       </div>
-
-      <!-- 3. THẺ TÍN DỤNG -->
       <div class="bg-amber-50/70 p-2.5 rounded-xl border border-amber-200 space-y-2">
-        <h4 class="font-black text-amber-900 text-[11px] uppercase flex items-center gap-1"><span>💳</span> 3. Mở Thẻ Tín Dụng</h4>
+        <h4 class="font-black text-amber-900 text-[11px] uppercase flex items-center gap-1"><span>💳</span> 3. Thẻ Tín Dụng</h4>
         <div class="grid grid-cols-2 gap-1.5">
-          ${['Thẻ VPBank', 'Thẻ OCB', 'Thẻ VIB', 'Thẻ VietCredit', 'Thẻ TPBank', 'Thẻ LeoBank', 'Thẻ HDBank'].map(renderBtn).join('')}
+          ${['Thẻ VPBank', 'Thẻ OCB', 'Thẻ VIB', 'Thẻ VietCredit (App)', 'Thẻ TPBank', 'Thẻ LeoBank', 'Thẻ HDBank'].map(renderBtn).join('')}
         </div>
       </div>
-
-      <!-- 4. VÍ TRẢ SAU -->
       <div class="bg-purple-50/70 p-2.5 rounded-xl border border-purple-200 space-y-2">
-        <h4 class="font-black text-purple-900 text-[11px] uppercase flex items-center gap-1"><span>🛍️</span> 4. Đăng Ký Ví Trả Sau</h4>
+        <h4 class="font-black text-purple-900 text-[11px] uppercase flex items-center gap-1"><span>🛍️</span> 4. Ví Trả Sau</h4>
         <div class="grid grid-cols-2 gap-1.5">
           ${['Ví Trả Sau MoMo', 'TK Trả Sau ZaloPay', 'Paynow (Viettel)', 'SPayLater (Shopee)', 'Kredivo'].map(renderBtn).join('')}
         </div>
@@ -347,8 +320,8 @@ function openLoanMatchModal(leadId) {
   if (!lead) return;
   currentMatchingLeadId = leadId;
 
-  const age = lead.age || (typeof calcAge === 'function' ? calcAge(lead.dob) : 25);
-  const carrier = lead.simCarrier || detectSimCarrier(lead.phone);
+  const age = lead.age ? lead.age : (typeof calcAge === 'function' ? calcAge(lead.dob) : 25);
+  const carrier = lead.simCarrier ? lead.simCarrier : detectSimCarrier(lead.phone);
   const cicText = lead.cicStatus === 'SACH' ? '✅ Chuẩn nhóm 1 (Sạch)' : '⚠️ Có nợ chú ý/nợ xấu';
 
   const nameEl = document.getElementById('matchTargetLeadName');
@@ -356,15 +329,18 @@ function openLoanMatchModal(leadId) {
 
   const sumEl = document.getElementById('matchLeadSummary');
   if (sumEl) {
-    const formattedIncome = typeof formatVND === 'function' ? formatVND(lead.income) : (lead.income || 0);
-    const formattedAmount = typeof formatVND === 'function' ? formatVND(lead.amount) : (lead.amount || 0);
+    const formattedIncome = typeof formatVND === 'function' ? formatVND(lead.income) : (lead.income ? lead.income : 0);
+    const formattedAmount = typeof formatVND === 'function' ? formatVND(lead.amount) : (lead.amount ? lead.amount : 0);
+    const prevList = (lead.previousLenders && lead.previousLenders.length > 0) ? lead.previousLenders.join(', ') : 'Chưa từng (Khách mới)';
+    const bankNameSafe = lead.bankName ? lead.bankName : 'Chưa rõ';
+    
     sumEl.innerHTML = `
       <div><b>Thu nhập:</b> <span class="text-blue-700 font-bold">${formattedIncome}</span></div>
       <div><b>Cần vay:</b> <span class="text-emerald-700 font-bold">${formattedAmount}</span></div>
       <div><b>Mạng SIM:</b> 📶 ${carrier}</div>
       <div><b>CIC:</b> ${cicText}</div>
-      <div><b>Ngân hàng:</b> ${lead.bankName || 'Chưa rõ'}</div>
-      <div class="col-span-2 text-slate-600 truncate"><b>Đã/đang góp tại:</b> ${(lead.previousLenders || []).join(', ') || 'Chưa từng (Khách mới)'}</div>
+      <div><b>Ngân hàng:</b> ${bankNameSafe}</div>
+      <div class="col-span-2 text-slate-600 truncate"><b>Đã/đang góp tại:</b> ${prevList}</div>
     `;
   }
 
@@ -379,13 +355,17 @@ function openLoanMatchModal(leadId) {
         <div class="p-6 text-center bg-white rounded-2xl border border-dashed text-slate-500 text-xs space-y-1">
           <div class="text-xl">⚠️</div>
           <p class="font-bold text-slate-700">Chưa có gói vay hoàn toàn khớp</p>
-          <p class="text-[10px]">Hãy kiểm tra lại độ tuổi hoặc bổ thêm chứng từ (BHYT, Bằng lái xe, Cà vẹt).</p>
+          <p class="text-[10px]">Hãy kiểm tra lại độ tuổi hoặc bổ sung thêm chứng từ (BHYT, Bằng lái xe, Cà vẹt).</p>
         </div>
       `;
     } else {
       let html = '';
       matchedList.forEach(pkg => {
-        const isAlreadyApplied = lead.applications?.some(a => a.lender === pkg.lender);
+        const isAlreadyApplied = (lead.applications || []).some(a => a.lender === pkg.lender);
+        const btnText = isAlreadyApplied ? '✓ Đã Nộp' : '+ Nộp Gói Này';
+        const btnClass = isAlreadyApplied ? 'bg-slate-200 text-slate-600' : 'bg-blue-600 hover:bg-blue-700 text-white shadow active:scale-95';
+        const appliedStatusText = isAlreadyApplied ? '✓ Đã có trong danh sách nộp' : 'Chưa nộp đơn vị này';
+        
         html += `
           <div class="bg-white border-2 border-emerald-500/50 rounded-2xl p-3 shadow-sm space-y-2 relative overflow-hidden">
             <div class="flex justify-between items-start">
@@ -401,12 +381,9 @@ function openLoanMatchModal(leadId) {
             </div>
             <p class="text-[10px] text-slate-600 leading-tight bg-slate-50 p-2 rounded-xl border border-slate-100">💡 <b>Điều kiện:</b> ${pkg.note}</p>
             <div class="pt-1 flex justify-between items-center border-t border-slate-100">
-              <span class="text-[10px] text-slate-500">${isAlreadyApplied ? '✓ Đã có trong danh sách nộp' : 'Chưa nộp đơn vị này'}</span>
-              <button 
-                type="button" 
-                onclick="applyMatchedPackage(${lead.id}, '${pkg.lender}')" 
-                class="${isAlreadyApplied ? 'bg-slate-200 text-slate-600' : 'bg-blue-600 hover:bg-blue-700 text-white shadow active:scale-95'} font-extrabold text-[11px] px-3 py-1.5 rounded-xl transition">
-                ${isAlreadyApplied ? '✓ Đã Nộp' : '+ Nộp Gói Này'}
+              <span class="text-[10px] text-slate-500">${appliedStatusText}</span>
+              <button type="button" onclick="applyMatchedPackage(${lead.id}, '${pkg.lender}')" class="${btnClass} font-extrabold text-[11px] px-3 py-1.5 rounded-xl transition">
+                ${btnText}
               </button>
             </div>
           </div>
@@ -448,43 +425,51 @@ function saveLeadForm(e) {
   const docs = Array.from(document.querySelectorAll('.lead-doc-chk:checked')).map(el => el.value);
   const prevLenders = Array.from(document.querySelectorAll('.lead-prev-lender-chk:checked')).map(el => el.value);
   const apps = Array.from(document.querySelectorAll('.lead-app-chk:checked')).map(el => el.value);
-  const initialLender = document.getElementById('formInitialLender')?.value || 'TPBank';
+  
+  let initialLender = 'TPBank';
+  const initEl = document.getElementById('formInitialLender');
+  if (initEl) initialLender = initEl.value;
+  
   const name = document.getElementById('formName').value;
   const phone = document.getElementById('formPhone').value;
   const autoCarrier = detectSimCarrier(phone);
 
   const parseNum = typeof parseNumeric === 'function' ? parseNumeric : (v) => parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
+  
+  let amountVal = 30000000;
+  const amtEl = document.getElementById('formAmount');
+  if (amtEl && parseNum(amtEl.value) > 0) amountVal = parseNum(amtEl.value);
 
   const d = {
     name: name,
     phone: phone,
-    email: document.getElementById('formEmail')?.value || '',
+    email: document.getElementById('formEmail') ? document.getElementById('formEmail').value : '',
     simCarrier: autoCarrier,
     dob: dob,
     age: typeof calcAge === 'function' ? calcAge(dob) : 25,
-    cccd: document.getElementById('formCccd')?.value || '',
-    oldCmnd: document.getElementById('formOldCmnd')?.value || '',
-    gender: document.getElementById('formGender')?.value || 'Nam',
-    permAddress: document.getElementById('formPermAddress')?.value || '',
-    tempAddress: document.getElementById('formTempAddress')?.value || '',
-    job: document.getElementById('formJob')?.value || '',
-    workAddress: document.getElementById('formWorkAddress')?.value || '',
-    workTime: document.getElementById('formWorkTime')?.value || '',
-    income: parseNum(document.getElementById('formIncome')?.value),
-    amount: parseNum(document.getElementById('formAmount')?.value) || 30000000,
-    bankName: document.getElementById('formBankName')?.value || '',
-    bankAccount: document.getElementById('formBankAccount')?.value || '',
+    cccd: document.getElementById('formCccd') ? document.getElementById('formCccd').value : '',
+    oldCmnd: document.getElementById('formOldCmnd') ? document.getElementById('formOldCmnd').value : '',
+    gender: document.getElementById('formGender') ? document.getElementById('formGender').value : 'Nam',
+    permAddress: document.getElementById('formPermAddress') ? document.getElementById('formPermAddress').value : '',
+    tempAddress: document.getElementById('formTempAddress') ? document.getElementById('formTempAddress').value : '',
+    job: document.getElementById('formJob') ? document.getElementById('formJob').value : '',
+    workAddress: document.getElementById('formWorkAddress') ? document.getElementById('formWorkAddress').value : '',
+    workTime: document.getElementById('formWorkTime') ? document.getElementById('formWorkTime').value : '',
+    income: document.getElementById('formIncome') ? parseNum(document.getElementById('formIncome').value) : 0,
+    amount: amountVal,
+    bankName: document.getElementById('formBankName') ? document.getElementById('formBankName').value : '',
+    bankAccount: document.getElementById('formBankAccount') ? document.getElementById('formBankAccount').value : '',
     previousLenders: prevLenders,
     installedApps: apps,
-    ref1Rel: document.getElementById('formRef1Rel')?.value || '',
-    ref1Name: document.getElementById('formRef1Name')?.value || '',
-    ref1Phone: document.getElementById('formRef1Phone')?.value || '',
-    ref2Rel: document.getElementById('formRef2Rel')?.value || '',
-    ref2Name: document.getElementById('formRef2Name')?.value || '',
-    ref2Phone: document.getElementById('formRef2Phone')?.value || '',
-    cicStatus: document.getElementById('formCicStatus')?.value || 'SACH',
+    ref1Rel: document.getElementById('formRef1Rel') ? document.getElementById('formRef1Rel').value : '',
+    ref1Name: document.getElementById('formRef1Name') ? document.getElementById('formRef1Name').value : '',
+    ref1Phone: document.getElementById('formRef1Phone') ? document.getElementById('formRef1Phone').value : '',
+    ref2Rel: document.getElementById('formRef2Rel') ? document.getElementById('formRef2Rel').value : '',
+    ref2Name: document.getElementById('formRef2Name') ? document.getElementById('formRef2Name').value : '',
+    ref2Phone: document.getElementById('formRef2Phone') ? document.getElementById('formRef2Phone').value : '',
+    cicStatus: document.getElementById('formCicStatus') ? document.getElementById('formCicStatus').value : 'SACH',
     documents: docs,
-    note: document.getElementById('formNote')?.value || ''
+    note: document.getElementById('formNote') ? document.getElementById('formNote').value : ''
   };
 
   let savedLeadId = null;
@@ -519,7 +504,7 @@ function render() {
   const container = document.getElementById('leadsContainer');
   if (!container) return;
 
-  const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => `${(v || 0).toLocaleString('vi-VN')} đ`;
+  const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => { const num = v ? v : 0; return num.toLocaleString('vi-VN') + ' đ'; };
 
   const activeCount = leads.filter(l => !l.isCompleted).length;
   const archivedCount = leads.filter(l => l.isCompleted).length;
@@ -527,8 +512,8 @@ function render() {
   if (document.getElementById('archivedCountBadge')) document.getElementById('archivedCountBadge').innerText = archivedCount;
 
   if (document.getElementById('statCic')) document.getElementById('statCic').innerText = leads.filter(l => l.cicStatus === 'SACH').length;
-  if (document.getElementById('statApproved')) document.getElementById('statApproved').innerText = leads.filter(l => l.applications?.some(a => a.result === 'Duyệt')).length;
-  if (document.getElementById('statDisbursed')) document.getElementById('statDisbursed').innerText = leads.filter(l => l.applications?.some(a => a.contract?.code)).length;
+  if (document.getElementById('statApproved')) document.getElementById('statApproved').innerText = leads.filter(l => (l.applications || []).some(a => a.result === 'Duyệt')).length;
+  if (document.getElementById('statDisbursed')) document.getElementById('statDisbursed').innerText = leads.filter(l => (l.applications || []).some(a => (a.contract && a.contract.code))).length;
 
   const filtered = leads.filter(l => {
     if (activeTab === 'active' && l.isCompleted) return false;
@@ -537,15 +522,22 @@ function render() {
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const m1 = (l.name || '').toLowerCase().includes(q) || (l.phone || '').includes(q) || (l.cccd && l.cccd.includes(q));
-      const m2 = l.applications?.some(a => (a.lender || '').toLowerCase().includes(q) || (a.contract?.code && a.contract.code.toLowerCase().includes(q)));
-      const m3 = l.previousLenders?.some(pl => pl.toLowerCase().includes(q));
+      const safeName = l.name ? l.name.toLowerCase() : '';
+      const safePhone = l.phone ? l.phone : '';
+      const safeCccd = l.cccd ? l.cccd : '';
+      const m1 = safeName.includes(q) || safePhone.includes(q) || safeCccd.includes(q);
+      const m2 = (l.applications || []).some(a => {
+        const safeLender = a.lender ? a.lender.toLowerCase() : '';
+        const safeCode = (a.contract && a.contract.code) ? a.contract.code.toLowerCase() : '';
+        return safeLender.includes(q) || safeCode.includes(q);
+      });
+      const m3 = (l.previousLenders || []).some(pl => pl.toLowerCase().includes(q));
       if (!m1 && !m2 && !m3) return false;
     }
 
     if (currentFilterStatus !== 'ALL') {
       const st = currentFilterStatus;
-      const m = l.applications?.some(a => st === 'Duyệt' ? a.result === 'Duyệt' : st === 'Từ chối' ? a.result === 'Từ chối' : (a.result === 'Đang thẩm định' || a.result === 'Bổ sung hồ sơ'));
+      const m = (l.applications || []).some(a => st === 'Duyệt' ? a.result === 'Duyệt' : st === 'Từ chối' ? a.result === 'Từ chối' : (a.result === 'Đang thẩm định' || a.result === 'Bổ sung hồ sơ'));
       if (!m) return false;
     }
     return true;
@@ -565,12 +557,17 @@ function render() {
 
   let html = '';
   filtered.forEach(lead => {
-    const actualCarrier = lead.simCarrier || detectSimCarrier(lead.phone);
+    const actualCarrier = lead.simCarrier ? lead.simCarrier : detectSimCarrier(lead.phone);
     const carrierColor = actualCarrier === 'Vinaphone' ? 'bg-sky-50 text-sky-700 border-sky-200' :
                          actualCarrier === 'Mobifone' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                          actualCarrier === 'Vietnamobile' ? 'bg-amber-50 text-amber-700 border-amber-200' :
                          actualCarrier === 'Viettel' ? 'bg-red-50 text-red-700 border-red-200' :
                          'bg-slate-100 text-slate-700 border-slate-200';
+
+    const safeName = escapeHtml(lead.name);
+    const ageText = lead.age ? lead.age : 25;
+    const phoneText = lead.phone ? lead.phone : '---';
+    const cccdText = lead.cccd ? lead.cccd : 'Chưa có';
 
     if (activeTab === 'archived') {
       const isExpanded = expandedArchiveIds.has(lead.id);
@@ -580,91 +577,126 @@ function render() {
       let docsHtml = '';
       const docMap = typeof DOC_MAP !== 'undefined' ? DOC_MAP : {};
       (lead.documents || []).forEach(d => {
-        docsHtml += `<span class="inline-block bg-white text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 ml-1">✓ ${docMap[d] || d}</span>`;
+        const dLabel = docMap[d] ? docMap[d] : d;
+        docsHtml += `<span class="inline-block bg-white text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 ml-1">✓ ${dLabel}</span>`;
       });
       if (!docsHtml) docsHtml = '<span class="text-slate-400 italic text-[10px]"> Chưa có</span>';
 
       let appsHtml = '';
       (lead.applications || []).forEach((app, aIdx) => {
+        const appLender = app.lender ? app.lender : '---';
+        const appResult = app.result ? app.result : '---';
+        const statusColor = appResult === 'Duyệt' ? 'bg-emerald-100 text-emerald-800' : appResult === 'Từ chối' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700';
+        const receiptBtn = app.contract ? `<button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="text-[10px] bg-teal-600 text-white font-bold px-2 py-0.5 rounded active:scale-95 transition">🧾 Phiếu</button>` : '';
+
         appsHtml += `
           <div class="bg-white rounded-lg p-2 border border-slate-200 text-xs flex justify-between items-center">
-            <span class="font-bold text-slate-800 truncate">🏛️ ${app.lender}</span>
+            <span class="font-bold text-slate-800 truncate">🏛️ ${appLender}</span>
             <div class="flex items-center gap-1.5">
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded ${app.result === 'Duyệt' ? 'bg-emerald-100 text-emerald-800' : app.result === 'Từ chối' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'}">${app.result}</span>
-              ${app.contract ? `<button type="button" onclick="openReceipt(${lead.id},${aIdx})" class="text-[10px] bg-teal-600 text-white font-bold px-2 py-0.5 rounded active:scale-95 transition">🧾 Phiếu</button>` : ''}
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded ${statusColor}">${appResult}</span>
+              ${receiptBtn}
             </div>
           </div>
         `;
       });
+
+      const expandBtnText = isExpanded ? '▲ Thu gọn' : '▼ Chi tiết';
+      const expandBtnClass = isExpanded ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700';
+      const iconStatus = isDisbursed ? '🎉' : '📁';
+      const compReason = lead.completeReason ? lead.completeReason : 'Hoàn tất';
+      const safeCompReason = escapeHtml(compReason);
+      const disburseColor = isDisbursed ? 'text-emerald-700' : 'text-indigo-950';
+      
+      let approvedAmountBadge = '';
+      if (approvedApp && approvedApp.contract) {
+        approvedAmountBadge = `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}: ${fmtVND(approvedApp.contract.approvedAmount)})</span>`;
+      }
+      const completedDateText = lead.completedDate ? lead.completedDate : '';
+
+      let expandedHtml = '';
+      if (isExpanded) {
+        const amountVND = fmtVND(lead.amount);
+        const cicText = lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu';
+        const jobText = escapeHtml(lead.job) ? escapeHtml(lead.job) : 'Tự do';
+        const incomeVND = fmtVND(lead.income);
+        const workTimeText = escapeHtml(lead.workTime) ? escapeHtml(lead.workTime) : 'Chưa rõ TG';
+        const workAddressHtml = lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Nơi làm:</b> ${escapeHtml(lead.workAddress)} (${workTimeText})</div>` : '';
+        const permAddressText = escapeHtml(lead.permAddress) ? escapeHtml(lead.permAddress) : '---';
+        const refNameText = escapeHtml(lead.ref1Name) ? escapeHtml(lead.ref1Name) : '---';
+        const refPhoneText = lead.ref1Phone ? lead.ref1Phone : '---';
+        const noteHtml = lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : '';
+
+        expandedHtml = `
+          <div class="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-150">
+            <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
+              <div class="flex justify-between"><span>Khoản vay:</span> <span class="font-bold text-blue-700">${amountVND}</span></div>
+              <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${cicText}</span></div>
+              <div class="text-[11px]"><b>Nghề nghiệp:</b> ${jobText} • Thu nhập: ${incomeVND}</div>
+              ${workAddressHtml}
+              <div class="text-[10px] text-slate-500">🏠 <b>Thường trú:</b> ${permAddressText}</div>
+              <div class="text-[10px] text-slate-500">👥 <b>Tham chiếu:</b> ${refNameText} (${refPhoneText})</div>
+              <div><b>Chứng từ:</b> ${docsHtml}</div>
+              ${noteHtml}
+            </div>
+            <div class="bg-slate-100/60 rounded-xl p-2 space-y-1.5 border border-slate-200">
+              <span class="font-bold text-xs text-slate-800 block">🏛️ Tiến độ hồ sơ đã lưu:</span>
+              <div class="space-y-1">${appsHtml}</div>
+            </div>
+            <div class="flex justify-between items-center pt-1 text-xs">
+              <div class="flex gap-1.5">
+                <a href="tel:${phoneText}" class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">📞 Gọi</a>
+                <a href="https://zalo.me/${phoneText}" target="_blank" class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded font-bold">💬 Zalo</a>
+              </div>
+              <div class="flex gap-1">
+                <button type="button" onclick="openEditModal(${lead.id})" class="text-slate-700 px-2 py-1 font-semibold hover:bg-slate-100 rounded">Sửa</button>
+                <button type="button" onclick="deleteLead(${lead.id})" class="text-rose-600 px-2 py-1 font-semibold hover:bg-rose-50 rounded">Xóa</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
 
       html += `
         <div class="bg-white rounded-2xl p-3 border border-slate-200 shadow-sm space-y-2 transition-all">
           <div class="flex justify-between items-center">
             <div>
               <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-bold text-slate-900 text-sm">${escapeHtml(lead.name)}</span>
-                <span class="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">${lead.age} tuổi</span>
+                <span class="font-bold text-slate-900 text-sm">${safeName}</span>
+                <span class="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">${ageText} tuổi</span>
                 <span class="text-[10px] ${carrierColor} px-1.5 py-0.5 rounded border font-semibold">📶 ${actualCarrier}</span>
               </div>
-              <div class="text-xs text-slate-500 font-mono mt-0.5">${lead.phone} • CCCD: ${lead.cccd || '---'}</div>
+              <div class="text-xs text-slate-500 font-mono mt-0.5">${phoneText} • CCCD: ${cccdText}</div>
             </div>
             <div class="flex items-center gap-1">
-              <button type="button" onclick="toggleLeadDetail(${lead.id})" class="text-[10px] ${isExpanded ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'} hover:bg-slate-200 font-extrabold px-2.5 py-1 rounded-full transition active:scale-95 flex items-center gap-0.5">
-                <span>${isExpanded ? '▲ Thu gọn' : '▼ Chi tiết'}</span>
+              <button type="button" onclick="toggleLeadDetail(${lead.id})" class="text-[10px] ${expandBtnClass} hover:bg-slate-200 font-extrabold px-2.5 py-1 rounded-full transition active:scale-95 flex items-center gap-0.5">
+                <span>${expandBtnText}</span>
               </button>
               <button type="button" onclick="toggleCompleteModal(${lead.id})" title="Mở lại hồ sơ đang xử lý" class="bg-slate-800 hover:bg-slate-900 text-white text-[10px] px-2.5 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
                 ↺ Mở lại
               </button>
             </div>
           </div>
-
           <div class="bg-indigo-50/60 border border-indigo-100 rounded-xl p-2 flex justify-between items-center text-[11px]">
             <div class="truncate flex items-center gap-1">
-              <span class="font-bold ${isDisbursed ? 'text-emerald-700' : 'text-indigo-950'}">
-                ${isDisbursed ? '🎉' : '📁'} ${escapeHtml(lead.completeReason || 'Hoàn tất')}
+              <span class="font-bold ${disburseColor}">
+                ${iconStatus} ${safeCompReason}
               </span>
-              ${approvedApp?.contract ? `<span class="text-emerald-800 font-black text-[10px] bg-emerald-100 px-1.5 py-0.5 rounded">(${approvedApp.lender}:${fmtVND(approvedApp.contract.approvedAmount)})</span>` : ''}
+              ${approvedAmountBadge}
             </div>
-            <span class="text-[10px] text-slate-500 shrink-0 ml-1 font-medium">${lead.completedDate || ''}</span>
+            <span class="text-[10px] text-slate-500 shrink-0 ml-1 font-medium">${completedDateText}</span>
           </div>
-
-          ${isExpanded ? `
-            <div class="pt-2 border-t border-slate-100 space-y-2 animate-in fade-in duration-150">
-              <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
-                <div class="flex justify-between"><span>Khoản vay:</span> <span class="font-bold text-blue-700">${fmtVND(lead.amount)}</span></div>
-                <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
-                <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${fmtVND(lead.income)}</div>${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Nơi làm:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
-                <div class="text-[10px] text-slate-500">🏠 <b>Thường trú:</b> ${escapeHtml(lead.permAddress) || '---'}</div>
-                <div class="text-[10px] text-slate-500">👥 <b>Tham chiếu:</b> ${escapeHtml(lead.ref1Name) \vert{}\vert{} '---'} (${lead.ref1Phone || '---'})</div>
-                <div><b>Chứng từ:</b> ${docsHtml}</div>${lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : ''}
-              </div>
-
-              <div class="bg-slate-100/60 rounded-xl p-2 space-y-1.5 border border-slate-200">
-                <span class="font-bold text-xs text-slate-800 block">🏛️ Tiến độ hồ sơ đã lưu:</span>
-                <div class="space-y-1">${appsHtml}</div>
-              </div>
-
-              <div class="flex justify-between items-center pt-1 text-xs">
-                <div class="flex gap-1.5">
-                  <a href="tel:${lead.phone}" class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">📞 Gọi</a>
-                  <a href="https://zalo.me/${lead.phone}" target="_blank" class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded font-bold">💬 Zalo</a>
-                </div>
-                <div class="flex gap-1">
-                  <button type="button" onclick="openEditModal(${lead.id})" class="text-slate-700 px-2 py-1 font-semibold hover:bg-slate-100 rounded">Sửa</button>
-                  <button type="button" onclick="deleteLead(${lead.id})" class="text-rose-600 px-2 py-1 font-semibold hover:bg-rose-50 rounded">Xóa</button>
-                </div>
-              </div>
-            </div>
-          ` : ''}
+          ${expandedHtml}
         </div>
       `;
       return;
     }
 
+    // Logic tab "active" & "match"
     let docsHtml = '';
     const docMap = typeof DOC_MAP !== 'undefined' ? DOC_MAP : {};
     (lead.documents || []).forEach(d => {
-      docsHtml += `<span class="inline-block bg-white text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 ml-1">✓ ${docMap[d] || d}</span>`;
+      const dLabel = docMap[d] ? docMap[d] : d;
+      docsHtml += `<span class="inline-block bg-white text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 ml-1">✓ ${dLabel}</span>`;
     });
     if (!docsHtml) docsHtml = '<span class="text-slate-400 italic text-[10px]"> Chưa có</span>';
 
@@ -676,23 +708,33 @@ function render() {
 
     let appsHtml = '';
     (lead.applications || []).forEach((app, aIdx) => {
+      const appLender = app.lender ? app.lender : '---';
+      const appResult = app.result ? app.result : '---';
       let extraHtml = '';
-      if (app.result === 'Từ chối') {
+
+      if (appResult === 'Từ chối') {
+        const rejectText = escapeHtml(app.rejectReason ? app.rejectReason : '');
         extraHtml = `
           <div class="text-rose-700 bg-rose-50 p-1.5 rounded text-[10px] space-y-1 border border-rose-200 mt-1">
-            <div class="font-bold">⛔ Đã kết thúc tại ${app.lender}</div>
-            <input type="text" value="${escapeHtml(app.rejectReason || '')}" oninput="updateRejectReason(${lead.id}, ${aIdx}, this.value)" placeholder="Nhập lý do từ chối..." class="w-full bg-white border border-rose-200 rounded px-1.5 py-0.5 text-[10px]">
+            <div class="font-bold">⛔ Đã kết thúc tại ${appLender}</div>
+            <input type="text" value="${rejectText}" oninput="updateRejectReason(${lead.id}, ${aIdx}, this.value)" placeholder="Nhập lý do từ chối..." class="w-full bg-white border border-rose-200 rounded px-1.5 py-0.5 text-[10px]">
           </div>
         `;
-      } else if (app.result === 'Duyệt') {
+      } else if (appResult === 'Duyệt') {
         let contractDetails = '';
+        const contractBtnText = app.contract ? 'Sửa HĐ' : '+ Nhập HĐ';
         if (app.contract) {
+          const codeText = escapeHtml(app.contract.code ? app.contract.code : '');
+          const approvedVND = fmtVND(app.contract.approvedAmount);
+          const tenorText = app.contract.tenor ? app.contract.tenor : 12;
+          const monthlyVND = fmtVND(app.contract.monthlyPay);
+          
           contractDetails = `
             <div class="grid grid-cols-2 gap-1 text-slate-700 pt-1 border-t border-emerald-200">
-              <div>Số HĐ: <b class="font-mono text-emerald-800">${escapeHtml(app.contract.code)}</b></div>
-              <div>Duyệt: <b class="text-emerald-800">${fmtVND(app.contract.approvedAmount)}</b></div>
+              <div>Số HĐ: <b class="font-mono text-emerald-800">${codeText}</b></div>
+              <div>Duyệt: <b class="text-emerald-800">${approvedVND}</b></div>
               <div class="col-span-2 flex justify-between items-center pt-1">
-                <span>Kỳ: ${app.contract.tenor || 12} tháng • Góp: ${fmtVND(app.contract.monthlyPay)}/tháng</span>
+                <span>Kỳ: ${tenorText} tháng • Góp: ${monthlyVND}/tháng</span>
                 <button type="button" onclick="openReceipt(${lead.id}, ${aIdx})" class="bg-teal-600 text-white px-2.5 py-1 rounded-lg font-bold shadow hover:bg-teal-700 active:scale-95 transition">🧾 Xuất Phiếu</button>
               </div>
             </div>
@@ -702,7 +744,7 @@ function render() {
           <div class="bg-emerald-50 border border-emerald-300 p-2 rounded text-[10px] space-y-1 mt-1">
             <div class="flex justify-between items-center font-bold text-emerald-900">
               <span>🎉 Đã duyệt khoản vay</span>
-              <button type="button" onclick="openContractModal(${lead.id}, ${aIdx})" class="bg-emerald-700 text-white px-2 py-0.5 rounded shadow hover:bg-emerald-800 active:scale-95 transition">${app.contract ? 'Sửa HĐ' : '+ Nhập HĐ'}</button>
+              <button type="button" onclick="openContractModal(${lead.id}, ${aIdx})" class="bg-emerald-700 text-white px-2 py-0.5 rounded shadow hover:bg-emerald-800 active:scale-95 transition">${contractBtnText}</button>
             </div>
             ${contractDetails}
           </div>
@@ -712,13 +754,13 @@ function render() {
       appsHtml += `
         <div class="bg-white rounded-lg p-2 border border-indigo-200/70 text-xs space-y-1.5 shadow-sm">
           <div class="grid grid-cols-12 gap-1 items-center">
-            <div class="col-span-5 font-bold text-slate-800 truncate">🏢 ${app.lender}</div>
+            <div class="col-span-5 font-bold text-slate-800 truncate">🏢 ${appLender}</div>
             <div class="col-span-7 flex justify-end gap-1">
               <select onchange="handleAppChange(${lead.id}, ${aIdx}, this.value)" class="font-bold text-[11px] rounded-lg px-2 py-1 border bg-slate-50">
-                <option value="Đang thẩm định" ${app.result === 'Đang thẩm định' ? 'selected' : ''}>⏳ Đang thẩm định</option>
-                <option value="Bổ sung hồ sơ" ${app.result === 'Bổ sung hồ sơ' ? 'selected' : ''}>📄 Bổ sung hồ sơ</option>
-                <option value="Duyệt" ${app.result === 'Duyệt' ? 'selected' : ''}>✅ Duyệt</option>
-                <option value="Từ chối" ${app.result === 'Từ chối' ? 'selected' : ''}>⛔ Từ chối</option>
+                <option value="Đang thẩm định" ${appResult === 'Đang thẩm định' ? 'selected' : ''}>⏳ Đang xử lý</option>
+                <option value="Bổ sung hồ sơ" ${appResult === 'Bổ sung hồ sơ' ? 'selected' : ''}>📄 Bổ sung</option>
+                <option value="Duyệt" ${appResult === 'Duyệt' ? 'selected' : ''}>✅ Duyệt</option>
+                <option value="Từ chối" ${appResult === 'Từ chối' ? 'selected' : ''}>⛔ Từ chối</option>
               </select>
               <button type="button" onclick="removeApp(${lead.id}, ${aIdx})" class="text-slate-400 hover:text-rose-600 px-1 font-bold">✕</button>
             </div>
@@ -735,31 +777,42 @@ function render() {
       matchedPkgs.slice(0, 3).forEach(p => {
         pkgPills += `<span class="inline-block bg-amber-50 text-amber-900 border border-amber-200 rounded px-1.5 py-0.5 text-[10px] font-bold">⭐ ${p.lender} (${p.matchRate})</span>`;
       });
+      const emptyMatchText = '<span class="text-slate-500 text-[10px]">Chưa tìm thấy gói hoàn toàn khớp</span>';
+      
       matchSummaryHtml = `
         <div class="bg-amber-50/70 border border-amber-300 rounded-xl p-2 space-y-1">
           <div class="flex justify-between items-center text-[10px] font-black text-amber-950">
             <span>🎯 ${matchedPkgs.length} GÓI VAY ĐẠT CHUẨN:</span>
             <button type="button" onclick="openLoanMatchModal(${lead.id})" class="text-blue-700 underline font-extrabold">Xem tất cả ➔</button>
           </div>
-          <div class="flex flex-wrap gap-1">${pkgPills || '<span class="text-slate-500 text-[10px]">Chưa tìm thấy gói hoàn toàn khớp</span>'}</div>
+          <div class="flex flex-wrap gap-1">${pkgPills ? pkgPills : emptyMatchText}</div>
         </div>
       `;
     }
 
+    const borderClass = activeTab === 'match' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-slate-200';
+    const amountVND = fmtVND(lead.amount);
+    const cicText = lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu';
+    const jobText = escapeHtml(lead.job) ? escapeHtml(lead.job) : 'Tự do';
+    const incomeVND = fmtVND(lead.income);
+    const workTimeText = escapeHtml(lead.workTime) ? escapeHtml(lead.workTime) : 'Chưa rõ TG';
+    const workAddressHtml = lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Đ/c làm việc:</b> ${escapeHtml(lead.workAddress)} (${workTimeText})</div>` : '';
+    const noteHtml = lead.note ? `<div class="text-[10px] text-slate-600 bg-amber-50 p-1.5 rounded border border-amber-200">📝 <b>Ghi chú:</b> ${escapeHtml(lead.note)}</div>` : '';
+
     html += `
-      <div class="bg-white rounded-2xl p-3.5 border ${activeTab === 'match' ? 'border-amber-400 ring-2 ring-amber-100' : 'border-slate-200'} shadow-sm space-y-3">
+      <div class="bg-white rounded-2xl p-3.5 border ${borderClass} shadow-sm space-y-3">
         <div class="flex justify-between items-start">
           <div>
             <div class="flex items-center gap-1.5 flex-wrap">
-              <span class="font-bold text-slate-900 text-sm">${escapeHtml(lead.name)}</span>
-              <span class="text-[11px] bg-blue-50 text-blue-800 px-2 py-0.5 rounded font-bold">${lead.age} tuổi</span>
+              <span class="font-bold text-slate-900 text-sm">${safeName}</span>
+              <span class="text-[11px] bg-blue-50 text-blue-800 px-2 py-0.5 rounded font-bold">${ageText} tuổi</span>
               <span class="text-[10px] ${carrierColor} px-1.5 py-0.5 rounded border font-semibold">📶 ${actualCarrier}</span>
             </div>
-            <div class="text-xs text-slate-500 font-mono mt-0.5">${lead.phone} • CCCD: ${lead.cccd || 'Chưa có'}</div>
+            <div class="text-xs text-slate-500 font-mono mt-0.5">${phoneText} • CCCD: ${cccdText}</div>
           </div>
           <div class="flex gap-1">
             <button type="button" onclick="openLoanMatchModal(${lead.id})" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-[10px] px-2.5 py-1 rounded-full font-extrabold shadow-sm active:scale-95 transition">
-              🎯 Lọc Gói
+              🎯 Lọc
             </button>
             <button type="button" onclick="toggleCompleteModal(${lead.id})" class="bg-slate-800 hover:bg-slate-900 text-white text-[10px] px-2 py-1 rounded-full font-bold shadow-sm transition active:scale-95">
               ✓ Xong
@@ -770,17 +823,18 @@ function render() {
         ${matchSummaryHtml}
 
         <div class="bg-slate-50 rounded-xl p-2.5 text-xs space-y-1.5 border border-slate-100">
-          <div class="flex justify-between"><span>Cần vay:</span> <span class="font-bold text-blue-700">${fmtVND(lead.amount)}</span></div>
-          <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${lead.cicStatus === 'SACH' ? 'Nhóm 1 (Sạch)' : 'Nợ chú ý/xấu'}</span></div>
-          <div class="text-[11px]"><b>Nghề nghiệp:</b> ${escapeHtml(lead.job) || 'Tự do'} • Thu nhập: ${fmtVND(lead.income)}</div>
-          ${lead.workAddress ? `<div class="text-[10px] text-slate-600">🏢 <b>Đ/c làm việc:</b> ${escapeHtml(lead.workAddress)} (${escapeHtml(lead.workTime) || 'Chưa rõ TG'})</div>` : ''}
+          <div class="flex justify-between"><span>Cần vay:</span> <span class="font-bold text-blue-700">${amountVND}</span></div>
+          <div class="flex justify-between"><span>CIC:</span> <span class="font-bold">${cicText}</span></div>
+          <div class="text-[11px]"><b>Nghề nghiệp:</b> ${jobText} • Thu nhập: ${incomeVND}</div>
+          ${workAddressHtml}
           <div class="text-[10px] text-slate-600 bg-emerald-50/50 p-1.5 rounded-lg border border-emerald-100"><b>🔍 Đang/Từng vay ở Cty:</b> ${prevLendersHtml}</div>
           <div><b>Chứng từ:</b> ${docsHtml}</div>
+          ${noteHtml}
         </div>
 
         <div class="bg-indigo-50/50 rounded-xl p-2.5 border border-indigo-100 space-y-2">
           <div class="flex justify-between items-center">
-            <span class="font-bold text-xs text-indigo-950">🏛️ Tiến độ nộp đa công ty:</span>
+            <span class="font-bold text-xs text-indigo-950">🏛️ Tiến độ hồ sơ:</span>
             <button type="button" onclick="addAppPrompt(${lead.id})" class="text-[11px] bg-indigo-600 text-white font-bold px-2.5 py-1 rounded-lg shadow active:scale-95 transition flex items-center gap-1">
               <span>+ Nộp Cty</span>
             </button>
@@ -790,8 +844,8 @@ function render() {
 
         <div class="flex justify-between items-center pt-1 border-t border-slate-100 text-xs">
           <div class="flex gap-1.5">
-            <a href="tel:${lead.phone}" class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">📞 Gọi</a>
-            <a href="https://zalo.me/${lead.phone}" target="_blank" class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded font-bold">💬 Zalo</a>
+            <a href="tel:${phoneText}" class="bg-blue-50 text-blue-700 px-2 py-1 rounded font-bold">📞 Gọi</a>
+            <a href="https://zalo.me/${phoneText}" target="_blank" class="bg-emerald-50 text-emerald-700 px-2 py-1 rounded font-bold">💬 Zalo</a>
           </div>
           <div class="flex gap-1">
             <button type="button" onclick="openEditModal(${lead.id})" class="text-slate-700 px-2 py-1 font-semibold hover:bg-slate-100 rounded">Sửa</button>
@@ -828,54 +882,65 @@ function renderPrevLendersCheckboxes(selectedLenders = []) {
 
 function openCreateModal() {
   editingLeadId = null;
-  document.getElementById('leadModalTitle').innerText = 'Thêm Khách Hàng Mới';
-  document.getElementById('leadForm').reset();
-  document.getElementById('formDob').value = '1998-05-15';
+  const t = document.getElementById('leadModalTitle');
+  if (t) t.innerText = 'Thêm Khách Hàng Mới';
+  const f = document.getElementById('leadForm');
+  if (f) f.reset();
+  const dob = document.getElementById('formDob');
+  if (dob) dob.value = '1998-05-15';
+  
   updateCarrierBadge('Khác');
   renderDocCheckboxes();
   renderPrevLendersCheckboxes();
-  document.getElementById('leadModal').classList.remove('hidden');
+  const m = document.getElementById('leadModal');
+  if (m) m.classList.remove('hidden');
 }
 
 function openEditModal(id) {
   const l = leads.find(x => x.id === id);
   if (!l) return;
   editingLeadId = id;
-  document.getElementById('leadModalTitle').innerText = 'Cập Nhật Hồ Sơ';
-  document.getElementById('formName').value = l.name || '';
-  document.getElementById('formPhone').value = l.phone || '';
-  document.getElementById('formEmail').value = l.email || '';
-  document.getElementById('formDob').value = l.dob || '1998-05-15';
-  document.getElementById('formCccd').value = l.cccd || '';
-  document.getElementById('formOldCmnd').value = l.oldCmnd || '';
-  document.getElementById('formGender').value = l.gender || 'Nam';
-  document.getElementById('formPermAddress').value = l.permAddress || '';
-  document.getElementById('formTempAddress').value = l.tempAddress || '';
-  document.getElementById('formJob').value = l.job || '';
-  document.getElementById('formWorkAddress').value = l.workAddress || '';
-  document.getElementById('formWorkTime').value = l.workTime || '';
-  document.getElementById('formIncome').value = l.income || '';
-  document.getElementById('formAmount').value = l.amount || '';
-  document.getElementById('formBankName').value = l.bankName || '';
-  document.getElementById('formBankAccount').value = l.bankAccount || '';
-  document.getElementById('formRef1Rel').value = l.ref1Rel || '';
-  document.getElementById('formRef1Name').value = l.ref1Name || '';
-  document.getElementById('formRef1Phone').value = l.ref1Phone || '';
-  document.getElementById('formRef2Rel').value = l.ref2Rel || '';
-  document.getElementById('formRef2Name').value = l.ref2Name || '';
-  document.getElementById('formRef2Phone').value = l.ref2Phone || '';
-  document.getElementById('formCicStatus').value = l.cicStatus || 'SACH';
-  document.getElementById('formNote').value = l.note || '';
-  updateCarrierBadge(l.simCarrier || detectSimCarrier(l.phone));
-  renderDocCheckboxes(l.documents || []);
-  renderPrevLendersCheckboxes(l.previousLenders || []);
+  const t = document.getElementById('leadModalTitle');
+  if (t) t.innerText = 'Cập Nhật Hồ Sơ';
   
-  const userApps = l.installedApps || [];
+  if (document.getElementById('formName')) document.getElementById('formName').value = l.name ? l.name : '';
+  if (document.getElementById('formPhone')) document.getElementById('formPhone').value = l.phone ? l.phone : '';
+  if (document.getElementById('formEmail')) document.getElementById('formEmail').value = l.email ? l.email : '';
+  if (document.getElementById('formDob')) document.getElementById('formDob').value = l.dob ? l.dob : '1998-05-15';
+  if (document.getElementById('formCccd')) document.getElementById('formCccd').value = l.cccd ? l.cccd : '';
+  if (document.getElementById('formOldCmnd')) document.getElementById('formOldCmnd').value = l.oldCmnd ? l.oldCmnd : '';
+  if (document.getElementById('formGender')) document.getElementById('formGender').value = l.gender ? l.gender : 'Nam';
+  if (document.getElementById('formPermAddress')) document.getElementById('formPermAddress').value = l.permAddress ? l.permAddress : '';
+  if (document.getElementById('formTempAddress')) document.getElementById('formTempAddress').value = l.tempAddress ? l.tempAddress : '';
+  if (document.getElementById('formJob')) document.getElementById('formJob').value = l.job ? l.job : '';
+  if (document.getElementById('formWorkAddress')) document.getElementById('formWorkAddress').value = l.workAddress ? l.workAddress : '';
+  if (document.getElementById('formWorkTime')) document.getElementById('formWorkTime').value = l.workTime ? l.workTime : '';
+  if (document.getElementById('formIncome')) document.getElementById('formIncome').value = l.income ? l.income : '';
+  if (document.getElementById('formAmount')) document.getElementById('formAmount').value = l.amount ? l.amount : '';
+  if (document.getElementById('formBankName')) document.getElementById('formBankName').value = l.bankName ? l.bankName : '';
+  if (document.getElementById('formBankAccount')) document.getElementById('formBankAccount').value = l.bankAccount ? l.bankAccount : '';
+  if (document.getElementById('formRef1Rel')) document.getElementById('formRef1Rel').value = l.ref1Rel ? l.ref1Rel : '';
+  if (document.getElementById('formRef1Name')) document.getElementById('formRef1Name').value = l.ref1Name ? l.ref1Name : '';
+  if (document.getElementById('formRef1Phone')) document.getElementById('formRef1Phone').value = l.ref1Phone ? l.ref1Phone : '';
+  if (document.getElementById('formRef2Rel')) document.getElementById('formRef2Rel').value = l.ref2Rel ? l.ref2Rel : '';
+  if (document.getElementById('formRef2Name')) document.getElementById('formRef2Name').value = l.ref2Name ? l.ref2Name : '';
+  if (document.getElementById('formRef2Phone')) document.getElementById('formRef2Phone').value = l.ref2Phone ? l.ref2Phone : '';
+  if (document.getElementById('formCicStatus')) document.getElementById('formCicStatus').value = l.cicStatus ? l.cicStatus : 'SACH';
+  if (document.getElementById('formNote')) document.getElementById('formNote').value = l.note ? l.note : '';
+  
+  const sim = l.simCarrier ? l.simCarrier : detectSimCarrier(l.phone);
+  updateCarrierBadge(sim);
+  
+  renderDocCheckboxes(l.documents ? l.documents : []);
+  renderPrevLendersCheckboxes(l.previousLenders ? l.previousLenders : []);
+  
+  const userApps = l.installedApps ? l.installedApps : [];
   document.querySelectorAll('.lead-app-chk').forEach(el => {
     el.checked = userApps.includes(el.value);
   });
 
-  document.getElementById('leadModal').classList.remove('hidden');
+  const m = document.getElementById('leadModal');
+  if (m) m.classList.remove('hidden');
 }
 
 function closeLeadModal() { 
@@ -918,23 +983,28 @@ function updateRejectReason(leadId, aIdx, val) {
   saveStorage();
 }
 
-// =================================================================
-// LOGIC XỬ LÝ ẨN HIỆN FORM HỢP ĐỒNG (VAY / THẺ) - MỚI ĐƯỢC THÊM
-// =================================================================
 function toggleContractFields() {
   const typeEl = document.getElementById('contractType');
   if (!typeEl) return;
   const type = typeEl.value;
   if (type === 'THE_TD' || type === 'VI_TRA_SAU') {
-    document.getElementById('loanFields').classList.add('hidden');
-    document.getElementById('cardFields').classList.remove('hidden');
-    document.getElementById('lblAmount').innerText = 'Hạn mức thẻ / Ví khả dụng';
-    document.getElementById('lblDate').innerText = 'Ngày kích hoạt thẻ/ví';
+    const loanF = document.getElementById('loanFields');
+    if (loanF) loanF.classList.add('hidden');
+    const cardF = document.getElementById('cardFields');
+    if (cardF) cardF.classList.remove('hidden');
+    const amt = document.getElementById('lblAmount');
+    if (amt) amt.innerText = 'Hạn mức thẻ / Ví khả dụng';
+    const lblD = document.getElementById('lblDate');
+    if (lblD) lblD.innerText = 'Ngày kích hoạt thẻ/ví';
   } else {
-    document.getElementById('loanFields').classList.remove('hidden');
-    document.getElementById('cardFields').classList.add('hidden');
-    document.getElementById('lblAmount').innerText = 'Số tiền duyệt';
-    document.getElementById('lblDate').innerText = 'Ngày giải ngân (Bắt đầu tính lãi)';
+    const loanF = document.getElementById('loanFields');
+    if (loanF) loanF.classList.remove('hidden');
+    const cardF = document.getElementById('cardFields');
+    if (cardF) cardF.classList.add('hidden');
+    const amt = document.getElementById('lblAmount');
+    if (amt) amt.innerText = 'Số tiền duyệt';
+    const lblD = document.getElementById('lblDate');
+    if (lblD) lblD.innerText = 'Ngày giải ngân (Bắt đầu tính lãi)';
   }
 }
 
@@ -945,24 +1015,24 @@ function openContractModal(leadId, aIdx) {
   const app = l.applications[aIdx];
   const c = app.contract;
   
-  const defaultAmount = c ? c.approvedAmount : (l.amount || 30000000);
-  const defaultMonthly = c ? (c.monthlyPay || 0) : Math.round((l.amount || 30000000) * 1.15 / 12);
+  const defaultAmount = c ? c.approvedAmount : (l.amount ? l.amount : 30000000);
+  const defaultMonthly = c ? (c.monthlyPay ? c.monthlyPay : 0) : Math.round((l.amount ? l.amount : 30000000) * 1.15 / 12);
 
-  if (document.getElementById('contractType')) document.getElementById('contractType').value = c ? (c.type || 'VAY') : 'VAY';
-  if (document.getElementById('contractPlatform')) document.getElementById('contractPlatform').value = c ? (c.platform || 'TRUC_TIEP') : 'TRUC_TIEP';
+  if (document.getElementById('contractType')) document.getElementById('contractType').value = c ? (c.type ? c.type : 'VAY') : 'VAY';
+  if (document.getElementById('contractPlatform')) document.getElementById('contractPlatform').value = c ? (c.platform ? c.platform : 'TRUC_TIEP') : 'TRUC_TIEP';
   
   if (document.getElementById('contractCode')) document.getElementById('contractCode').value = c ? c.code : ('HĐ-' + Date.now().toString().slice(-5));
   if (document.getElementById('contractAmount')) document.getElementById('contractAmount').value = new Intl.NumberFormat('vi-VN').format(defaultAmount);
   
-  if (document.getElementById('contractTenor')) document.getElementById('contractTenor').value = c ? (c.tenor || 12) : 12;
+  if (document.getElementById('contractTenor')) document.getElementById('contractTenor').value = c ? (c.tenor ? c.tenor : 12) : 12;
   if (document.getElementById('contractMonthly')) document.getElementById('contractMonthly').value = new Intl.NumberFormat('vi-VN').format(defaultMonthly);
   
-  if (document.getElementById('contractStatementDate')) document.getElementById('contractStatementDate').value = c ? (c.statementDate || '') : '';
-  if (document.getElementById('contractPaymentDueDate')) document.getElementById('contractPaymentDueDate').value = c ? (c.paymentDueDate || '') : '';
+  if (document.getElementById('contractStatementDate')) document.getElementById('contractStatementDate').value = c ? (c.statementDate ? c.statementDate : '') : '';
+  if (document.getElementById('contractPaymentDueDate')) document.getElementById('contractPaymentDueDate').value = c ? (c.paymentDueDate ? c.paymentDueDate : '') : '';
   
   if (document.getElementById('contractDate')) document.getElementById('contractDate').value = c ? c.disburseDate : new Date().toISOString().substring(0, 10);
   
-  toggleContractFields(); // Render đúng giao diện dựa theo dropdown
+  toggleContractFields();
   const m = document.getElementById('contractModal');
   if (m) m.classList.remove('hidden');
 }
@@ -978,8 +1048,8 @@ function saveContractForm(e) {
   if (!l) return;
 
   const parseNumSmart = (v) => {
-    let n = parseInt(String(v).replace(/[^0-9]/g, ''), 10) || 0;
-    // Phòng hờ user gõ "2500" rồi bấm Lưu luôn mà ko chạm ra ngoài để format
+    let n = parseInt(String(v).replace(/[^0-9]/g, ''), 10);
+    if (!n) n = 0;
     if (n > 0 && n < 100000) n = n * 1000;
     return n;
   };
@@ -1006,9 +1076,6 @@ function saveContractForm(e) {
   }, 200);
 }
 
-// ==========================================
-// TẠO PHIẾU THANH TOÁN (HỖ TRỢ VAY + THẺ)
-// ==========================================
 function openReceipt(leadId, aIdx) {
   const l = leads.find(x => x.id === leadId);
   if (!l || !l.applications || !l.applications[aIdx]) return;
@@ -1016,26 +1083,23 @@ function openReceipt(leadId, aIdx) {
   receiptLeadId = leadId;
   receiptAppIdx = aIdx;
 
-  const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => `${(v || 0).toLocaleString('vi-VN')} đ`;
-  const c = app.contract || {};
+  const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => { const num = v ? v : 0; return num.toLocaleString('vi-VN') + ' đ'; };
+  const c = app.contract ? app.contract : {};
   
   if (document.getElementById('receiptLenderTitle')) document.getElementById('receiptLenderTitle').innerText = app.lender;
   if (document.getElementById('receiptName')) document.getElementById('receiptName').innerText = l.name;
   if (document.getElementById('receiptPhone')) document.getElementById('receiptPhone').innerText = l.phone;
-  if (document.getElementById('receiptCode')) document.getElementById('receiptCode').innerText = c.code || '---';
+  if (document.getElementById('receiptCode')) document.getElementById('receiptCode').innerText = c.code ? c.code : '---';
 
-  // Label Nền tảng
   const platforms = {
     TRUC_TIEP: 'TRỰC TIẾP APP/SALE', ZALO: 'ZALO', MOMO: 'VÍ MOMO', ZALOPAY: 'VÍ ZALOPAY',
     VIETTEL_MONEY: 'VIETTEL MONEY', QUA_TANG_VIP: 'APP QUÀ TẶNG VIP', KHAC: 'ỨNG DỤNG KHÁC'
   };
-  if (document.getElementById('receiptPlatformBadge')) document.getElementById('receiptPlatformBadge').innerText = platforms[c.platform] || 'TRỰC TIẾP';
+  if (document.getElementById('receiptPlatformBadge')) document.getElementById('receiptPlatformBadge').innerText = platforms[c.platform] ? platforms[c.platform] : 'TRỰC TIẾP';
 
-  // Xử lý Giao diện VAY vs THẺ
   let typeGuideText = '';
   let platformGuideText = '';
 
-  // Chuyên sâu về nền tảng thanh toán
   switch (c.platform) {
     case 'ZALO': platformGuideText = 'Mở ứng dụng Zalo > Mục Khám phá > Chọn Mini App tương ứng (VD: VietCredit, Tnex) hoặc tìm trong phần Dịch vụ Tài Chính.'; break;
     case 'MOMO': platformGuideText = 'Mở ứng dụng MoMo > Vào mục "Thanh toán khoản vay" hoặc "Ví trả sau" > Nhập mã số hoặc CCCD để thanh toán.'; break;
@@ -1061,14 +1125,13 @@ function openReceipt(leadId, aIdx) {
     }
 
   } else {
-    // Vay trả góp
     if (document.getElementById('receiptTypeBadge')) document.getElementById('receiptTypeBadge').innerText = 'VAY TRẢ GÓP';
     if (document.getElementById('viewLoanInfo')) document.getElementById('viewLoanInfo').classList.remove('hidden');
     if (document.getElementById('viewCardInfo')) document.getElementById('viewCardInfo').classList.add('hidden');
     
     if (document.getElementById('receiptMonthlyPay')) document.getElementById('receiptMonthlyPay').innerText = fmtVND(c.monthlyPay);
     if (document.getElementById('receiptLoanAmount')) document.getElementById('receiptLoanAmount').innerText = fmtVND(c.approvedAmount);
-    if (document.getElementById('receiptTenor')) document.getElementById('receiptTenor').innerText = c.tenor || 12;
+    if (document.getElementById('receiptTenor')) document.getElementById('receiptTenor').innerText = c.tenor ? c.tenor : 12;
     
     const dates = (typeof calcPayDates === 'function') ? calcPayDates(c.disburseDate, c.tenor) : { first: '---', last: '---' };
     if (document.getElementById('receiptFirstDate')) document.getElementById('receiptFirstDate').innerText = dates.first;
@@ -1090,16 +1153,22 @@ function closeReceiptModal() {
 function copyPaymentMsg() {
   const l = leads.find(x => x.id === receiptLeadId);
   const app = l.applications[receiptAppIdx];
-  const c = app.contract || {};
-  const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => `${(v || 0).toLocaleString('vi-VN')} đ`;
+  const c = app.contract ? app.contract : {};
+  const fmtVND = typeof formatVND === 'function' ? formatVND : (v) => { const num = v ? v : 0; return num.toLocaleString('vi-VN') + ' đ'; };
 
-  let msg = `📢 THÔNG BÁO TÌNH TRẠNG SẢN PHẨM TÀI CHÍNH\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nSản phẩm: ${app.lender} (${c.type === 'THE_TD' ? 'Thẻ Tín Dụng' : c.type === 'VI_TRA_SAU' ? 'Ví Trả Sau' : 'Vay Trả Góp'})\nMã số HĐ/Thẻ: ${c.code || '---'}\n\n`;
+  const typeName = c.type === 'THE_TD' ? 'Thẻ Tín Dụng' : c.type === 'VI_TRA_SAU' ? 'Ví Trả Sau' : 'Vay Trả Góp';
+  const codeText = c.code ? c.code : '---';
+
+  let msg = `📢 THÔNG BÁO TÌNH TRẠNG SẢN PHẨM TÀI CHÍNH\n---------------------------------------\nKính gửi: ${l.name} (${l.phone})\nSản phẩm: ${app.lender} (${typeName})\nMã số HĐ/Thẻ: ${codeText}\n\n`;
 
   if (c.type === 'THE_TD' || c.type === 'VI_TRA_SAU') {
-    msg += `💳 Hạn mức cấp: ${fmtVND(c.approvedAmount)}\n📄 Ngày chốt sao kê: Ngày ${c.statementDate || '--'} hàng tháng\n⏰ Hạn thanh toán: Ngày ${c.paymentDueDate || '--'} hàng tháng\n\n⚠️ LƯU Ý QUAN TRỌNG: Hãy thanh toán TOÀN BỘ Tổng dư nợ đúng hạn để được miễn lãi 100%. Nếu chỉ thanh toán TỐI THIỂU, bạn sẽ bị tính lãi suất dư nợ. Đóng trễ sẽ bị phạt và nợ xấu.`;
+    const stDateText = c.statementDate ? c.statementDate : '--';
+    const ddText = c.paymentDueDate ? c.paymentDueDate : '--';
+    msg += `💳 Hạn mức cấp: ${fmtVND(c.approvedAmount)}\n📄 Ngày chốt sao kê: Ngày ${stDateText} hàng tháng\n⏰ Hạn thanh toán: Ngày ${ddText} hàng tháng\n\n⚠️ LƯU Ý QUAN TRỌNG: Hãy thanh toán TOÀN BỘ Tổng dư nợ đúng hạn để được miễn lãi 100%. Nếu chỉ thanh toán TỐI THIỂU, bạn sẽ bị tính lãi suất dư nợ. Đóng trễ sẽ bị phạt và nợ xấu.`;
   } else {
+    const tText = c.tenor ? c.tenor : 12;
     const dates = (typeof calcPayDates === 'function') ? calcPayDates(c.disburseDate, c.tenor) : { first: '---', last: '---' };
-    msg += `💰 Tiền góp định kỳ: ${fmtVND(c.monthlyPay)}/tháng\n(Kỳ hạn: ${c.tenor || 12} tháng)\n📅 Ngày đóng kỳ 1: ${dates.first}\n🏁 Ngày đóng kỳ cuối: ${dates.last}\n\n💡 LƯU Ý: Vui lòng đóng trước hạn 1-2 ngày để tránh kẹt mạng dẫn đến nợ xấu.`;
+    msg += `💰 Tiền góp định kỳ: ${fmtVND(c.monthlyPay)}/tháng\n(Kỳ hạn: ${tText} tháng)\n📅 Ngày đóng kỳ 1: ${dates.first}\n🏁 Ngày đóng kỳ cuối: ${dates.last}\n\n💡 LƯU Ý: Vui lòng đóng trước hạn 1-2 ngày để tránh kẹt mạng dẫn đến nợ xấu.`;
   }
   
   navigator.clipboard.writeText(msg).then(() => showToast('Đã copy kịch bản gửi Zalo!')).catch(() => showToast('Lỗi copy'));
@@ -1170,8 +1239,8 @@ function openBackupModal() {
     const cfg = typeof getTelegramConfig === 'function' ? getTelegramConfig() : { token: '', chatId: '' };
     const tokInput = document.getElementById('cfgTgToken');
     const chatInput = document.getElementById('cfgTgChatId');
-    if (tokInput) tokInput.value = cfg.token || '';
-    if (chatInput) chatInput.value = cfg.chatId || '';
+    if (tokInput) tokInput.value = cfg.token ? cfg.token : '';
+    if (chatInput) chatInput.value = cfg.chatId ? cfg.chatId : '';
     
     if (typeof updateTgStatusBadge === 'function') {
       updateTgStatusBadge();
